@@ -1,0 +1,463 @@
+/* =========================================
+   CSS Variables & Reset
+   ========================================= */
+:root {
+    --bg-color: #fcfaf2; /* Màu kem nền tảng */
+    --text-primary: #3a1f1d; /* Nâu sậm cổ điển */
+    --text-secondary: #6e5e5c; /* Nâu nhạt */
+    --accent-color: #5e1c17; /* Đỏ đô/Burgundy */
+    --border-color: #e5dfd3;
+    --white: #ffffff;
+    
+    --font-serif: 'Playfair Display', serif;
+    --font-sans: 'Lato', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+ul {
+    list-style: none;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* =========================================
+   Typography & Buttons
+   ========================================= */
+h1, h2, h3, .logo a, .footer-logo {
+    font-family: var(--font-serif);
+    font-weight: 700;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background-color: var(--text-primary);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-color);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+.btn-outline:hover {
+    background-color: var(--text-primary);
+    color: var(--white);
+}
+
+.btn-text {
+    padding: 10px 15px;
+    font-weight: 700;
+}
+
+.full-width {
+    width: 100%;
+    text-align: center;
+}
+
+/* =========================================
+   Header
+   ========================================= */
+.header {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo a {
+    font-size: 28px;
+    font-style: italic;
+    color: var(--text-primary);
+}
+
+.nav-links {
+    display: flex;
+    gap: 30px;
+}
+
+.nav-links a {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.nav-links a.active, .nav-links a:hover {
+    border-bottom: 1px solid var(--text-primary);
+}
+
+/* =========================================
+   Hero Section
+   ========================================= */
+.hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    padding: 60px 20px;
+    align-items: center;
+}
+
+.hero-content .subtitle {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+}
+
+.hero-content .title {
+    font-size: 64px;
+    line-height: 1.1;
+    margin: 20px 0;
+    color: var(--text-primary);
+}
+
+.hero-content .description {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+    max-width: 90%;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.hero-image {
+    position: relative;
+}
+
+.hero-image img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.hero-image-caption {
+    position: absolute;
+    bottom: -20px;
+    left: -20px;
+    background-color: var(--white);
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.caption-lot {
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+}
+
+.hero-image-caption h3 {
+    margin: 5px 0;
+    font-size: 18px;
+}
+
+.hero-image-caption p {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* =========================================
+   Featured Collections
+   ========================================= */
+.featured-collections {
+    padding: 80px 20px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+}
+
+.section-header.center {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-bottom: none;
+}
+
+.section-header h2 {
+    font-size: 32px;
+}
+
+.view-all {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+.grid-3-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.card-image {
+    width: 100%;
+    height: 350px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.card-image:hover img {
+    transform: scale(1.05);
+}
+
+.dark-bg {
+    background-color: #111;
+}
+
+.card-info h3 {
+    font-size: 20px;
+    margin-bottom: 5px;
+}
+
+.card-info p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.card-offset {
+    margin-top: 40px;
+}
+
+/* =========================================
+   Live Auctions Section
+   ========================================= */
+.live-auctions-section {
+    background-color: #f7f3e8; /* Nền hơi đậm hơn 1 chút để nổi bật */
+    padding: 80px 0;
+}
+
+.live-indicator {
+    color: var(--accent-color);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.grid-2-cols {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+}
+
+.auction-card {
+    background-color: var(--white);
+    display: flex;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+}
+
+.auction-image {
+    width: 50%;
+    position: relative;
+}
+
+.auction-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.live-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background-color: var(--accent-color);
+    color: var(--white);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    letter-spacing: 1px;
+}
+
+.auction-details {
+    width: 50%;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auction-details h3 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    line-height: 1.3;
+}
+
+.bid-stats {
+    margin-bottom: 25px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stat-row span {
+    color: var(--text-secondary);
+}
+
+.stat-row.highlight strong {
+    color: var(--accent-color);
+}
+
+/* =========================================
+   Provenance Section
+   ========================================= */
+.provenance-section {
+    padding: 80px 20px;
+}
+
+.align-center {
+    align-items: center;
+}
+
+.provenance-image img {
+    width: 100%;
+    height: auto;
+}
+
+.provenance-text h2 {
+    font-size: 32px;
+    margin-bottom: 20px;
+}
+
+.provenance-text p {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+}
+
+.provenance-tags {
+    display: flex;
+    gap: 15px;
+}
+
+.tag {
+    background-color: #ebe5d9;
+    padding: 8px 15px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* =========================================
+   Footer
+   ========================================= */
+.footer {
+    background-color: #efeadd;
+    padding: 60px 20px 30px;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer-logo {
+    font-size: 24px;
+    margin-bottom: 30px;
+    letter-spacing: 2px;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.footer-links a {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+}
+
+.copyright {
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+}
+
+/* =========================================
+   Responsive Basics
+   ========================================= */
+@media (max-width: 992px) {
+    .hero, .grid-2-cols {
+        grid-template-columns: 1fr;
+    }
+    .hero-content .title { font-size: 48px; }
+    .hero-image-caption { position: static; margin-top: 10px; }
+    .auction-card { flex-direction: column; }
+    .auction-image, .auction-details { width: 100%; }
+    .auction-image { height: 300px; }
+}
+
+@media (max-width: 768px) {
+    .grid-3-cols { grid-template-columns: 1fr; }
+    .card-offset { margin-top: 0; }
+    .nav-links { display: none; } /* Cần JS để toggle mobile menu */
+    .hero-actions { flex-direction: column; }
+    .provenance-tags { flex-wrap: wrap; }
+}
