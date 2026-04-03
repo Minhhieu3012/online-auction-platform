@@ -1,0 +1,80 @@
+services:
+  # 1. Database chính (MySQL)
+  mysql-db:
+    image: mysql:8.0
+    container_name: auction_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - auction-network
+
+  # 2. Cache & Atomic Operations (Redis)
+  redis-cache:
+    image: redis:7.0-alpine
+    container_name: auction_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - auction-network
+
+  # 3. Zookeeper (Điều phối Kafka)
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: auction_zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - auction-network
+
+  # 4. Kafka (Message Queue)
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: auction_kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:29092,EXTERNAL://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    depends_on:
+      - zookeeper
+    networks:
+      - auction-network
+
+  # 5. AI Service (Phần của Thành)
+  ai-service:
+    build:
+      context: ./ai-features
+      dockerfile: Dockerfile
+    container_name: ai_service
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    volumes:
+      - ./ai-features:/app
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-db/${MYSQL_DATABASE}
+      - REDIS_URL=redis://redis-cache:6379/0
+      - KAFKA_BROKERS=kafka:29092
+    depends_on:
+      - mysql-db
+      - kafka
+      - redis-cache
+    networks:
+      - auction-network
+
+networks:
+  auction-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
