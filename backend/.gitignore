@@ -1,0 +1,47 @@
+# 1. Dependency directories
+node_modules/
+
+# 2. Môi trường và Bảo mật 
+.env*
+
+# 3. Logs
+logs/
+*.log
+npm-debug.log*
+
+# 4. Các thư mục build/temp của Node
+pids/
+*.pid
+*.seed
+*.pid.lock
+coverage/
+
+# 5. IDE / Editor 
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 6. Docker 
+docker-compose.override.yml
+
+# 7. File Upload của user 
+src/public/uploads/
+uploads/
+
+# 8. Database dump 
+*.sql
+*.sqlite
+*.db
+
+# 9. Hệ điều hành
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 10. Cache
+.cache/
+.eslintcache
