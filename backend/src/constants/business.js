@@ -1,0 +1,9 @@
+const ANTI_SNIPING = {
+  TRIGGER_WINDOW_SEC: 15,
+  EXTEND_BY_SEC: 30,
+  MAX_EXTENSIONS: 10,
+};
+
+module.exports = {
+  ANTI_SNIPING,
+};
