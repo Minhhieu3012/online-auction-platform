@@ -36,6 +36,7 @@ uploads/
 *.sql
 *.sqlite
 *.db
+!database/init.sql
 
 # 9. Hệ điều hành
 .DS_Store
