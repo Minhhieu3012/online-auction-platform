@@ -17,5 +17,7 @@ app.use("/api/health", (req, res) => {
 });
 
 // Routes
+const routes = require("./routes/index");
+app.use("/api", routes);
 
 module.exports = app;
