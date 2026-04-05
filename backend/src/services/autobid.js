@@ -1,4 +1,3 @@
-// src/services/autobid.service.js
 const pool = require("../config/db");
 const redisClient = require("../config/redis");
 const { BIDDING } = require("../constants/business.constant");

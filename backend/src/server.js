@@ -1,6 +1,9 @@
 require("dotenv").config();
 require("./config/db");
 require("./config/redis");
+require("./config/queue");
+require("./services/auction-worker");
+
 const app = require("./app");
 
 const PORT = process.env.PORT || 3000;
