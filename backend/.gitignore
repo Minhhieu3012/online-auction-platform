@@ -3,6 +3,7 @@ node_modules/
 
 # 2. Môi trường và Bảo mật 
 .env*
+!.env.example
 
 # 3. Logs
 logs/
