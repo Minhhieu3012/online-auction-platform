@@ -1,5 +1,9 @@
 services:
+<<<<<<< HEAD
   # --- DATABASE ---
+=======
+  # 1. Database: MySQL 8.0
+>>>>>>> e39123a03e68f05c00f32de37d69eb8beeaa90e7
   mysql-db:
     image: mysql:8.0
     restart: always
@@ -25,7 +29,11 @@ services:
           cpus: '1.0'
           memory: 1G
 
+<<<<<<< HEAD
   # --- CACHE ---
+=======
+  # 2. Cache: Redis
+>>>>>>> e39123a03e68f05c00f32de37d69eb8beeaa90e7
   redis-cache:
     image: redis:7-alpine
     restart: always
@@ -46,6 +54,7 @@ services:
           cpus: '0.5'
           memory: 512M
 
+<<<<<<< HEAD
   # --- MESSAGE BROKER (KRaft mode) ---
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -68,6 +77,33 @@ services:
       KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
     volumes:
       - kafka_data:/var/lib/kafka/data
+=======
+  # 3. Zookeeper (Confluent)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: auction_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - auction-network
+
+  # 4. Kafka (Confluent)
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: auction_kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,LISTENER_EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LISTENER_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+>>>>>>> e39123a03e68f05c00f32de37d69eb8beeaa90e7
     networks:
       - auction-network
     healthcheck:
@@ -82,8 +118,13 @@ services:
           cpus: '1.0'
           memory: 1G
 
+<<<<<<< HEAD
   # --- AI SERVICE ---
   ai-logic:
+=======
+  # 5. AI Service (Thành)
+  ai-service:
+>>>>>>> e39123a03e68f05c00f32de37d69eb8beeaa90e7
     build:
       context: ./ai-features
       dockerfile: Dockerfile
