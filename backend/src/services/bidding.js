@@ -1,7 +1,6 @@
-// src/services/bidding.service.js
 const pool = require("../config/db");
 const redisClient = require("../config/redis");
-const { checkAntiSniping } = require("../constants/business.constant");
+const { checkAntiSniping } = require("../constants/business");
 
 // Lua nguyên tử (Atomic Lua Script) chạy trên Redis
 const placeBidLuaScript = `

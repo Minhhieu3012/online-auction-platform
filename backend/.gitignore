@@ -38,6 +38,7 @@ uploads/
 *.sqlite
 *.db
 !database/init.sql
+!database/mock_data.sql
 
 # 9. Hệ điều hành
 .DS_Store

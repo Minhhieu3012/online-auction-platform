@@ -1,4 +1,4 @@
-const BiddingService = require("../services/bidding.service");
+const BiddingService = require("../services/bidding");
 const { sendSuccess, sendError } = require("../utils/response");
 
 class BiddingController {
