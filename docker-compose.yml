@@ -1,76 +1,120 @@
 services:
-  # 1. Database chính (MySQL)
+  # --- DATABASE ---
   mysql-db:
     image: mysql:8.0
-    container_name: auction_mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DB:-auction_db}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - auction-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
-  # 2. Cache & Atomic Operations (Redis)
+  # --- CACHE ---
   redis-cache:
-    image: redis:7.0-alpine
-    container_name: auction_redis
+    image: redis:7-alpine
+    restart: always
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - auction-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
-  # 3. Zookeeper (Điều phối Kafka)
-  zookeeper:
-    image: bitnami/zookeeper:latest
-    container_name: auction_zookeeper
-    environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-    networks:
-      - auction-network
-
-  # 4. Kafka (Message Queue)
+  # --- MESSAGE BROKER (KRaft mode) ---
   kafka:
-    image: bitnami/kafka:latest
-    container_name: auction_kafka
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    restart: always
     ports:
       - "9092:9092"
     environment:
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:29092,EXTERNAL://:9092
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
-    depends_on:
-      - zookeeper
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      # Khóa bộ nhớ Heap của Java để khớp với giới hạn container
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     networks:
       - auction-network
+    healthcheck:
+      test: ["CMD", "kafka-cluster", "cluster-id", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
-  # 5. AI Service (Phần của Thành)
-  ai-service:
+  # --- AI SERVICE ---
+  ai-logic:
     build:
       context: ./ai-features
       dockerfile: Dockerfile
-    container_name: ai_service
+    image: ai-logic-image:v1
+    user: "0:0"
+    restart: on-failure
     ports:
-      - "${AI_SERVICE_PORT:-8000}:8000"
+      - "8000:8000"
     volumes:
       - ./ai-features:/app
     environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-db/${MYSQL_DATABASE}
-      - REDIS_URL=redis://redis-cache:6379/0
-      - KAFKA_BROKERS=kafka:29092
+      - MYSQL_HOST=mysql-db
+      - MYSQL_USER=${MYSQL_USER:-root}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-root}
+      - MYSQL_DB=${MYSQL_DB:-auction_db}
+      - REDIS_HOST=redis-cache
+      - KAFKA_BROKER=kafka:29092
     depends_on:
-      - mysql-db
-      - kafka
-      - redis-cache
+      mysql-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - auction-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
 networks:
   auction-network:
@@ -78,3 +122,5 @@ networks:
 
 volumes:
   mysql_data:
+  redis_data:
+  kafka_data:

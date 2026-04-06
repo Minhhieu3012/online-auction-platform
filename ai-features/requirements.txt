@@ -1,0 +1,14 @@
+# --- Core Framework ---
+fastapi==0.109.2
+uvicorn==0.27.1
+pydantic==2.6.1
+
+# --- Async Drivers (Thay thế các thư viện Blocking cũ) ---
+aiomysql==0.2.0
+redis==5.0.1
+aiokafka==0.10.0
+
+# --- Security & Utils ---
+# Cần thiết để aiomysql có thể xác thực với MySQL 8.0 (caching_sha2_password)
+cryptography==42.0.2
+python-dotenv==1.0.1
