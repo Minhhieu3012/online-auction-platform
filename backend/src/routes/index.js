@@ -13,4 +13,6 @@ router.use("/auctions", require("./auction"));
 // 3. Route Đặt giá (Không bị nhầm lẫn nữa)
 router.post("/auctions/:id/bids", authMiddleware, BiddingController.placeBid);
 
+router.get("/auctions/:id/bids", BiddingController.getBidHistory);
+
 module.exports = router;
