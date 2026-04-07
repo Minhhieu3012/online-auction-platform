@@ -1,5 +1,9 @@
 const express = require("express");
 const router = express.Router();
+
+const authRoutes = require("./auth");
+router.use("/auth", authRoutes);
+
 const BiddingController = require("../controllers/bidding");
 
 const authMiddleware = require("../middlewares/auth");
