@@ -31,6 +31,7 @@ CREATE TABLE Products (
 CREATE TABLE Auctions (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     product_id    INT NOT NULL,
+    created_by INT NOT NULL,
     status        ENUM('Scheduled','Active','Closing','Ended','Payment Pending') DEFAULT 'Scheduled',
     current_price DECIMAL(15,2) NOT NULL,
     step_price    DECIMAL(15,2) NOT NULL,
