@@ -6,6 +6,7 @@
 *.swo
 Thumbs.db
 Desktop.ini
+.DS_Store
 
 # --- Python (AI-features) ---
 __pycache__/
@@ -33,6 +34,8 @@ wheels/
 .venv/
 venv/
 ENV/
+.coverage
+htmlcov/
 
 # --- Environment & Secrets (CỰC KỲ QUAN TRỌNG) ---
 .env
@@ -42,16 +45,20 @@ ENV/
 .env.production.local
 *.env
 
-# --- Docker & Logs ---
+# --- Docker & Data Volumes ---
 *.log
 docker-volumes/
 mysql_data/
+kafka_data/
+zookeeper_data/
+redis_data/
+
+# --- Testing (JMeter) ---
+*.jtl
+*.csv
 
 # --- Node.js (Cho phần của Hiếu sau này) ---
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# --- OS specific ---
-.DS_Store
