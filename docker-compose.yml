@@ -1,15 +1,22 @@
+version: '3.8'
+
 services:
-  # --- DATABASE ---
+  # ==========================================
+  # 1. DATABASE (MySQL 8.0)
+  # ==========================================
   mysql-db:
     image: mysql:8.0
+    container_name: mysql-db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-root}
       MYSQL_DATABASE: ${MYSQL_DB:-auction_db}
+    # Port 3307 ở máy host map vào 3306 của container để tránh trùng lặp
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # Map file init để tự tạo 6 bảng (bao gồm bảng Fraud_Alerts của AI)
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - auction-network
@@ -25,9 +32,12 @@ services:
           cpus: '1.0'
           memory: 1G
 
-  # --- CACHE ---
+  # ==========================================
+  # 2. CACHE (Redis)
+  # ==========================================
   redis-cache:
     image: redis:7-alpine
+    container_name: redis-cache
     restart: always
     ports:
       - "6379:6379"
@@ -46,7 +56,9 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  # --- MESSAGE BROKER (KRaft mode hiện đại) ---
+  # ==========================================
+  # 3. MESSAGE BROKER (Kafka KRaft Mode - No Zookeeper)
+  # ==========================================
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     container_name: kafka
@@ -81,18 +93,43 @@ services:
           cpus: '1.0'
           memory: 1G
 
-  # --- AI SERVICE ---
+  # ==========================================
+  # 4. KAFKA UI (Công cụ giám sát Real-time cho Developer)
+  # ==========================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-kraft
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - auction-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==========================================
+  # 5. AI SERVICE (FastAPI)
+  # ==========================================
   ai-logic:
     build:
-      context: ./ai-features
+      context: . # Sửa thành "." vì file docker-compose.yml đã nằm trong thư mục ai-features
       dockerfile: Dockerfile
     image: ai-logic-image:v1
-    user: "0:0"
+    container_name: ai-logic
+    user: "0:0" # Chạy quyền root trong container để tránh lỗi permission khi mount volume
     restart: on-failure
     ports:
       - "8000:8000"
     volumes:
-      - ./ai-features:/app
+      - .:/app # Sửa đường dẫn mount để lấy chính xác code từ thư mục hiện tại
     environment:
       - MYSQL_HOST=mysql-db
       - MYSQL_USER=${MYSQL_USER:-root}
@@ -115,6 +152,9 @@ services:
           cpus: '1.0'
           memory: 1G
 
+# ==========================================
+# KHAI BÁO MẠNG VÀ Ổ ĐĨA DÙNG CHUNG
+# ==========================================
 networks:
   auction-network:
     driver: bridge
