@@ -1,17 +1,42 @@
 import asyncio
 import aiomysql
 import redis.asyncio as aioredis
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from app.api.routes import health
 from app.core.config import settings
+from app.workers.kafka_worker import consume_bids
 
-# Khởi tạo ứng dụng FastAPI
+# ==========================================
+# QUẢN LÝ VÒNG ĐỜI (LIFESPAN)
+# ==========================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Giai đoạn Startup: Kích hoạt Kafka Consumer chạy ngầm
+    print("🚀 [System] Khởi động AI Background Task...")
+    kafka_task = asyncio.create_task(consume_bids())
+    
+    # Nhường quyền điều khiển lại cho FastAPI để phục vụ HTTP requests
+    yield 
+    
+    # Giai đoạn Shutdown: Hủy bỏ an toàn task đang chạy ngầm
+    print("🛑 [System] Đang dọn dẹp AI Background Task...")
+    kafka_task.cancel()
+    try:
+        await kafka_task
+    except asyncio.CancelledError:
+        pass
+
+# ==========================================
+# KHỞI TẠO APP
+# ==========================================
 app = FastAPI(
     title="Online Auction LSS AI Service",
     description="Dịch vụ chấm điểm gian lận thời gian thực (Live Shill Score)",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan # Gắn lifespan vào app để quản lý worker
 )
 
 # Gắn (Mount) các router từ kiến trúc module
