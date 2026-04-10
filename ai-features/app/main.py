@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes import health
 from app.core.config import settings
 from app.workers.kafka_worker import consume_bids
+from app.db.redis_client import close_redis_pool
 
 # ==========================================
 # QUẢN LÝ VÒNG ĐỜI (LIFESPAN)
@@ -15,19 +16,21 @@ from app.workers.kafka_worker import consume_bids
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Giai đoạn Startup: Kích hoạt Kafka Consumer chạy ngầm
-    print("🚀 [System] Khởi động AI Background Task...")
+    print("[System] Khởi động AI Background Task...")
     kafka_task = asyncio.create_task(consume_bids())
     
     # Nhường quyền điều khiển lại cho FastAPI để phục vụ HTTP requests
     yield 
     
     # Giai đoạn Shutdown: Hủy bỏ an toàn task đang chạy ngầm
-    print("🛑 [System] Đang dọn dẹp AI Background Task...")
+    print("[System] Đang dọn dẹp AI Background Task...")
     kafka_task.cancel()
     try:
         await kafka_task
     except asyncio.CancelledError:
         pass
+    # Dọn dẹp Connection Pool của Redis
+    await close_redis_pool()
 
 # ==========================================
 # KHỞI TẠO APP

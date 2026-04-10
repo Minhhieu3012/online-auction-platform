@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.kafka.schemas import BidEvent
+from app.services.detector import calculate_lss
 
 async def consume_bids():
     """
@@ -20,7 +21,7 @@ async def consume_bids():
     
     # Khởi động kết nối tới Broker
     await consumer.start()
-    print(f"⚡ [Kafka Worker] Đã kết nối. Đang lắng nghe topic 'auction_bids' tại {settings.KAFKA_BROKER}...")
+    print(f"[Kafka Worker] Đã kết nối. Đang lắng nghe topic 'auction_bids' tại {settings.KAFKA_BROKER}...")
 
     try:
         # Vòng lặp Event Loop vô tận
@@ -33,8 +34,18 @@ async def consume_bids():
                 # Bước 2: Ép kiểu và xác thực qua Hợp đồng dữ liệu (Data Contract)
                 bid_event = BidEvent(**parsed_data)
 
-                # Bước 3: Dữ liệu sạch -> Chuyển giao cho AI Engine (Sẽ triển khai ở bước sau)
-                print(f"[Hợp lệ] Bid nhận được: Auction={bid_event.auction_id} | User={bid_event.user_id} | Giá=${bid_event.price}")
+                # Bước 3: Đưa dữ liệu sạch vào AI Engine tính toán
+                lss_score = await calculate_lss(
+                    auction_id=bid_event.auction_id,
+                    user_id=bid_event.user_id,
+                    price=bid_event.price
+                )
+
+                print(f"[Hợp lệ] Bid nhận được: Auction={bid_event.auction_id} | User={bid_event.user_id} | Giá=${bid_event.price} | Điểm LSS: {lss_score:.2f}")
+                
+                # Ngưỡng (Threshold) phát hiện gian lận
+                if lss_score > 0.6:
+                    print(f"[CẢNH BÁO SHILL BIDDING] User {bid_event.user_id} thao túng giá (LSS: {lss_score:.2f})!")
 
             except json.JSONDecodeError:
                 print(f"[Rác Dữ Liệu] Lỗi cú pháp JSON. Payload: {msg.value}")
