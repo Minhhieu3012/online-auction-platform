@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const redisClient = require("../config/redis");
 const { checkAntiSniping } = require("../constants/business");
+const { producer } = require("../config/kafka");
 
 // Lua nguyên tử (Atomic Lua Script) chạy trên Redis
 const placeBidLuaScript = `
@@ -65,19 +66,17 @@ class BiddingService {
             );
             newEndTimeForDB = antiSnipe.newEndTime;
             console.log(`[Anti-Snipe] Phiên ${auctionId} gia hạn thêm 30 giây. Lần thứ ${extensionCount + 1}`);
-            // TODO: Thông báo Frontend qua WebSocket
           }
         } catch (err) {
-          // Lỗi Anti-snipe không nên hủy cả bid thành công
           console.error("[Anti-Snipe Error]:", err.message);
         }
 
         // Chạy ngầm đồng bộ xuống DB (Không block API)
         this.syncBidToDatabase(auctionId, userId, bidAmount, currentVersion, newEndTimeForDB).catch((err) => {
           console.error("[DB Sync Failed] Cần retry:", err.message);
-          // TODO: Đẩy vào BullMQ retry queue
         });
 
+        // (Đã dời đoạn gọi Kafka xuống syncBidToDatabase)
         return { success: true, message: "Đặt giá thành công" };
       } else {
         return { success: false, errorCode: result };
@@ -89,7 +88,7 @@ class BiddingService {
   }
 
   /**
-   * Đồng bộ xuống MySQL an toàn bằng Optimistic Locking
+   * Đồng bộ xuống MySQL an toàn bằng Optimistic Locking và Bắn Kafka Event
    */
   static async syncBidToDatabase(auctionId, userId, bidAmount, currentVersion, newEndTime) {
     const connection = await pool.getConnection();
@@ -108,14 +107,12 @@ class BiddingService {
       let sql = `UPDATE Auctions SET current_price = ?, version = version + 1`;
       let params = [bidAmount];
 
-      // Nếu có gia hạn Anti-sniping, cập nhật thêm end_time
       if (newEndTime) {
         const mysqlDatetime = new Date(newEndTime).toISOString().slice(0, 19).replace("T", " ");
         sql += `, end_time = ?`;
         params.push(mysqlDatetime);
       }
 
-      // Chốt điều kiện Optimistic Locking
       sql += ` WHERE id = ? AND version = ?`;
       params.push(auctionId, currentVersion);
 
@@ -126,8 +123,35 @@ class BiddingService {
         throw new Error("ERR_OPTIMISTIC_LOCK_FAILED");
       }
 
+      // 4. CHỐT GIAO DỊCH (MySQL lưu thành công)
       await connection.commit();
       console.log(`[DB Sync] Đã lưu Bid $${bidAmount} xuống MySQL thành công.`);
+
+      // ===================
+      // 5. BẮN KAFKA EVENT
+      // ===================
+      try {
+        const eventPayload = {
+          auctionId,
+          userId,
+          bidAmount,
+          timestamp: new Date().toISOString(),
+        };
+
+        await producer.send({
+          topic: "auction-bids",
+          messages: [
+            {
+              key: auctionId.toString(),
+              value: JSON.stringify(eventPayload),
+            },
+          ],
+        });
+        console.log(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
+      } catch (kafkaError) {
+        // Chỉ log lỗi, không throw để tránh sập app do lỗi mạng Kafka
+        console.error("[Kafka Error] Lỗi đẩy sự kiện:", kafkaError.message);
+      }
     } catch (error) {
       await connection.rollback();
       console.error("[DB Sync Error]:", error.message);

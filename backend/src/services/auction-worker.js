@@ -13,52 +13,66 @@ const auctionWorker = new Worker(
     const dbConnection = await pool.getConnection();
 
     try {
-      // 1. Lấy dữ liệu chốt sổ từ Redis
+      // 1. Đọc dữ liệu nguyên bản từ Redis trước tiên
       const auctionData = await redisClient.hGetAll(auctionKey);
+
       if (!auctionData || Object.keys(auctionData).length === 0) {
         console.log(`[Worker] Bỏ qua: Phiên ${auctionId} không tồn tại trong Redis.`);
         return;
       }
-      if (auctionData.status === "Ended") {
-        console.log(`[Worker] Bỏ qua: Phiên ${auctionId} đã được đóng từ trước.`);
+
+      // 2. Kiểm tra an toàn (Bảo vệ tính toàn vẹn của logic)
+      if (auctionData.status === "Ended" || auctionData.status === "Payment Pending") {
+        console.log(`[Worker] Bỏ qua: Phiên ${auctionId} đã được xử lý từ trước.`);
         return;
       }
+
+      // 3. Khóa Redis sang trạng thái 'Closing' (Từ chối mọi lượt Bid mới từ giờ)
+      await redisClient.hSet(auctionKey, "status", "Closing");
 
       const highestBidder = auctionData.highest_bidder;
       const finalPrice = parseFloat(auctionData.current_price);
 
-      // 2. Transaction MySQL trước
+      // 4. LOGIC STATE MACHINE: Xác định trạng thái cuối
+      let finalStatus = "Ended";
+      if (highestBidder && highestBidder !== "") {
+        finalStatus = "Payment Pending";
+      }
+
+      // 5. Bắt đầu Transaction MySQL
       await dbConnection.beginTransaction();
 
       const [updateResult] = await dbConnection.execute(
         `UPDATE Auctions 
-         SET status = 'Ended', current_price = ?, version = version + 1
+         SET status = ?, current_price = ?, version = version + 1
          WHERE id = ? AND status IN ('Active', 'Closing')`,
-        [finalPrice, auctionId],
+        [finalStatus, finalPrice, auctionId],
       );
 
       if (updateResult.affectedRows === 0) {
         throw new Error("ERR_AUCTION_ALREADY_ENDED");
       }
 
-      // 3. Tạo Transaction cho người thắng
-      if (highestBidder && highestBidder !== "") {
+      // 6. Tạo Transaction chờ thanh toán nếu có người thắng
+      if (finalStatus === "Payment Pending") {
         await dbConnection.execute(
           `INSERT INTO Transactions (user_id, auction_id, amount, type, status)
            VALUES (?, ?, ?, 'WIN_PAYMENT', 'PENDING')`,
           [highestBidder, auctionId, finalPrice],
         );
-        console.log(`[Worker] NGƯỜI CHIẾN THẮNG: User ID ${highestBidder} với mức giá $${finalPrice}!`);
+        console.log(
+          `[Worker] NGƯỜI CHIẾN THẮNG: User ID ${highestBidder} với mức giá $${finalPrice}! State -> Payment Pending.`,
+        );
       } else {
-        console.log(`[Worker] Phiên đấu giá kết thúc không có ai trả giá.`);
+        console.log(`[Worker] Phiên đấu giá kết thúc không có ai trả giá. State -> Ended.`);
       }
 
       await dbConnection.commit();
 
-      // 4. Chỉ khóa Redis sau khi MySQL thành công
-      await redisClient.hSet(auctionKey, "status", "Ended");
+      // 7. Đồng bộ trạng thái cuối cùng lên Redis để Frontend cập nhật UI
+      await redisClient.hSet(auctionKey, "status", finalStatus);
 
-      // TODO: Gọi AutoBidService.releaseAutoBid() cho tất cả user thua
+      // TODO: Gọi AutoBidService.releaseAutoBid() cho tất cả user thua (Dành cho tính năng AI/Auto-bid sau này)
 
       console.log(`[Worker] Đóng phiên ${auctionId} thành công!`);
     } catch (error) {
