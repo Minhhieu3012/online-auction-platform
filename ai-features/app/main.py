@@ -5,10 +5,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from app.api.routes import health
+from app.api.routes import health, alerts
 from app.core.config import settings
 from app.workers.kafka_worker import consume_bids
 from app.db.redis_client import close_redis_pool
+from app.kafka.producer import close_kafka_producer
 
 # ==========================================
 # QUẢN LÝ VÒNG ĐỜI (LIFESPAN)
@@ -23,14 +24,17 @@ async def lifespan(app: FastAPI):
     yield 
     
     # Giai đoạn Shutdown: Hủy bỏ an toàn task đang chạy ngầm
-    print("[System] Đang dọn dẹp AI Background Task...")
+    print("🛑 [System] Đang dọn dẹp AI Background Task và Đóng Cache...")
     kafka_task.cancel()
     try:
         await kafka_task
     except asyncio.CancelledError:
         pass
+    
     # Dọn dẹp Connection Pool của Redis
     await close_redis_pool()
+    # Dọn dẹp Kafka Producer
+    await close_kafka_producer()
 
 # ==========================================
 # KHỞI TẠO APP
@@ -44,6 +48,7 @@ app = FastAPI(
 
 # Gắn (Mount) các router từ kiến trúc module
 app.include_router(health.router, prefix="/api", tags=["Monitoring"])
+app.include_router(alerts.router, prefix="/api", tags=["Admin Dashboard"])
 
 @app.get("/", tags=["Debug"])
 async def read_root():
@@ -52,7 +57,7 @@ async def read_root():
     Sử dụng Pydantic Settings để đảm bảo cấu hình chính xác tuyệt đối.
     """
     
-    # 1. Kiểm tra MySQL của Hiếu (Async)
+    # 1. Kiểm tra MySQL (Async)
     mysql_status = "Disconnected"
     try:
         # Bọc timeout cho tác vụ bất đồng bộ, tránh treo Event Loop
