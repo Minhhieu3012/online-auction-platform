@@ -48,3 +48,6 @@ Desktop.ini
 # 10. Cache
 .cache/
 .eslintcache
+
+# 11. Stripe 
+stripe.exe

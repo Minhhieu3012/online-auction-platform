@@ -30,11 +30,13 @@ CREATE TABLE Auctions (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     product_id    INT NOT NULL,
     created_by    INT NOT NULL,
-    status        ENUM('Scheduled','Active','Closing','Ended','Payment Pending') DEFAULT 'Scheduled',
+    status        ENUM('Scheduled','Active','Closing','Ended','Payment Pending', 'Completed') DEFAULT 'Scheduled',
     current_price DECIMAL(15,2) NOT NULL,
     step_price    DECIMAL(15,2) NOT NULL,
     end_time      DATETIME NOT NULL,
     version       INT DEFAULT 0,
+    
+    stripe_session_id VARCHAR(255) UNIQUE,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES Products(id) ON DELETE RESTRICT,
     FOREIGN KEY (created_by) REFERENCES Users(id)    ON DELETE RESTRICT  
@@ -57,7 +59,7 @@ CREATE TABLE Transactions (
     user_id    INT NOT NULL,
     auction_id INT NOT NULL,
     amount     DECIMAL(15,2) NOT NULL,
-    type       ENUM('HOLD', 'REFUND', 'WIN_PAYMENT') NOT NULL,
+    type       ENUM('HOLD', 'REFUND', 'WIN_PAYMENT') DEFAULT 'WIN_PAYMENT',
     status     ENUM('PENDING', 'SUCCESS', 'FAILED') DEFAULT 'SUCCESS',
     provider_transaction_id VARCHAR(255) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

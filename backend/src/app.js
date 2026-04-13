@@ -1,11 +1,16 @@
 const express = require("express");
 const cors = require("cors");
+const PaymentController = require("./controllers/payment");
 
 const app = express();
 
 // Middlewares
 app.use(cors());
-app.use(express.json()); // Parse body dạng JSON
+
+app.post("/api/webhook", express.raw({ type: "application/json" }), PaymentController.handleStripeWebhook);
+
+// Parse body dạng JSON cho TẤT CẢ các API còn lại (bidding, auth...)
+app.use(express.json());
 
 // API Health-check
 app.use("/api/health", (req, res) => {
