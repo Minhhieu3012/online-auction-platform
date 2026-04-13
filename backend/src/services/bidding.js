@@ -1,5 +1,4 @@
 const AutoBidService = require("./autobid");
-const pool = require("../config/db");
 const redisClient = require("../config/redis");
 const { checkAntiSniping } = require("../constants/business");
 const { producer } = require("../config/kafka");
@@ -45,7 +44,7 @@ class BiddingService {
         const currentVersion = result;
         console.log(`[Bid Success] User ${userId} đặt $${bidAmount} cho phiên ${auctionId}`);
 
-        // Đọc auctionInfo một lần duy nhất để dùng cho cả AutoBid và Anti-snipe
+        // Đọc auctionInfo một lần duy nhất
         const auctionInfo = await redisClient.hGetAll(auctionKey);
 
         // Trigger Auto-bid cho các user khác
@@ -75,10 +74,29 @@ class BiddingService {
           console.error("[Anti-Snipe Error]:", err.message);
         }
 
-        // Chạy ngầm đồng bộ xuống DB
-        this.syncBidToDatabase(auctionId, userId, bidAmount, currentVersion, newEndTimeForDB).catch((err) => {
-          console.error("[DB Sync Failed] Cần retry:", err.message);
-        });
+        // Bắn Kafka — Consumer sẽ lo việc ghi DB
+        try {
+          await producer.send({
+            topic: "auction-bids",
+            messages: [
+              {
+                key: auctionId.toString(),
+                value: JSON.stringify({
+                  auctionId,
+                  userId,
+                  bidAmount,
+                  version: currentVersion + 1, // version mới sau khi Lua đã tăng
+                  newEndTime: newEndTimeForDB,
+                  timestamp: new Date().toISOString(),
+                }),
+              },
+            ],
+          });
+          console.log(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
+        } catch (kafkaError) {
+          console.error("[Kafka Error]:", kafkaError.message);
+          // TODO: Fallback — ghi thẳng vào DB nếu Kafka chết
+        }
 
         return { success: true, message: "Đặt giá thành công" };
       } else {
@@ -87,68 +105,6 @@ class BiddingService {
     } catch (error) {
       console.error("[Bidding Error]:", error);
       throw new Error("Hệ thống đang quá tải, vui lòng thử lại sau");
-    }
-  }
-
-  static async syncBidToDatabase(auctionId, userId, bidAmount, currentVersion, newEndTime) {
-    const connection = await pool.getConnection();
-
-    try {
-      await connection.beginTransaction();
-
-      await connection.execute("INSERT INTO Bids (auction_id, user_id, bid_amount) VALUES (?, ?, ?)", [
-        auctionId,
-        userId,
-        bidAmount,
-      ]);
-
-      let sql = `UPDATE Auctions SET current_price = ?, version = version + 1`;
-      let params = [bidAmount];
-
-      if (newEndTime) {
-        const mysqlDatetime = new Date(newEndTime).toISOString().slice(0, 19).replace("T", " ");
-        sql += `, end_time = ?`;
-        params.push(mysqlDatetime);
-      }
-
-      sql += ` WHERE id = ? AND version = ?`;
-      params.push(auctionId, currentVersion);
-
-      const [updateResult] = await connection.execute(sql, params);
-
-      if (updateResult.affectedRows === 0) {
-        throw new Error("ERR_OPTIMISTIC_LOCK_FAILED");
-      }
-
-      await connection.commit();
-      console.log(`[DB Sync] Đã lưu Bid $${bidAmount} xuống MySQL thành công.`);
-
-      // Bắn Kafka sau khi DB commit thành công
-      try {
-        await producer.send({
-          topic: "auction-bids",
-          messages: [
-            {
-              key: auctionId.toString(),
-              value: JSON.stringify({
-                auctionId,
-                userId,
-                bidAmount,
-                timestamp: new Date().toISOString(),
-              }),
-            },
-          ],
-        });
-        console.log(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
-      } catch (kafkaError) {
-        console.error("[Kafka Error]:", kafkaError.message);
-      }
-    } catch (error) {
-      await connection.rollback();
-      console.error("[DB Sync Error]:", error.message);
-      throw error;
-    } finally {
-      connection.release();
     }
   }
 }

@@ -5,6 +5,7 @@ require("./config/queue");
 require("./services/auction-worker");
 
 const { connectProducer, disconnectProducer } = require("./config/kafka");
+const { startKafkaConsumer, stopKafkaConsumer } = require("./services/kafka-consumer");
 
 const app = require("./app");
 
@@ -15,6 +16,8 @@ const server = app.listen(PORT, async () => {
   console.log(`[Health Check] http://localhost:${PORT}/api/health`);
 
   await connectProducer();
+
+  await startKafkaConsumer();
 });
 
 // ==========================================
@@ -22,6 +25,8 @@ const server = app.listen(PORT, async () => {
 // ==========================================
 const shutdown = async () => {
   console.log("\n[Core Engine] Đang nhận lệnh tắt hệ thống, tiến hành đóng các kết nối...");
+
+  await stopKafkaConsumer();
 
   // Ngắt kết nối Kafka Producer
   await disconnectProducer();
