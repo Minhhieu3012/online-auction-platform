@@ -14,6 +14,9 @@ router.use("/auctions", require("./auction"));
 // 3. Route Đặt giá
 router.post("/auctions/:id/bids", authMiddleware, checkIdempotency, BiddingController.placeBid);
 
+// API Cài đặt Auto-bid
+router.post("/auctions/:id/autobid", authMiddleware, checkIdempotency, BiddingController.setupAutoBid);
+
 router.get("/auctions/:id/bids", BiddingController.getBidHistory);
 
 module.exports = router;

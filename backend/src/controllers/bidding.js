@@ -1,3 +1,4 @@
+const AutoBidService = require("../services/autobid");
 const BiddingService = require("../services/bidding");
 const pool = require("../config/db");
 const { sendSuccess, sendError } = require("../utils/response");
@@ -57,6 +58,42 @@ class BiddingController {
     } catch (error) {
       console.error("[Get Bid History Error]:", error);
       return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi lấy lịch sử.", 500);
+    }
+  }
+
+  /**
+   * Thiết lập Auto-bid
+   */
+  static async setupAutoBid(req, res) {
+    try {
+      const auctionId = parseInt(req.params.id, 10);
+      const { maxAmount } = req.body;
+      const userId = req.user.id;
+
+      if (isNaN(auctionId)) {
+        return sendError(res, "ERR_INVALID_ID", "ID phiên đấu giá không hợp lệ.", 400);
+      }
+
+      if (!maxAmount || isNaN(maxAmount) || parseFloat(maxAmount) <= 0) {
+        return sendError(res, "ERR_INVALID_INPUT", "Hạn mức tối đa không hợp lệ.", 400);
+      }
+
+      // Gọi sang Service của bạn
+      const result = await AutoBidService.setupAutoBid(auctionId, userId, parseFloat(maxAmount));
+
+      return sendSuccess(res, null, result.message);
+    } catch (error) {
+      console.error("[Setup Auto-bid Error]:", error.message);
+
+      // Bắt các lỗi do bạn throw ra từ Service
+      if (error.message === "ERR_AUTOBID_ALREADY_SET") {
+        return sendError(res, "ERR_CONFLICT", "Bạn đã thiết lập Auto-bid cho phiên này rồi.", 409);
+      }
+      if (error.message === "ERR_INSUFFICIENT_BALANCE") {
+        return sendError(res, "ERR_BALANCE", "Số dư không đủ để đóng băng.", 400);
+      }
+
+      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi thiết lập Auto-bid.", 500);
     }
   }
 }
