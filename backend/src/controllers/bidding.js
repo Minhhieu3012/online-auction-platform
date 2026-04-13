@@ -78,17 +78,14 @@ class BiddingController {
         return sendError(res, "ERR_INVALID_INPUT", "Hạn mức tối đa không hợp lệ.", 400);
       }
 
-      // Gọi sang Service của bạn
+      // Gọi sang Service
       const result = await AutoBidService.setupAutoBid(auctionId, userId, parseFloat(maxAmount));
 
-      return sendSuccess(res, null, result.message);
+      // Trả về thông báo động ("Đã thiết lập..." hoặc "Đã cập nhật...") kèm mức giá mới
+      return sendSuccess(res, { max_price: maxAmount }, result.message);
     } catch (error) {
       console.error("[Setup Auto-bid Error]:", error.message);
 
-      // Bắt các lỗi do bạn throw ra từ Service
-      if (error.message === "ERR_AUTOBID_ALREADY_SET") {
-        return sendError(res, "ERR_CONFLICT", "Bạn đã thiết lập Auto-bid cho phiên này rồi.", 409);
-      }
       if (error.message === "ERR_INSUFFICIENT_BALANCE") {
         return sendError(res, "ERR_BALANCE", "Số dư không đủ để đóng băng.", 400);
       }

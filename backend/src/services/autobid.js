@@ -8,9 +8,9 @@ class AutoBidService {
   static async setupAutoBid(auctionId, userId, maxAmount) {
     const proxyKey = `auction:${auctionId}:proxy`;
 
-    // Kiểm tra Redis trước cho nhanh
     const existingProxy = await redisClient.hGet(proxyKey, userId.toString());
-    if (existingProxy) throw new Error("ERR_AUTOBID_ALREADY_SET");
+    const oldAmount = existingProxy ? parseFloat(existingProxy) : 0;
+    const amountDifference = maxAmount - oldAmount;
 
     const connection = await pool.getConnection();
     try {
@@ -19,12 +19,18 @@ class AutoBidService {
       // Lock row User để trừ tiền an toàn
       const [users] = await connection.execute("SELECT balance FROM Users WHERE id = ? FOR UPDATE", [userId]);
       if (users.length === 0) throw new Error("ERR_USER_NOT_FOUND");
-      if (parseFloat(users[0].balance) < maxAmount) throw new Error("ERR_INSUFFICIENT_BALANCE");
 
-      // Trừ tiền (Đóng băng)
-      await connection.execute("UPDATE Users SET balance = balance - ? WHERE id = ?", [maxAmount, userId]);
+      if (amountDifference > 0) {
+        // Nâng hạn mức -> Cần đóng băng thêm tiền
+        if (parseFloat(users[0].balance) < amountDifference) throw new Error("ERR_INSUFFICIENT_BALANCE");
+        await connection.execute("UPDATE Users SET balance = balance - ? WHERE id = ?", [amountDifference, userId]);
+      } else if (amountDifference < 0) {
+        // Hạ hạn mức -> Trả lại tiền thừa ngay lập tức
+        const refundAmount = Math.abs(amountDifference);
+        await connection.execute("UPDATE Users SET balance = balance + ? WHERE id = ?", [refundAmount, userId]);
+      }
 
-      // Lưu vào MySQL để Audit/History
+      // Lưu vào MySQL (Cập nhật đè nếu đã tồn tại)
       await connection.execute(
         `INSERT INTO AutoBids (auction_id, user_id, max_price, is_active) VALUES (?, ?, ?, TRUE)
          ON DUPLICATE KEY UPDATE max_price = ?, is_active = TRUE`,
@@ -36,9 +42,17 @@ class AutoBidService {
       await redisClient.expire(proxyKey, 86400); // 24h TTL
 
       await connection.commit();
-      console.log(`[Auto-Bid Hold] Đã đóng băng $${maxAmount} của User ${userId} cho phiên ${auctionId}`);
 
-      return { success: true, message: "Thiết lập Auto-bid thành công." };
+      // Trả về message tương ứng cho Controller
+      if (oldAmount === 0) {
+        console.log(`[Auto-Bid Hold] Đã đóng băng $${maxAmount} của User ${userId} cho phiên ${auctionId}`);
+        return { success: true, message: "Đã thiết lập Auto-bid thành công." };
+      } else {
+        console.log(
+          `[Auto-Bid Update] User ${userId} cập nhật Auto-bid lên $${maxAmount} (Chênh lệch: $${amountDifference})`,
+        );
+        return { success: true, message: "Đã cập nhật mức giá Auto-bid mới." };
+      }
     } catch (error) {
       await connection.rollback();
       throw error;

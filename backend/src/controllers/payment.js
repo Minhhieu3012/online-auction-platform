@@ -20,7 +20,7 @@ class PaymentController {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
-      const auctionId = session.metadata?.auction_id || 1;
+      const auctionId = session.metadata?.auction_id;
       if (!auctionId) {
         console.error("[Webhook Error] Thiếu auction_id trong metadata");
         return res.status(200).json({ received: true, warning: "Missing auction_id" });
