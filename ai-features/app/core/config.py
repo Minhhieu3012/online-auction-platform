@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     KAFKA_BROKER: str
 
     # JWT
-    JWT_SECRET: str
+    JWT_SECRET: str = "default_secret_key_if_not_set"
     JWT_EXPIRES_IN: str = "7d"
 
     # ==========================================
