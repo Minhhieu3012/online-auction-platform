@@ -77,6 +77,8 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
       KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
+      # 👇 CẤU HÌNH HỘP ĐEN KAFKA (RETENTION 7 NGÀY - MỤC 3 GIAI ĐOẠN 3)
+      KAFKA_LOG_RETENTION_HOURS: 168
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:

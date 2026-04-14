@@ -20,7 +20,17 @@ async def close_kafka_producer():
         await _producer.stop()
 
 async def emit_fraud_alert(alert_data: dict):
-    """ Bắn tin nhắn vào topic 'fraud_alerts' cho Node.js """
+    """ Bắn tin nhắn vào topic 'fraud_alerts' cho Node.js (Gian lận) """
     producer = await get_kafka_producer()
     payload = json.dumps(alert_data).encode('utf-8')
     await producer.send_and_wait("fraud_alerts", payload)
+
+async def emit_extension_signal(auction_id: str, extension_seconds: int = 30):
+    """ Bắn tin nhắn vào topic 'auction_extensions' cho Node.js (Gia hạn Anti-sniping) """
+    producer = await get_kafka_producer()
+    payload = json.dumps({
+        "auction_id": auction_id, 
+        "extend_by": extension_seconds,
+        "reason": "System Auto-Extension (Anti-Sniping Detected)"
+    }).encode('utf-8')
+    await producer.send_and_wait("auction_extensions", payload)
