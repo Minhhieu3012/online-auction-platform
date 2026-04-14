@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trinity Piece - Nền Tảng Đấu Giá Trực Tuyến</title>
+    <title>Trinity Piece - Nền Tảng Đấu Giá Cổ Vật</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +15,7 @@
         <div class="container header-inner">
             <div class="logo">
                 <a href="index.html">
-                    <img src="assets/images/logo.png" alt="Trinity Piece Logo" onerror="this.onerror=null; this.src='https://placehold.co/200x100/4a3018/FFF?text=Trinity+Piece';">
+                    <img src="assets/images/logo.png" alt="Trinity Piece Logo" onerror="this.onerror=null; this.src='https://placehold.co/200x100/f5f1e6/3a1f1d?text=Trinity+Piece';">
                 </a>
             </div>
             <nav class="main-nav">
@@ -49,7 +49,7 @@
                 <div class="hero-image-caption">
                     <span class="caption-lot">LOT #1024</span>
                     <h3>Ferrari 250 GT SWB</h3>
-                    <p>ƯỚC TÍNH: 15.000.000.000 - 18.000.000.000 VNĐ</p>
+                    <p>ƯỚC TÍNH: 15.000.000.000 VNĐ</p>
                 </div>
             </div>
         </section>
@@ -119,9 +119,6 @@
                                 <div class="stat-row">
                                     <span>Giá hiện tại:</span><strong>850.000đ</strong>
                                 </div>
-                                <div class="stat-row">
-                                    <span>Lượt giá:</span><strong>12 BID</strong>
-                                </div>
                                 <div class="stat-row highlight">
                                     <span>Thời gian còn lại:</span><strong>02:14:55</strong>
                                 </div>
@@ -139,9 +136,6 @@
                             <div class="bid-stats">
                                 <div class="stat-row">
                                     <span>Giá hiện tại:</span><strong>420.000đ</strong>
-                                </div>
-                                <div class="stat-row">
-                                    <span>Lượt giá:</span><strong>08 BID</strong>
                                 </div>
                                 <div class="stat-row highlight">
                                     <span>Thời gian còn lại:</span><strong>00:45:10</strong>
@@ -169,16 +163,16 @@
             <div id="modal-signin" class="auth-card-content">
                 <h2>Đăng Nhập</h2>
                 <p>Chào mừng trở lại với nền tảng đấu giá.</p>
-                <form onsubmit="event.preventDefault(); closeAuthModal();">
+                <form id="signin-form">
                     <div class="form-group">
                         <label>Email</label>
-                        <input type="email" placeholder="Nhập địa chỉ email" required>
+                        <input type="email" id="signin-email" placeholder="Nhập địa chỉ email" required>
                     </div>
                     <div class="form-group">
                         <label>Mật khẩu</label>
-                        <input type="password" placeholder="Nhập mật khẩu" required>
+                        <input type="password" id="signin-password" placeholder="Nhập mật khẩu" required>
                     </div>
-                    <button type="submit" class="btn btn-primary full-width">Đăng Nhập</button>
+                    <p id="signin-status"></p> <button type="submit" class="btn btn-primary full-width">Đăng Nhập</button>
                 </form>
                 <div class="auth-links">
                     Chưa có tài khoản? <a href="#" onclick="openAuthModal('register')">Đăng ký ngay</a>

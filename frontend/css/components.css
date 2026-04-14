@@ -2,16 +2,33 @@
    Buttons
    ========================================= */
 .btn {
-    display: inline-block; padding: 10px 24px; font-size: 15px; font-weight: 700;
-    text-transform: uppercase; cursor: pointer; transition: all 0.3s ease;
-    border: 2px solid transparent; border-radius: 30px;
+    display: inline-block;
+    padding: 10px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    border-radius: 30px;
 }
+
 .btn-primary { background-color: var(--text-primary); color: var(--white); }
 .btn-primary:hover { background-color: var(--accent-color); }
+
 .btn-outline { border-color: var(--text-primary); color: var(--text-primary); }
 .btn-outline:hover { background-color: var(--text-primary); color: var(--white); }
-.btn-text { background-color: transparent; color: var(--white); padding: 10px 15px; font-weight: 700; border: none; font-family: var(--font-body); }
-.btn-text:hover { color: #e5cc98; }
+
+/* Chữ tối trên nền Header sáng */
+.btn-text {
+    background-color: transparent;
+    color: var(--text-primary);
+    padding: 10px 15px;
+    font-weight: 700;
+    border: none;
+    font-family: var(--font-body);
+}
+.btn-text:hover { color: var(--accent-color); }
 
 /* =========================================
    Product Cards (Carousel / Standard)
@@ -21,9 +38,11 @@
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .product-card:hover { transform: scale(1.08); z-index: 10; }
+
 .card-image { width: 100%; height: 320px; overflow: hidden; margin-bottom: 15px; border-radius: 15px; }
 .card-image img { width: 100%; height: 100%; object-fit: cover; }
 .dark-bg { background-color: #222; }
+
 .card-info h3 { font-size: 22px; margin-bottom: 5px; }
 .card-info p { font-size: 14px; font-weight: 700; color: var(--text-secondary); }
 
@@ -34,6 +53,7 @@
 .auction-image { width: 50%; position: relative; }
 .auction-image img { width: 100%; height: 100%; object-fit: cover; }
 .live-badge { position: absolute; top: 15px; left: 15px; background-color: var(--accent-color); color: var(--white); padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 800; }
+
 .auction-details { width: 50%; padding: 30px; display: flex; flex-direction: column; justify-content: center; }
 .stat-row { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
 .stat-row.highlight strong { color: var(--accent-color); font-size: 18px; }
@@ -41,8 +61,11 @@
 /* =========================================
    Carousel Utilities
    ========================================= */
-.carousel-wrapper { width: 100%; overflow: hidden; cursor: grab; padding: 20px 0; user-select: none; }
+.carousel-wrapper {
+    width: 100%; overflow: hidden; cursor: grab; padding: 20px 0; user-select: none;
+}
 .carousel-wrapper:active { cursor: grabbing; }
+
 .carousel-track { display: flex; gap: 30px; width: max-content; pointer-events: none; }
 
 /* =========================================
