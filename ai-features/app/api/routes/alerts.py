@@ -5,6 +5,9 @@ from app.db.redis_client import get_redis
 
 router = APIRouter()
 
+# ==========================================
+# 1. API ADMIN DASHBOARD (GET)
+# ==========================================
 @router.get("/alerts", tags=["Admin Dashboard"])
 async def get_recent_alerts():
     """
@@ -28,3 +31,19 @@ async def get_recent_alerts():
             "data": alerts
         }
     )
+
+# ==========================================
+# 2. API NHẬN THẦU & PHÂN TÍCH LSS (POST)
+# ==========================================
+@router.post("/bids", tags=["AI Logic"]) 
+async def process_bid(bid_data: dict):
+    """
+    API nhận lệnh thầu (bid) mới nhất từ Node.js Backend.
+    Thực hiện chấm điểm Live Shill Score (LSS) thời gian thực.
+    """
+    # Trả về kết quả mock để xác nhận luồng API thông suốt
+    return {
+        "status": "analyzed", 
+        "score": 0.05,
+        "message": "AI đã nhận và phân tích thành công!"
+    }

@@ -12,7 +12,7 @@ from app.db.redis_client import close_redis_pool
 from app.kafka.producer import close_kafka_producer
 
 # ==========================================
-# QUẢN LÝ VÒNG ĐỜI (LIFESPAN)
+# 1. QUẢN LÝ VÒNG ĐỜI (LIFESPAN)
 # ==========================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,19 +37,28 @@ async def lifespan(app: FastAPI):
     await close_kafka_producer()
 
 # ==========================================
-# KHỞI TẠO APP
+# 2. KHỞI TẠO APP
 # ==========================================
 app = FastAPI(
     title="Online Auction LSS AI Service",
     description="Dịch vụ chấm điểm gian lận thời gian thực (Live Shill Score)",
     version="1.0.0",
-    lifespan=lifespan # Gắn lifespan vào app để quản lý worker
+    lifespan=lifespan
 )
 
-# Gắn (Mount) các router từ kiến trúc module
+# ==========================================
+# 3. ĐĂNG KÝ ROUTERS
+# ==========================================
+# Endpoint kiểm tra sức khỏe cơ bản
 app.include_router(health.router, prefix="/api", tags=["Monitoring"])
-app.include_router(alerts.router, prefix="/api", tags=["Admin Dashboard"])
 
+# Endpoint xử lý logic AI chính (LSS, Bidding)
+# Với ánh xạ Docker 3000:8000, đường dẫn ngoài sẽ là: http://localhost:3000/api/v1/alerts/bids
+app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["AI Logic"])
+
+# ==========================================
+# 4. DEBUG & SYSTEM CHECK
+# ==========================================
 @app.get("/", tags=["Debug"])
 async def read_root():
     """
@@ -60,7 +69,6 @@ async def read_root():
     # 1. Kiểm tra MySQL (Async)
     mysql_status = "Disconnected"
     try:
-        # Bọc timeout cho tác vụ bất đồng bộ, tránh treo Event Loop
         conn = await asyncio.wait_for(
             aiomysql.connect(
                 host=settings.MYSQL_HOST,
@@ -87,7 +95,7 @@ async def read_root():
         )
         if await r.ping():
             redis_status = "Connected (Cache đã sẵn sàng)"
-        await r.aclose() # Đóng kết nối gọn gàng
+        await r.aclose()
     except Exception as e:
         redis_status = f"Error: {str(e)}"
 
@@ -95,7 +103,6 @@ async def read_root():
     kafka_status = "Disconnected"
     try:
         host, port = settings.KAFKA_BROKER.split(":")
-        # Sử dụng open_connection của asyncio thay vì socket đồng bộ
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(host, int(port)),
             timeout=3.0
@@ -109,7 +116,7 @@ async def read_root():
     return JSONResponse(
         status_code=200,
         content={
-            "message": "hehe",
+            "message": "AI System Status",
             "status": "AI Logic đã đồng bộ 100% với Backend (Async Mode)",
             "real_time_check": {
                 "mysql_database": mysql_status,
@@ -125,5 +132,11 @@ async def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    # Khởi chạy server local nếu chạy file trực tiếp
-    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.PORT, reload=(settings.NODE_ENV == "development"))
+    # Vẫn chạy nội bộ ở cổng được định nghĩa trong settings (8000). 
+    # Docker sẽ làm nhiệm vụ lái traffic từ cổng 3000 ở ngoài vào đây.
+    uvicorn.run(
+        "app.main:app", 
+        host="0.0.0.0", 
+        port=settings.PORT, 
+        reload=(settings.NODE_ENV == "development")
+    )

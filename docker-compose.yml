@@ -127,16 +127,18 @@ services:
     user: "0:0"
     restart: on-failure
     ports:
-      - "8000:8000"
+      - "3000:8000" # <--- ĐÃ CHUYỂN PORT ĐỂ ĐỒNG BỘ VỚI TEAM
     volumes:
       - ./ai-features:/app
     environment:
+      - PORT=8000
       - MYSQL_HOST=mysql-db
       - MYSQL_USER=${MYSQL_USER:-root}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-root}
       - MYSQL_DB=${MYSQL_DB:-auction_db}
       - REDIS_HOST=redis-cache
-      - KAFKA_BROKER=kafka:29092
+      - REDIS_PORT=6379
+      - KAFKA_BROKER=kafka:29092 # Đảm bảo dùng port nội bộ mạng Docker
     depends_on:
       mysql-db:
         condition: service_healthy
