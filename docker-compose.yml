@@ -81,40 +81,6 @@ services:
           cpus: "1.0"
           memory: 1G
 
-  # --- AI SERVICE ---
-  # ai-logic:
-  #   build:
-  #     context: ./ai-features
-  #     dockerfile: Dockerfile
-  #   image: ai-logic-image:v1
-  #   user: "0:0"
-  #   restart: on-failure
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./ai-features:/app
-  #   environment:
-  #     - MYSQL_HOST=mysql-db
-  #     - MYSQL_USER=${MYSQL_USER:-root}
-  #     - MYSQL_PASSWORD=${MYSQL_PASSWORD:-root}
-  #     - MYSQL_DB=${MYSQL_DB:-auction_db}
-  #     - REDIS_HOST=redis-cache
-  #     - KAFKA_BROKER=kafka:29092
-  #   depends_on:
-  #     mysql-db:
-  #       condition: service_healthy
-  #     redis-cache:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #   networks:
-  #     - auction-network
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "1.0"
-  #         memory: 1G
-
 networks:
   auction-network:
     driver: bridge

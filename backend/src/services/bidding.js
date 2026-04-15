@@ -53,22 +53,27 @@ class BiddingService {
         });
 
         // Kiểm tra Anti-sniping
+        // Kiểm tra Anti-sniping
         let newEndTimeForDB = null;
         try {
           const extensionCount = parseInt(auctionInfo.extension_count) || 0;
-          const endTime = parseInt(auctionInfo.end_time);
+
+          const rawEndTime = auctionInfo.end_time;
+          const endTime = /^\d+$/.test(rawEndTime) ? parseInt(rawEndTime, 10) : Date.parse(rawEndTime);
 
           const antiSnipe = checkAntiSniping(endTime, extensionCount);
           if (antiSnipe.shouldExtend) {
+            const newEndString = new Date(antiSnipe.newEndTime).toISOString();
+
             await redisClient.hSet(
               auctionKey,
               "end_time",
-              antiSnipe.newEndTime.toString(),
+              newEndString,
               "extension_count",
               (extensionCount + 1).toString(),
             );
             newEndTimeForDB = antiSnipe.newEndTime;
-            console.log(`[Anti-Snipe] Phiên ${auctionId} gia hạn thêm 30 giây. Lần thứ ${extensionCount + 1}`);
+            console.log(`[Anti-Snipe] Phiên ${auctionId} gia hạn đến: ${newEndString} (Lần ${extensionCount + 1})`);
           }
         } catch (err) {
           console.error("[Anti-Snipe Error]:", err.message);
