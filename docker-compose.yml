@@ -15,8 +15,8 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      # Map file init để tự tạo 6 bảng (chỉ định chính xác từ root vào ai-features)
-      - ./ai-features/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - auction-network
     healthcheck:
@@ -127,7 +127,7 @@ services:
     user: "0:0"
     restart: on-failure
     ports:
-      - "3000:8000" # <--- ĐÃ CHUYỂN PORT ĐỂ ĐỒNG BỘ VỚI TEAM
+      - "8000:8000" 
     volumes:
       - ./ai-features:/app
     environment:
@@ -138,7 +138,7 @@ services:
       - MYSQL_DB=${MYSQL_DB:-auction_db}
       - REDIS_HOST=redis-cache
       - REDIS_PORT=6379
-      - KAFKA_BROKER=kafka:29092 # Đảm bảo dùng port nội bộ mạng Docker
+      - KAFKA_BROKER=kafka:29092 
     depends_on:
       mysql-db:
         condition: service_healthy

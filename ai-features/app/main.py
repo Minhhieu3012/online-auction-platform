@@ -53,7 +53,7 @@ app = FastAPI(
 app.include_router(health.router, prefix="/api", tags=["Monitoring"])
 
 # Endpoint xử lý logic AI chính (LSS, Bidding)
-# Với ánh xạ Docker 3000:8000, đường dẫn ngoài sẽ là: http://localhost:3000/api/v1/alerts/bids
+# CHÚ Ý: AI Service hiện chạy độc lập ở port 8000. Đường dẫn ngoài sẽ là: http://localhost:8000/api/v1/alerts/bids
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["AI Logic"])
 
 # ==========================================
@@ -117,7 +117,7 @@ async def read_root():
         status_code=200,
         content={
             "message": "AI System Status",
-            "status": "AI Logic đã đồng bộ 100% với Backend (Async Mode)",
+            "status": "AI Logic đã đồng bộ 100% với Backend (Async Mode - Port 8000)",
             "real_time_check": {
                 "mysql_database": mysql_status,
                 "redis_cache": redis_status,
@@ -132,11 +132,10 @@ async def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    # Vẫn chạy nội bộ ở cổng được định nghĩa trong settings (8000). 
-    # Docker sẽ làm nhiệm vụ lái traffic từ cổng 3000 ở ngoài vào đây.
+    # Đã khóa cứng port ở 8000 để nhường 3000 cho Node.js của Hiếu
     uvicorn.run(
         "app.main:app", 
         host="0.0.0.0", 
-        port=settings.PORT, 
+        port=8000, 
         reload=(settings.NODE_ENV == "development")
     )

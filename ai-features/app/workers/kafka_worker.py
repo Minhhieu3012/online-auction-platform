@@ -10,7 +10,8 @@ from app.services.detector import calculate_lss
 from app.kafka.producer import emit_fraud_alert, emit_extension_signal
 from app.db.redis_client import get_redis
 
-# Import Rào chắn Toàn vẹn từ cấu trúc thư mục phẳng
+# Import các hàm tương tác Database và Logic bảo vệ
+from app.db.repositories import save_fraud_alert
 from app.services.integrity import is_alert_allowed, check_anti_sniping
 
 async def consume_bids():
@@ -83,10 +84,25 @@ async def consume_bids():
                         # [Đầu ra 1]: Bắn sang Node.js qua Kafka để chặn user
                         await emit_fraud_alert(alert_dict)
                         
-                        # [Đầu ra 2]: Lưu vào Redis cho Admin Dashboard (Frontend) hiển thị
+                        # [Đầu ra 2]: Lưu vào Redis cho Admin Dashboard (Frontend) hiển thị realtime
                         redis = await get_redis()
                         await redis.lpush("active_fraud_alerts", json.dumps(alert_dict))
                         await redis.ltrim("active_fraud_alerts", 0, 49) # Chỉ giữ lại 50 cảnh báo mới nhất
+                        
+                        # [Đầu ra 3 - MỚI]: Lưu vĩnh viễn vào MySQL Database
+                        # Xử lý ánh xạ (mapping) dữ liệu cho khớp với init.sql
+                        try:
+                            reasons_dict = {"alert_type": "SHILL_BIDDING", "details": alert.message}
+                            await save_fraud_alert(
+                                auction_id=alert.auction_id,
+                                user_id=alert.user_id,
+                                risk_score=alert.lss_score, # Mapping lss_score -> risk_score
+                                reasons=reasons_dict        # Mapping message -> JSON dict
+                            )
+                            print(f"💾 [DB] Đã lưu lịch sử án phạt vào MySQL thành công.")
+                        except Exception as db_err:
+                            print(f"❌ [DB Lỗi] Không thể lưu xuống MySQL: {str(db_err)}")
+
                     else:
                         print(f"🛡️ [Idempotency] Đã chặn thông báo rác từ spammer {bid_event.user_id}.")
 
