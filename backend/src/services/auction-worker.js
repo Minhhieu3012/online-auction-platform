@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const redisKeys = require("../utils/redis-keys");
 const { Worker, Queue } = require("bullmq");
 const { connection } = require("../config/queue");

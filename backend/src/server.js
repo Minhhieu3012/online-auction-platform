@@ -6,6 +6,7 @@ require("./services/auction-worker");
 
 const { connectProducer, disconnectProducer } = require("./config/kafka");
 const { startKafkaConsumer, stopKafkaConsumer } = require("./services/kafka-consumer");
+const logger = require("./utils/logger");
 
 const app = require("./app");
 

@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { scheduleAuctionClose } = require("../src/config/queue");
+const logger = require("../src/utils/logger");
 
 async function trigger() {
   console.log("Đang dán bảng thông báo hẹn giờ cho Worker...");

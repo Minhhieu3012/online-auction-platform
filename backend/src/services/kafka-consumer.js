@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const { kafka } = require("../config/kafka");
 const pool = require("../config/db");
 

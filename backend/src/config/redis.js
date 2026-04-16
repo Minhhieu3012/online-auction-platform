@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const { createClient } = require("redis");
 require("dotenv").config();
 

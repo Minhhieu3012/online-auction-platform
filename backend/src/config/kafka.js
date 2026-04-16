@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const { Kafka } = require("kafkajs");
 require("dotenv").config();
 

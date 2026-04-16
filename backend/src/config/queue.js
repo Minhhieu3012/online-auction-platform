@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const { Queue } = require("bullmq");
 const IORedis = require("ioredis");
 require("dotenv").config();

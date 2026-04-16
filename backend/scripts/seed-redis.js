@@ -1,5 +1,6 @@
 require("dotenv").config();
 const redisClient = require("../src/config/redis");
+const logger = require("../src/utils/logger");
 
 async function seed() {
   const auctionId = 1;

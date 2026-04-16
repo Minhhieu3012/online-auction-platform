@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const pool = require("../config/db");
 

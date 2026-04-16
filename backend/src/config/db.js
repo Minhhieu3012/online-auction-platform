@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
