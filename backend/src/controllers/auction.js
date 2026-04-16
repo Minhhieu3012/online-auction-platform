@@ -1,3 +1,4 @@
+const redisKeys = require("../utils/redis-keys");
 const pool = require("../config/db");
 const redisClient = require("../config/redis");
 const { scheduleAuctionClose } = require("../config/queue");
@@ -53,7 +54,7 @@ class AuctionController {
     // BLOCK 2: TÁC VỤ NỀN (Redis & BullMQ - Best Effort)
     // ==========================================
     try {
-      const auctionKey = `auction:${auctionId}:info`;
+      const auctionKey = redisKeys.auctionInfo(auctionId);
       await redisClient.hSet(auctionKey, {
         current_price: startingPrice.toString(),
         step_price: stepPrice.toString(),

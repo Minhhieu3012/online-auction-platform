@@ -1,3 +1,4 @@
+const redisKeys = require("../utils/redis-keys");
 const { Worker, Queue } = require("bullmq");
 const { connection } = require("../config/queue");
 const redisClient = require("../config/redis");
@@ -42,8 +43,8 @@ const auctionWorker = new Worker(
   "auction-lifecycle",
   async (job) => {
     const { auctionId } = job.data;
-    const auctionKey = `auction:${auctionId}:info`;
-    const lockKey = `auction:${auctionId}:lock`;
+    const auctionKey = redisKeys.auctionInfo(auctionId);
+    const lockKey = redisKeys.auctionLock(auctionId);
 
     console.log(`\n[Worker] Bắt đầu tiến trình đóng phiên đấu giá ID: ${auctionId}...`);
 

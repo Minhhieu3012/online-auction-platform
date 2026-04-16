@@ -1,3 +1,4 @@
+const redisKeys = require("../utils/redis-keys");
 const pool = require("../config/db");
 const redisClient = require("../config/redis");
 
@@ -66,8 +67,8 @@ class AutoBidService {
    * Hàm này được gọi bởi BiddingService SAU KHI có người khác đặt giá
    */
   static async triggerAutoBids(auctionId, currentPrice, currentBidderId) {
-    const proxyKey = `auction:${auctionId}:proxy`;
-    const auctionKey = `auction:${auctionId}:info`;
+    const proxyKey = redisKeys.auctionProxy(auctionId);
+    const auctionKey = redisKeys.auctionInfo(auctionId);
 
     // Lấy stepPrice từ Redis cho chắc chắn, không tin tham số truyền vào
     const auctionInfo = await redisClient.hGetAll(auctionKey);

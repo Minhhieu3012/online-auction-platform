@@ -1,3 +1,4 @@
+const redisKeys = require("../utils/redis-keys");
 const AutoBidService = require("./autobid");
 const redisClient = require("../config/redis");
 const { checkAntiSniping } = require("../constants/business");
@@ -32,7 +33,7 @@ const placeBidLuaScript = `
 
 class BiddingService {
   static async placeBid(auctionId, userId, bidAmount) {
-    const auctionKey = `auction:${auctionId}:info`;
+    const auctionKey = redisKeys.auctionInfo(auctionId);
 
     try {
       const result = await redisClient.eval(placeBidLuaScript, {
