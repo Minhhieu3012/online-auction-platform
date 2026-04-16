@@ -25,9 +25,9 @@ const scheduleAuctionClose = async (auctionId, endTime) => {
     },
   );
 
-  console.log(`[BullMQ] Đã hẹn giờ đóng phiên ${auctionId} sau ${finalDelay}ms`);
+  logger.info(`[BullMQ] Đã hẹn giờ đóng phiên ${auctionId} sau ${finalDelay}ms`);
 };
 
-console.log("[BullMQ] Đã khởi tạo Hàng đợi Quản lý Đấu giá");
+logger.info("[BullMQ] Đã khởi tạo Hàng đợi Quản lý Đấu giá");
 
 module.exports = { auctionQueue, connection, scheduleAuctionClose };

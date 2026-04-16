@@ -13,8 +13,8 @@ const app = require("./app");
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, async () => {
-  console.log(`[Core Engine] Server is running on http://localhost:${PORT}`);
-  console.log(`[Health Check] http://localhost:${PORT}/api/health`);
+  logger.info(`[Core Engine] Server is running on http://localhost:${PORT}`);
+  logger.info(`[Health Check] http://localhost:${PORT}/api/health`);
 
   await connectProducer();
 
@@ -25,7 +25,7 @@ const server = app.listen(PORT, async () => {
 // GRACEFUL SHUTDOWN (Tắt hệ thống an toàn)
 // ==========================================
 const shutdown = async () => {
-  console.log("\n[Core Engine] Đang nhận lệnh tắt hệ thống, tiến hành đóng các kết nối...");
+  logger.info("\n[Core Engine] Đang nhận lệnh tắt hệ thống, tiến hành đóng các kết nối...");
 
   await stopKafkaConsumer();
 
@@ -34,13 +34,13 @@ const shutdown = async () => {
 
   // Cầu chì an toàn: Ép tắt sau 3 giây nếu có kết nối bị kẹt
   setTimeout(() => {
-    console.log("[Core Engine] Đã ép tắt hệ thống do quá thời gian chờ đóng kết nối.");
+    logger.info("[Core Engine] Đã ép tắt hệ thống do quá thời gian chờ đóng kết nối.");
     process.exit(0);
   }, 3000);
 
   // Từ chối các request HTTP mới
   server.close(() => {
-    console.log("[Core Engine] Đã đóng HTTP Server. Tắt tiến trình an toàn.");
+    logger.info("[Core Engine] Đã đóng HTTP Server. Tắt tiến trình an toàn.");
     process.exit(0);
   });
 };

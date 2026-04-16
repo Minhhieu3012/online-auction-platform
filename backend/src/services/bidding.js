@@ -3,6 +3,7 @@ const AutoBidService = require("./autobid");
 const redisClient = require("../config/redis");
 const { checkAntiSniping } = require("../constants/business");
 const { producer } = require("../config/kafka");
+const logger = require("../utils/logger");
 
 const placeBidLuaScript = `
     local auction_key = KEYS[1]
@@ -43,7 +44,7 @@ class BiddingService {
 
       if (typeof result === "number") {
         const currentVersion = result;
-        console.log(`[Bid Success] User ${userId} đặt $${bidAmount} cho phiên ${auctionId}`);
+        logger.success(`[Bid Success] User ${userId} đặt $${bidAmount} cho phiên ${auctionId}`);
 
         // Đọc auctionInfo một lần duy nhất
         const auctionInfo = await redisClient.hGetAll(auctionKey);
@@ -74,10 +75,10 @@ class BiddingService {
               (extensionCount + 1).toString(),
             );
             newEndTimeForDB = antiSnipe.newEndTime;
-            console.log(`[Anti-Snipe] Phiên ${auctionId} gia hạn đến: ${newEndString} (Lần ${extensionCount + 1})`);
+            logger.info(`[Anti-Snipe] Phiên ${auctionId} gia hạn đến: ${newEndString} (Lần ${extensionCount + 1})`);
           }
         } catch (err) {
-          console.error("[Anti-Snipe Error]:", err.message);
+          logger.error("[Anti-Snipe Error]:", err.message);
         }
 
         // Bắn Kafka — Consumer sẽ lo việc ghi DB
@@ -98,9 +99,9 @@ class BiddingService {
               },
             ],
           });
-          console.log(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
+          logger.info(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
         } catch (kafkaError) {
-          console.error("[Kafka Error]:", kafkaError.message);
+          logger.error("[Kafka Error]:", kafkaError.message);
           // TODO: Fallback — ghi thẳng vào DB nếu Kafka chết
         }
 
@@ -109,7 +110,7 @@ class BiddingService {
         return { success: false, errorCode: result };
       }
     } catch (error) {
-      console.error("[Bidding Error]:", error);
+      logger.error("[Bidding Error]:", error);
       throw new Error("Hệ thống đang quá tải, vui lòng thử lại sau");
     }
   }

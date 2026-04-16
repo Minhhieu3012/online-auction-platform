@@ -7,7 +7,7 @@ const consumer = kafka.consumer({ groupId: "bidding-group" });
 const startKafkaConsumer = async () => {
   try {
     await consumer.connect();
-    console.log("[Kafka Consumer] Đã khởi động và sẵn sàng nhận việc!");
+    logger.success("[Kafka Consumer] Đã khởi động và sẵn sàng nhận việc!");
 
     await consumer.subscribe({ topic: "auction-bids", fromBeginning: false });
 
@@ -44,31 +44,31 @@ const startKafkaConsumer = async () => {
           const [updateResult] = await connection.execute(sql, params);
 
           if (updateResult.affectedRows === 0) {
-            console.log(`[Kafka Consumer] Bỏ qua Bid $${bidAmount} (Version ${version}) vì DB đã có giá mới hơn.`);
+            logger.info(`[Kafka Consumer] Bỏ qua Bid $${bidAmount} (Version ${version}) vì DB đã có giá mới hơn.`);
           } else {
-            console.log(`[Kafka Consumer] Đã đồng bộ Bid $${bidAmount} (Version ${version}) xuống DB.`);
+            logger.info(`[Kafka Consumer] Đã đồng bộ Bid $${bidAmount} (Version ${version}) xuống DB.`);
           }
 
           await connection.commit();
         } catch (error) {
           await connection.rollback();
-          console.error(`[Kafka Consumer Error] Lỗi đồng bộ Bid $${bidAmount}:`, error.message);
+          logger.error(`[Kafka Consumer Error] Lỗi đồng bộ Bid $${bidAmount}:`, error.message);
         } finally {
           connection.release();
         }
       },
     });
   } catch (error) {
-    console.error("[Kafka Consumer Error]:", error.message);
+    logger.error("[Kafka Consumer Error]:", error.message);
   }
 };
 
 const stopKafkaConsumer = async () => {
   try {
     await consumer.disconnect();
-    console.log("[Kafka Consumer] Đã ngắt kết nối an toàn.");
+    logger.info("[Kafka Consumer] Đã ngắt kết nối an toàn.");
   } catch (error) {
-    console.error("[Kafka Consumer Disconnect Error]:", error.message);
+    logger.error("[Kafka Consumer Disconnect Error]:", error.message);
   }
 };
 

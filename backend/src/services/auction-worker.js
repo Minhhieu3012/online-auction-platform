@@ -47,13 +47,13 @@ const auctionWorker = new Worker(
     const auctionKey = redisKeys.auctionInfo(auctionId);
     const lockKey = redisKeys.auctionLock(auctionId);
 
-    console.log(`\n[Worker] Bắt đầu tiến trình đóng phiên đấu giá ID: ${auctionId}...`);
+    logger.info(`\n[Worker] Bắt đầu tiến trình đóng phiên đấu giá ID: ${auctionId}...`);
 
     // 1. Chốt khóa phân tán (Distributed Lock)
     // Ngăn chặn BullMQ chạy trùng lặp Job gây Deadlock
     const lock = await acquireLock(redisClient, lockKey);
     if (!lock) {
-      console.log(`[Worker] Bỏ qua: Phiên ${auctionId} đang được một tiến trình khác xử lý.`);
+      logger.info(`[Worker] Bỏ qua: Phiên ${auctionId} đang được một tiến trình khác xử lý.`);
       return;
     }
 
@@ -65,7 +65,7 @@ const auctionWorker = new Worker(
 
       // [Dự phòng an toàn]: Nếu Redis rỗng/chết, lấy dữ liệu từ MySQL
       if (!auctionData || Object.keys(auctionData).length === 0) {
-        console.log(`[Worker] Redis rỗng, dùng dữ liệu dự phòng từ MySQL cho phiên ${auctionId}`);
+        logger.info(`[Worker] Redis rỗng, dùng dữ liệu dự phòng từ MySQL cho phiên ${auctionId}`);
 
         const [rows] = await dbConnection.execute(
           `SELECT a.id, a.status, a.current_price, a.end_time, 
@@ -90,7 +90,7 @@ const auctionWorker = new Worker(
 
       if (latestEndTimeMs > nowMs) {
         const delay = latestEndTimeMs - nowMs;
-        console.log(`[Worker Ngủ Tiếp] Phiên ${auctionId} đã được gia hạn. Hẹn giờ quay lại sau ${delay}ms`);
+        logger.info(`[Worker Ngủ Tiếp] Phiên ${auctionId} đã được gia hạn. Hẹn giờ quay lại sau ${delay}ms`);
 
         // Đẩy 1 Job mới vào Queue với độ trễ tương ứng
         await auctionQueue.add(
@@ -109,7 +109,7 @@ const auctionWorker = new Worker(
       // 4. Khóa trạng thái Redis nguyên tử (Từ chối Bid mới)
       const canClose = await safeSetClosing(redisClient, auctionKey);
       if (!canClose) {
-        console.log(`[Worker] Bỏ qua: Phiên ${auctionId} đã kết thúc hoặc đang chốt đơn.`);
+        logger.info(`[Worker] Bỏ qua: Phiên ${auctionId} đã kết thúc hoặc đang chốt đơn.`);
         return;
       }
 
@@ -145,9 +145,9 @@ const auctionWorker = new Worker(
           [highestBidder, auctionId, finalPrice],
         );
 
-        console.log(`[Worker] NGƯỜI CHIẾN THẮNG: User ID ${highestBidder} với mức giá $${finalPrice}!`);
+        logger.info(`[Worker] NGƯỜI CHIẾN THẮNG: User ID ${highestBidder} với mức giá $${finalPrice}!`);
       } else {
-        console.log(`[Worker] Phiên đấu giá kết thúc không có ai trả giá.`);
+        logger.info(`[Worker] Phiên đấu giá kết thúc không có ai trả giá.`);
       }
 
       await dbConnection.commit();
@@ -156,10 +156,10 @@ const auctionWorker = new Worker(
       await redisClient.hSet(auctionKey, "status", finalStatus);
       await redisClient.expire(auctionKey, 3600); // Tự xóa data Redis sau 1 tiếng để nhẹ RAM
 
-      console.log(`[Worker] Chốt đơn phiên ${auctionId} hoàn tất!`);
+      logger.info(`[Worker] Chốt đơn phiên ${auctionId} hoàn tất!`);
     } catch (err) {
       await dbConnection.rollback();
-      console.error(`[Worker Error] Lỗi khi xử lý phiên ${auctionId}:`, err);
+      logger.error(`[Worker Error] Lỗi khi xử lý phiên ${auctionId}:`, err);
       throw err;
     } finally {
       dbConnection.release();
@@ -171,11 +171,11 @@ const auctionWorker = new Worker(
 
 // Bắt sự kiện Log cho BullMQ
 auctionWorker.on("completed", (job) => {
-  console.log(`[BullMQ] Nhiệm vụ ${job.id} đã hoàn tất.`);
+  logger.success(`[BullMQ] Nhiệm vụ ${job.id} đã hoàn tất.`);
 });
 
 auctionWorker.on("failed", (job, err) => {
-  console.log(`[BullMQ] Nhiệm vụ ${job.id} thất bại:`, err.message);
+  logger.error(`[BullMQ] Nhiệm vụ ${job.id} thất bại:`, err.message);
 });
 
 module.exports = auctionWorker;

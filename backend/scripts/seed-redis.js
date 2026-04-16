@@ -16,7 +16,7 @@ async function seed() {
     extension_count: "0",
   });
 
-  console.log("Đã nạp dữ liệu phiên đấu giá vào Redis thành công!");
+  logger.success("Đã nạp dữ liệu phiên đấu giá vào Redis thành công!");
   process.exit();
 }
 

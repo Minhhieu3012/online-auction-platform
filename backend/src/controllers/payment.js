@@ -28,7 +28,7 @@ class PaymentController {
       }
 
       const finalAmount = session.amount_total / 100;
-      console.log(`[Webhook Nhận] Thanh toán $${finalAmount} cho phiên ${auctionId}`);
+      logger.info(`[Webhook Nhận] Thanh toán $${finalAmount} cho phiên ${auctionId}`);
 
       const connection = await pool.getConnection();
       try {
@@ -43,7 +43,7 @@ class PaymentController {
         }
 
         if (rows[0].status === "Completed") {
-          console.log(`[Webhook Skip] Phiên ${auctionId} đã được xử lý rồi, bỏ qua.`);
+          logger.info(`[Webhook Skip] Phiên ${auctionId} đã được xử lý rồi, bỏ qua.`);
           await connection.rollback();
           return res.status(200).json({ received: true, skipped: true });
         }
@@ -54,10 +54,10 @@ class PaymentController {
         ]);
 
         await connection.commit();
-        console.log(`[DB Sync] Đã chốt đơn thành công phiên ${auctionId} | Stripe Session: ${session.id}`);
+        logger.success(`[DB Sync] Đã chốt đơn thành công phiên ${auctionId} | Stripe Session: ${session.id}`);
       } catch (dbError) {
         await connection.rollback();
-        console.error(`[Webhook Lỗi DB]: ${dbError.message}`);
+        logger.error(`[Webhook Lỗi DB]: ${dbError.message}`);
         return res.status(500).json({ error: "Database error, will retry" });
       } finally {
         connection.release();

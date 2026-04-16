@@ -47,10 +47,10 @@ class AutoBidService {
 
       // Trả về message tương ứng cho Controller
       if (oldAmount === 0) {
-        console.log(`[Auto-Bid Hold] Đã đóng băng $${maxAmount} của User ${userId} cho phiên ${auctionId}`);
+        logger.info(`[Auto-Bid Hold] Đã đóng băng $${maxAmount} của User ${userId} cho phiên ${auctionId}`);
         return { success: true, message: "Đã thiết lập Auto-bid thành công." };
       } else {
-        console.log(
+        logger.info(
           `[Auto-Bid Update] User ${userId} cập nhật Auto-bid lên $${maxAmount} (Chênh lệch: $${amountDifference})`,
         );
         return { success: true, message: "Đã cập nhật mức giá Auto-bid mới." };
@@ -100,7 +100,7 @@ class AutoBidService {
 
     // Nếu hạn mức của họ vẫn đủ để đè giá người vừa rồi
     if (bestCandidate.maxPrice >= nextBidAmount) {
-      console.log(`[Auto-bid] Kích hoạt cho User ${bestCandidate.userId} tại mức giá $${nextBidAmount}`);
+      logger.info(`[Auto-bid] Kích hoạt cho User ${bestCandidate.userId} tại mức giá $${nextBidAmount}`);
 
       // Require trễ để tránh Circular Dependency
       const BiddingService = require("./bidding");
@@ -132,7 +132,7 @@ class AutoBidService {
       await redisClient.hDel(proxyKey, userId.toString());
 
       await connection.commit();
-      console.log(`[Auto-Bid Release] Đã hoàn trả $${refundAmount} cho User ${userId}`);
+      logger.info(`[Auto-Bid Release] Đã hoàn trả $${refundAmount} cho User ${userId}`);
 
       return { success: true, refundAmount };
     } catch (error) {

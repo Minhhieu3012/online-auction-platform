@@ -13,18 +13,18 @@ const producer = kafka.producer();
 const connectProducer = async () => {
   try {
     await producer.connect();
-    console.log("[Kafka] Producer đã kết nối thành công!");
+    logger.success("[Kafka] Producer đã kết nối thành công!");
   } catch (error) {
-    console.error("[Kafka Error] Không thể kết nối Producer:", error.message);
+    logger.error("[Kafka Error] Không thể kết nối Producer:", error.message);
   }
 };
 
 const disconnectProducer = async () => {
   try {
     await producer.disconnect();
-    console.log("[Kafka] Producer đã ngắt kết nối an toàn.");
+    logger.info("[Kafka] Producer đã ngắt kết nối an toàn.");
   } catch (error) {
-    console.error("[Kafka Error] Lỗi khi ngắt kết nối:", error.message);
+    logger.error("[Kafka Error] Lỗi khi ngắt kết nối:", error.message);
   }
 };
 
