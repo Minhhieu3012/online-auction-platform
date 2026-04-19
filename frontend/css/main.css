@@ -1,20 +1,21 @@
 /* =========================================
-   CSS Variables & Reset
+   CSS Variables & Reset (Phong cách Dior)
    ========================================= */
 :root {
-    /* Đổi nền trang chủ đậm hơn chút để phân biệt với header mới */
-    --bg-color: #e5dfd3; 
-    --text-primary: #3a1f1d; /* Nâu cà phê đậm sang trọng */
-    --text-secondary: #6e5e5c; 
-    --accent-color: #8c2b22; 
-    --border-color: #d1c8b4;
+    /* Trắng tinh khiết và đen tuyền tạo sự sang trọng sắc sảo */
+    --bg-color: #ffffff; 
+    --text-primary: #000000; 
+    --text-secondary: #555555; 
+    --accent-color: #000000; 
+    --border-color: #e0e0e0;
+    --border-dark: #000000;
     --white: #ffffff;
     
-    /* MÀU MỚI: Kem Greige cao cấp cho Header */
-    --header-bg: #f5f1e6; 
+    --header-bg: #ffffff; 
     
-    --font-heading: 'Quicksand', sans-serif;
-    --font-body: 'Nunito', sans-serif;
+    /* Font thời trang cao cấp */
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Montserrat', sans-serif;
 }
 
 * {
@@ -29,15 +30,16 @@ body {
     font-family: var(--font-body);
     line-height: 1.6;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 a { text-decoration: none; color: inherit; }
 ul { list-style: none; }
 
 .container {
-    max-width: 1200px;
+    max-width: 1280px; /* Rộng hơn một chút để tạo không gian mở (whitespace) */
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 40px;
 }
 
 /* =========================================
@@ -45,21 +47,31 @@ ul { list-style: none; }
    ========================================= */
 h1, h2, h3, .footer-logo {
     font-family: var(--font-heading);
-    font-weight: 700;
+    font-weight: 400; /* Font Serif mỏng sẽ sang hơn */
+    color: var(--text-primary);
 }
+
+/* Đường kẻ chia cắt đặc trưng của thiết kế tạp chí */
+.divider {
+    width: 60px;
+    height: 1px;
+    background-color: var(--text-primary);
+    margin: 20px 0;
+}
+.divider.center { margin: 20px auto; }
 
 .full-width { width: 100%; text-align: center; }
 
-.grid-2-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; }
+.grid-2-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 60px; }
 
 /* =========================================
-   Header (ĐỔI MÀU: Nền sáng để nổi bật logo tối)
+   Header (Tối giản, viền mảnh)
    ========================================= */
 .header {
-    background-color: var(--header-bg); /* Nền sáng, ấm áp */
-    color: var(--text-primary); /* Chữ tối màu */
-    padding: 10px 0; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* Shadow nhẹ hơn cho hiện đại */
+    background-color: var(--header-bg);
+    color: var(--text-primary);
+    padding: 15px 0; 
+    border-bottom: 1px solid var(--border-color); /* Viền mỏng thay vì bóng đổ */
 }
 
 .header-inner {
@@ -69,75 +81,63 @@ h1, h2, h3, .footer-logo {
 }
 
 .logo img {
-    height: 100px; 
+    height: 50px; /* Logo vừa phải, tinh tế */
     width: auto;
     display: block;
     object-fit: contain;
-    /* Có thể thêm bộ lọc nhẹ nếu logo vẫn chưa đủ tương phản */
-    /* filter: drop-shadow(0px 0px 1px rgba(0,0,0,0.2)); */
 }
 
-.nav-links { display: flex; gap: 30px; }
+.nav-links { display: flex; gap: 40px; }
 .nav-links a {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--text-primary); /* Chữ tối */
-    transition: color 0.3s;
+    color: var(--text-primary);
+    transition: opacity 0.3s;
 }
-.nav-links a:hover, .nav-links a.active { color: var(--accent-color); }
+.nav-links a:hover, .nav-links a.active { opacity: 0.5; }
 
 /* =========================================
    Hero Section
    ========================================= */
-.hero { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 60px 20px; align-items: center; }
-.hero-content .subtitle { font-size: 14px; font-weight: 700; color: var(--accent-color); letter-spacing: 2px; }
-.hero-content .title { font-size: 64px; line-height: 1.2; margin: 20px 0; }
-.hero-content .description { font-size: 18px; margin-bottom: 40px; font-weight: 600; }
-.hero-actions { display: flex; gap: 15px; }
+.hero { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; padding: 80px 40px; align-items: center; }
+.hero-content .subtitle { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 4px; color: var(--text-secondary); }
+.hero-content .title { font-size: 72px; line-height: 1.1; margin: 20px 0; font-style: italic; }
+.hero-content .description { font-size: 15px; font-weight: 300; margin-bottom: 40px; color: var(--text-secondary); max-width: 90%; line-height: 1.8; }
+.hero-actions { display: flex; gap: 20px; }
 
 .hero-image { position: relative; }
-.hero-image img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+/* Ảnh khung vuông vức, không bo góc */
+.image-frame { width: 100%; overflow: hidden; }
+.image-frame img { width: 100%; height: auto; display: block; }
 .hero-image-caption {
-    position: absolute; bottom: -20px; left: -20px;
-    background-color: var(--white); padding: 20px; border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    position: absolute; bottom: -30px; right: -30px;
+    background-color: var(--white); padding: 30px;
+    border: 1px solid var(--border-color); /* Hộp viền cứng */
 }
+.caption-lot { font-size: 10px; font-weight: 600; letter-spacing: 3px; color: var(--text-secondary); }
+.hero-image-caption h3 { font-size: 24px; margin: 10px 0; }
 
 /* =========================================
-   Section Layouts (Home)
+   Section Layouts
    ========================================= */
-.featured-collections { padding: 80px 20px; }
-.section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
+.featured-collections { padding: 100px 40px; }
+.section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; border-bottom: 1px solid var(--border-dark); padding-bottom: 20px; }
 .section-header.center { flex-direction: column; align-items: center; text-align: center; border-bottom: none; }
-.section-header h2 { font-size: 36px; }
+.section-header h2 { font-size: 42px; font-style: italic; }
+.view-all { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; }
 
-.live-auctions-section { background-color: #dfd6bc; padding: 80px 0; }
-.live-indicator { color: var(--accent-color); font-weight: 800; }
-
-/* =========================================
-   Auth Layouts
-   ========================================= */
-.auth-section {
-    display: flex; justify-content: center; align-items: center;
-    min-height: calc(100vh - 120px);
-    padding: 40px 20px;
-}
-
-/* =========================================
-   Collections Page Layout
-   ========================================= */
-.collections-section { padding: 60px 20px 100px; }
-.collections-header { text-align: center; margin-bottom: 50px; }
-.collections-header h1 { font-size: 42px; margin-bottom: 15px; }
-.collections-header p { font-size: 18px; color: var(--text-secondary); max-width: 600px; margin: 0 auto; font-weight: 600; }
-.collections-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 30px;
-}
+/* Nền khối màu phụ (tương phản xám/trắng) */
+.live-auctions-section { background-color: #f9f9f9; padding: 100px 0; border-top: 1px solid var(--border-color); }
+.live-indicator { color: var(--accent-color); font-weight: 600; font-size: 12px; letter-spacing: 3px; margin-bottom: 15px; display: inline-block;}
 
 /* =========================================
    Footer
    ========================================= */
-.footer { background-color: var(--text-primary); color: var(--white); padding: 40px 20px; text-align: center; }
+.footer { background-color: var(--text-primary); color: var(--white); padding: 60px 40px 40px; text-align: center; }
+.footer-logo { font-size: 28px; font-family: var(--font-heading); margin-bottom: 30px; font-style: italic; }
+.footer-links { display: flex; justify-content: center; gap: 40px; margin-bottom: 40px; }
+.footer-links a { font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: #aaaaaa; transition: color 0.3s; }
+.footer-links a:hover { color: var(--white); }
+.copyright { font-size: 11px; color: #555555; letter-spacing: 2px; }
