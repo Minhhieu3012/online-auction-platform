@@ -1,55 +1,88 @@
-// ==========================================
-// socket-client.js - Real-time Communication
-// ==========================================
+/**
+ * Frontend Core: Socket.io Client
+ * Quản lý kết nối Real-time với độ trễ < 50ms
+ */
 
-/* * LƯU Ý CHO HUY: 
-* Khi tích hợp thực tế, bạn cần nhúng CDN Socket.io vào file HTML:
-* <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-* Sau đó bỏ comment dòng kết nối bên dưới và xóa block MOCK đi.
-*/
+const SOCKET_SERVER_URL = 'http://localhost:3000';
 
-// --- CODE THỰC TẾ (Đang comment chờ Backend) ---
-// export const socket = io("http://localhost:3000");
+class AuctionSocketClient {
+    constructor() {
+        this.socket = null;
+        this.listeners = new Map();
+    }
 
-// --- CODE MOCK (Dùng để test giao diện Frontend) ---
-export const socket = {
-    callbacks: {},
-    
-    // Lắng nghe sự kiện từ Server
-    on(eventName, callback) {
-        console.log(`[Socket] Đang lắng nghe: ${eventName}`);
-        this.callbacks[eventName] = callback;
-
-        // Tự động giả lập có người đặt giá sau mỗi 15 giây để test UI
-        if (eventName === 'update_auction') {
-            setInterval(() => {
-                if (typeof this.callbacks['update_auction'] === 'function') {
-                    const mockNewPrice = Math.floor(Math.random() * 500000) + 1000000;
-                    this.callbacks['update_auction']({
-                        auction_id: '1024',
-                        current_price: mockNewPrice,
-                        highest_bidder: 'Người dùng ẩn danh'
-                    });
-                }
-            }, 15000);
+    // Kết nối và tham gia vào đúng Phòng đấu giá (Auction Room)
+    connect(auctionId) {
+        if (typeof io === 'undefined') {
+            console.error('[Socket Error] Không tìm thấy thư viện Socket.io. Vui lòng thêm <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script> vào HTML.');
+            return;
         }
-    },
 
-    // Phát sự kiện lên Server
-    emit(eventName, data) {
-        console.log(`[Socket] Phát sự kiện: ${eventName}`, data);
-        
-        // Giả lập Server phản hồi thành công sau khi đặt giá
-        if (eventName === 'place_bid') {
-            setTimeout(() => {
-                if (typeof this.callbacks['update_auction'] === 'function') {
-                    this.callbacks['update_auction']({
-                        auction_id: data.auction_id,
-                        current_price: data.amount,
-                        highest_bidder: data.bidder_email
-                    });
-                }
-            }, 500);
+        // Khởi tạo kết nối, ép dùng websocket để bỏ qua polling giúp đạt < 50ms
+        this.socket = io(SOCKET_SERVER_URL, {
+            query: { auctionId: auctionId },
+            transports: ['websocket']
+        });
+
+        this.socket.on('connect', () => {
+            console.log(`[Socket] Đã kết nối vào phòng đấu giá ID: ${auctionId}`);
+        });
+
+        this.socket.on('disconnect', () => {
+            console.warn('[Socket] Mất kết nối tới máy chủ.');
+        });
+
+        // ==========================================
+        // CÁC KÊNH LẮNG NGHE TỪ BACKEND
+        // ==========================================
+
+        // 1. Nhận giá mới
+        this.socket.on('price_update', (data) => {
+            /* Kỳ vọng data: { currentPrice: 1500, highestBidder: 'userId', version: 5 } */
+            this.trigger('price_update', data);
+        });
+
+        // 2. Nhận tín hiệu Anti-sniping (Gia hạn giờ)
+        this.socket.on('auction_extended', (data) => {
+            /* Kỳ vọng data: { newEndTime: '2026-04-29T...', extensionCount: 1 } */
+            this.trigger('auction_extended', data);
+        });
+
+        // 3. Nhận thông báo bị giành giật (Outbid)
+        this.socket.on('outbid_alert', (data) => {
+            this.trigger('outbid_alert', data);
+        });
+
+        // 4. Nhận lệnh kết thúc phiên
+        this.socket.on('auction_closed', (data) => {
+            /* Kỳ vọng data: { finalPrice: 2000, winnerId: 'userId' } */
+            this.trigger('auction_closed', data);
+        });
+    }
+
+    // Đăng ký hàm callback cho các file Module (như bid-logic.js) lắng nghe
+    on(event, callback) {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, []);
+        }
+        this.listeners.get(event).push(callback);
+    }
+
+    // Kích hoạt callback khi có dữ liệu mới
+    trigger(event, data) {
+        if (this.listeners.has(event)) {
+            this.listeners.get(event).forEach(callback => callback(data));
         }
     }
-};
+
+    // Đóng kết nối khi rời trang
+    disconnect() {
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+        }
+        this.listeners.clear();
+    }
+}
+
+window.socketClient = new AuctionSocketClient();

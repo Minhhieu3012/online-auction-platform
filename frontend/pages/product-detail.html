@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIVE AUCTION | GHU</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/auction-detail.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-container">
+            <a href="../index.html" class="logo">GHU</a>
+            <nav class="nav-actions">
+                <a href="#signin" class="btn btn-outline">SIGN IN</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="auction-room">
+        <div class="product-gallery">
+            <div class="image-wrapper">
+                <img src="../assets/images/mockdata/1.png" alt="Exquisite Piece" id="product-image">
+            </div>
+        </div>
+        
+        <div class="bidding-panel">
+            <div class="product-info">
+                <h1 id="product-name">LOADING...</h1>
+                <p id="product-desc" class="text-muted">Fetching auction details...</p>
+            </div>
+
+            <div class="status-board">
+                <div class="status-block price-section">
+                    <span class="label">CURRENT BID</span>
+                    <h2 id="current-price" class="value-large">---</h2>
+                    <span id="highest-bidder-label" class="bidder-info">Waiting for bids</span>
+                </div>
+                
+                <div class="status-block time-section">
+                    <span class="label">TIME REMAINING</span>
+                    <h2 id="countdown-timer" class="value-large">--:--:--</h2>
+                    <span id="extension-badge" class="badge hidden">ANTI-SNIPING EXTENDED</span>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <div class="bidding-form">
+                    <label class="label">PLACE DIRECT BID</label>
+                    <div class="input-group">
+                        <span class="currency-symbol">$</span>
+                        <input type="number" id="bid-input" placeholder="Enter amount" min="0" step="0.01">
+                        <button id="btn-place-bid" class="btn btn-solid">BID NOW</button>
+                    </div>
+                    <span id="min-bid-hint" class="hint">Minimum bid required: $0.00</span>
+                </div>
+
+                <hr class="divider">
+
+                <div class="bidding-form proxy-form">
+                    <label class="label">SET MAX PROXY BID</label>
+                    <div class="input-group">
+                        <span class="currency-symbol">$</span>
+                        <input type="number" id="proxy-input" placeholder="Your maximum limit" min="0" step="0.01">
+                        <button id="btn-set-proxy" class="btn btn-outline">SET AUTO-BID</button>
+                    </div>
+                    <span class="hint">System will bid automatically up to this amount.</span>
+                </div>
+            </div>
+            
+            <div class="notification-area" id="toast-container"></div>
+        </div>
+    </main>
+
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="../js/core/api-client.js"></script>
+    <script src="../js/core/socket-client.js"></script>
+    <script src="../js/modules/countdown.js"></script>
+    <script src="../js/modules/bid-logic.js"></script>
+</body>
+</html>
