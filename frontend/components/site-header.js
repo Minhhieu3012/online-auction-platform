@@ -1,4 +1,5 @@
 import { initCommandPalette } from "../js/modules/command-palette.js";
+import apiClient from "../js/core/api-client.js";
 
 const HEADER_CONFIG = {
     brandName: "BrosGem",
@@ -11,6 +12,10 @@ function normalizeBasePath(basePath) {
     }
 
     return basePath.replace(/\/$/, "");
+}
+
+function isAuthenticated() {
+    return Boolean(apiClient.getAuthToken() && apiClient.getAuthUser());
 }
 
 function injectCommandPaletteStyles(basePath) {
@@ -35,6 +40,7 @@ function injectCommandPaletteStyles(basePath) {
 function createHeaderTemplate({ basePath = ".", activePage = "", action = "register" }) {
     const normalizedBasePath = normalizeBasePath(basePath);
     const isRoot = normalizedBasePath === ".";
+    const authenticated = isAuthenticated();
 
     const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
     const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
@@ -43,9 +49,10 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "regis
     const accountHref = isRoot ? "./pages/account.html" : "./account.html";
     const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
-    const actionHref = action === "account" ? accountHref : registerHref;
-    const actionText = action === "account" ? "My Account" : "Register";
-    const actionI18n = action === "account" ? "" : 'data-i18n="nav.register"';
+    const shouldShowAccount = authenticated || action === "account";
+    const actionHref = shouldShowAccount ? accountHref : registerHref;
+    const actionText = shouldShowAccount ? "My Account" : "Register";
+    const actionI18n = shouldShowAccount ? "" : 'data-i18n="nav.register"';
 
     return `
         <header class="site-header home-luxury-header" data-header>
