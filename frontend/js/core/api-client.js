@@ -1,11 +1,10 @@
 /**
  * Frontend Core: API Client
- * Xử lý giao tiếp HTTP chuẩn hóa với Backend
+ * Kết hợp logic xử lý lỗi 401 thông minh hơn[cite: 3]
  */
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
-// Hàm tạo UUID v4 để làm Idempotency Key chống Double-click
 const generateRequestId = () => {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0;
@@ -16,38 +15,40 @@ const generateRequestId = () => {
 
 const apiClient = {
     async request(endpoint, method = 'GET', body = null) {
-        // Khởi tạo headers mặc định với Idempotency Key
         const headers = {
             'Content-Type': 'application/json',
             'x-request-id': generateRequestId()
         };
 
-        // Gắn JWT Token nếu user đã Sign In
         const token = localStorage.getItem('jwt_token');
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const config = {
-            method,
-            headers,
-        };
-
-        if (body) {
-            config.body = JSON.stringify(body);
-        }
+        const config = { method, headers };
+        if (body) config.body = JSON.stringify(body);
 
         try {
             const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-            const data = await response.json();
+            const isJson = response.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await response.json() : {};
 
-            // Xử lý chuẩn format { success, error_code, message } của Backend
             if (!response.ok || data.success === false) {
                 const errorPayload = {
                     status: response.status,
                     errorCode: data.error_code || 'UNKNOWN_ERROR',
                     message: data.message || 'Hệ thống đang gián đoạn, vui lòng thử lại.'
                 };
+
+                /**
+                 * XỬ LÝ 401 THÔNG MINH:
+                 * Chỉ báo "Hết hạn" nếu KHÔNG PHẢI đang gọi API đăng nhập[cite: 3, 5]
+                 */
+                if (response.status === 401 && endpoint !== '/auth/login') {
+                    console.warn('[API Client] Phiên làm việc hết hạn. Đang đăng xuất...');
+                    localStorage.removeItem('jwt_token');
+                }
+                
                 throw errorPayload;
             }
 
@@ -58,12 +59,10 @@ const apiClient = {
         }
     },
 
-    // Các hàm wrapper tiện ích
     get(endpoint) { return this.request(endpoint, 'GET'); },
     post(endpoint, body) { return this.request(endpoint, 'POST', body); },
     put(endpoint, body) { return this.request(endpoint, 'PUT', body); },
     delete(endpoint) { return this.request(endpoint, 'DELETE'); }
 };
 
-// Export cho môi trường Browser
 window.apiClient = apiClient;

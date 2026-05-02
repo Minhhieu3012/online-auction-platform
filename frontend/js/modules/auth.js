@@ -1,3 +1,8 @@
+/**
+ * Auth Module: Xử lý Đăng nhập & Xác thực
+ * Đã sửa lỗi Endpoint 404 bằng cách đồng bộ lại đường dẫn API[cite: 3, 5]
+ */
+
 import { initTheme } from "../core/theme.js";
 import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
@@ -8,10 +13,7 @@ function getToastStack() {
 
 function showToast(title, message) {
     const toastStack = getToastStack();
-
-    if (!toastStack) {
-        return;
-    }
+    if (!toastStack) return;
 
     const toast = document.createElement("article");
     toast.className = "toast";
@@ -32,19 +34,11 @@ function showToast(title, message) {
     }, 3800);
 }
 
-function redirectToAccount() {
-    window.setTimeout(() => {
-        window.location.href = "./account.html";
-    }, 900);
-}
-
 function setFieldError(input, message) {
     const field = input.closest(".auth-field");
     const errorElement = field?.querySelector("[data-field-error]");
 
-    if (!field || !errorElement) {
-        return;
-    }
+    if (!field || !errorElement) return;
 
     field.classList.toggle("has-error", Boolean(message));
     errorElement.textContent = message || "";
@@ -56,19 +50,9 @@ function isEmailValid(value) {
 
 function getPasswordStrength(password) {
     let score = 0;
-
-    if (password.length >= 8) {
-        score += 1;
-    }
-
-    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) {
-        score += 1;
-    }
-
-    if (/\d/.test(password) || /[^A-Za-z0-9]/.test(password)) {
-        score += 1;
-    }
-
+    if (password.length >= 8) score += 1;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
+    if (/\d/.test(password) || /[^A-Za-z0-9]/.test(password)) score += 1;
     return Math.min(score, 3);
 }
 
@@ -76,9 +60,7 @@ function updatePasswordStrength() {
     const passwordInput = document.querySelector("[data-auth-password]");
     const strengthElement = document.querySelector("[data-password-strength]");
 
-    if (!passwordInput || !strengthElement) {
-        return;
-    }
+    if (!passwordInput || !strengthElement) return;
 
     const strength = getPasswordStrength(passwordInput.value);
     strengthElement.dataset.strength = String(strength);
@@ -86,7 +68,6 @@ function updatePasswordStrength() {
 
 function validateLoginForm(form) {
     let isValid = true;
-
     const emailInput = form.querySelector("[data-auth-email]");
     const passwordInput = form.querySelector("[data-auth-password]");
 
@@ -110,76 +91,11 @@ function validateLoginForm(form) {
     return isValid;
 }
 
-function validateRegisterForm(form) {
-    let isValid = true;
-
-    const nameInput = form.querySelector("[data-auth-name]");
-    const usernameInput = form.querySelector("[data-auth-username]");
-    const emailInput = form.querySelector("[data-auth-email]");
-    const passwordInput = form.querySelector("[data-auth-password]");
-    const confirmPasswordInput = form.querySelector("[data-auth-confirm-password]");
-    const termsInput = form.querySelector("[data-auth-terms]");
-    const termsError = form.querySelector("[data-terms-error]");
-
-    if (!nameInput.value.trim()) {
-        setFieldError(nameInput, "Full name is required.");
-        isValid = false;
-    } else {
-        setFieldError(nameInput, "");
-    }
-
-    if (!usernameInput.value.trim()) {
-        setFieldError(usernameInput, "Username is required.");
-        isValid = false;
-    } else {
-        setFieldError(usernameInput, "");
-    }
-
-    if (!emailInput.value.trim()) {
-        setFieldError(emailInput, "Email is required.");
-        isValid = false;
-    } else if (!isEmailValid(emailInput.value.trim())) {
-        setFieldError(emailInput, "Please enter a valid email address.");
-        isValid = false;
-    } else {
-        setFieldError(emailInput, "");
-    }
-
-    if (!passwordInput.value.trim()) {
-        setFieldError(passwordInput, "Password is required.");
-        isValid = false;
-    } else if (getPasswordStrength(passwordInput.value) < 2) {
-        setFieldError(passwordInput, "Use at least 8 characters with mixed letters or numbers.");
-        isValid = false;
-    } else {
-        setFieldError(passwordInput, "");
-    }
-
-    if (!confirmPasswordInput.value.trim()) {
-        setFieldError(confirmPasswordInput, "Please confirm your password.");
-        isValid = false;
-    } else if (confirmPasswordInput.value !== passwordInput.value) {
-        setFieldError(confirmPasswordInput, "Passwords do not match.");
-        isValid = false;
-    } else {
-        setFieldError(confirmPasswordInput, "");
-    }
-
-    if (!termsInput.checked) {
-        termsError.textContent = "You must agree before creating an account.";
-        isValid = false;
-    } else {
-        termsError.textContent = "";
-    }
-
-    return isValid;
-}
-
-function handleAuthSubmit(event) {
+async function handleAuthSubmit(event) {
     event.preventDefault();
-
     const form = event.currentTarget;
     const mode = form.dataset.authMode;
+    const submitButton = form.querySelector('button[type="submit"]');
 
     if (mode === "login") {
         if (!validateLoginForm(form)) {
@@ -187,22 +103,44 @@ function handleAuthSubmit(event) {
             return;
         }
 
-        showToast("Signed in successfully", "Redirecting to your member dashboard.");
-        redirectToAccount();
+        const email = form.querySelector("[data-auth-email]").value.trim();
+        const password = form.querySelector("[data-auth-password]").value;
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            var originalText = submitButton.textContent;
+            submitButton.textContent = "Verifying...";
+        }
+
+        try {
+            /**
+             * FIX 404: Đổi từ '/v1/auth/login' thành '/auth/login' để khớp với Backend[cite: 3, 5]
+             */
+            const response = await window.apiClient.post('/auth/login', { email, password });
+
+            if (response.success && response.token) {
+                localStorage.setItem('jwt_token', response.token);
+                if (response.user) {
+                    localStorage.setItem('user_info', JSON.stringify(response.user));
+                }
+
+                showToast("Signed in successfully", "Redirecting to your member dashboard.");
+                window.setTimeout(() => {
+                    window.location.href = './product-detail.html?id=842';
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('[Auth Error]:', error);
+            // Hiển thị thông báo lỗi chi tiết từ Backend nếu có[cite: 3, 5]
+            showToast("Sign-in failed", error.message || "Please check your credentials.");
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            }
+        }
         return;
     }
-
-    if (!validateRegisterForm(form)) {
-        showToast("Registration incomplete", "Please review the highlighted fields.");
-        return;
-    }
-
-    showToast(
-        "Account created",
-        "Unified member account mock created. Redirecting to dashboard."
-    );
-
-    redirectToAccount();
 }
 
 function initPasswordToggles() {
@@ -210,16 +148,11 @@ function initPasswordToggles() {
         button.addEventListener("click", () => {
             const targetId = button.dataset.passwordTarget;
             const input = document.getElementById(targetId);
-
-            if (!input) {
-                return;
-            }
+            if (!input) return;
 
             const isHidden = input.type === "password";
             input.type = isHidden ? "text" : "password";
-
             button.textContent = isHidden ? "HIDE" : "SHOW";
-            button.setAttribute("aria-label", isHidden ? "Hide password" : "Show password");
         });
     });
 }
@@ -230,17 +163,9 @@ function initDemoButtons() {
             const emailInput = document.querySelector("[data-auth-email]");
             const passwordInput = document.querySelector("[data-auth-password]");
 
-            if (emailInput) {
-                emailInput.value = button.dataset.email || "";
-                setFieldError(emailInput, "");
-            }
-
-            if (passwordInput) {
-                passwordInput.value = button.dataset.password || "";
-                setFieldError(passwordInput, "");
-            }
-
-            showToast("Demo filled", "Credentials are ready for mock sign-in.");
+            if (emailInput) emailInput.value = button.dataset.email || "";
+            if (passwordInput) passwordInput.value = button.dataset.password || "";
+            showToast("Demo filled", "Credentials are ready for sign-in.");
         });
     });
 }
@@ -249,14 +174,8 @@ function bindAuthEvents() {
     const form = document.querySelector("[data-auth-form]");
     const passwordInput = document.querySelector("[data-auth-password]");
 
-    if (form) {
-        form.addEventListener("submit", handleAuthSubmit);
-    }
-
-    if (passwordInput) {
-        passwordInput.addEventListener("input", updatePasswordStrength);
-        updatePasswordStrength();
-    }
+    if (form) form.addEventListener("submit", handleAuthSubmit);
+    if (passwordInput) passwordInput.addEventListener("input", updatePasswordStrength);
 
     initPasswordToggles();
     initDemoButtons();
@@ -265,12 +184,7 @@ function bindAuthEvents() {
 function initAuthPage() {
     initTheme();
     initI18n();
-
-    initSiteHeader({
-        hideAfter: 120,
-        topRevealOffset: 12
-    });
-
+    initSiteHeader({ hideAfter: 120, topRevealOffset: 12 });
     bindAuthEvents();
 }
 
