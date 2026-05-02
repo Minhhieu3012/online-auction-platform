@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trinity Piece - Nền Tảng Đấu Giá Cổ Vật</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-inner">
+            <div class="logo">
+                <a href="index.html">
+                    <img src="assets/images/logo.png" alt="Trinity Piece Logo" onerror="this.onerror=null; this.src='https://placehold.co/200x80/ffffff/000000?text=TRINITY+PIECE&font=playfair';">
+                </a>
+            </div>
+            <nav class="main-nav">
+                <ul class="nav-links">
+                    <li><a href="#" class="active">Auctions</a></li>
+                    <li><a href="pages/collections.html">Collections</a></li>
+                    <li><a href="#">About</a></li>
+                </ul>
+            </nav>
+            <div class="auth-buttons">
+                <button onclick="openAuthModal('signin')" class="btn btn-text">SIGN IN</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero container">
+            <div class="hero-content">
+                <span class="subtitle">Maison Trinity Piece</span>
+                <h1 class="title">Di Sản<br>Vượt Cõi<br>Thời Gian.</h1>
+                <div class="divider"></div>
+                <p class="description">
+                    Khám phá những vật phẩm độc bản, từ những cỗ máy thời gian cơ học đến những dấu ấn hoàng gia. Tinh hoa được giám tuyển khắt khe dành riêng cho giới tinh hoa.
+                </p>
+                <div class="hero-actions">
+                    <a href="pages/collections.html" class="btn btn-primary">XEM BỘ SƯU TẬP</a>
+                    <a href="#" class="btn btn-outline">TÌM HIỂU THÊM</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="image-frame">
+                    <img src="assets/images/mockdata/1.png" alt="Sản phẩm chính" onerror="this.src='https://placehold.co/600x800/111/FFF?text=Exclusive+Item';">
+                </div>
+                <div class="hero-image-caption">
+                    <span class="caption-lot">LOT N° 1024</span>
+                    <h3>Ferrari 250 GT SWB</h3>
+                    <p>ƯỚC TÍNH: 15.000.000.000 VNĐ</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="featured-collections container">
+            <div class="section-header">
+                <h2>Tuyển Tập Nổi Bật</h2>
+                <a href="pages/collections.html" class="view-all">Xem toàn bộ</a>
+            </div>
+            <div class="carousel-wrapper" id="featured-carousel">
+                <div class="carousel-track" id="carousel-track">
+                    <div class="product-card">
+                        <div class="card-image">
+                            <img src="assets/images/mockdata/2.png" alt="Sang Ilx Di Sln" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Watch';">
+                        </div>
+                        <div class="card-info">
+                            <span class="category-label">ĐỒNG HỒ</span>
+                            <h3>Sang Ilx Di Sln</h3>
+                            <p>150,000,000 VNĐ</p>
+                        </div>
+                    </div>
+                    <div class="product-card">
+                        <div class="card-image">
+                            <img src="assets/images/mockdata/3.png" alt="Trang Sức Quý Hiếm" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Jewelry';">
+                        </div>
+                        <div class="card-info">
+                            <span class="category-label">TRANG SỨC</span>
+                            <h3>Kim Cương Hoàng Gia</h3>
+                            <p>80,000,000 VNĐ</p>
+                        </div>
+                    </div>
+                    <div class="product-card">
+                        <div class="card-image">
+                            <img src="assets/images/mockdata/4.png" alt="Nghệ Thuật Cổ Điển" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Portrait';">
+                        </div>
+                        <div class="card-info">
+                            <span class="category-label">HỘI HỌA</span>
+                            <h3>Nghệ Thuật Cổ Điển</h3>
+                            <p>300,000,000 VNĐ</p>
+                        </div>
+                    </div>
+                    <div class="product-card">
+                        <div class="card-image">
+                            <img src="assets/images/mockdata/5.png" alt="Cổ Vật Triều Đại" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Statue';">
+                        </div>
+                        <div class="card-info">
+                            <span class="category-label">ĐIÊU KHẮC</span>
+                            <h3>Cổ Vật Triều Đại</h3>
+                            <p>500,000,000 VNĐ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="live-auctions-section">
+            <div class="container">
+                <div class="section-header center">
+                    <span class="live-indicator">● LIVE AUCTION</span>
+                    <h2>Đấu Giá Trực Tiếp</h2>
+                    <div class="divider center"></div>
+                </div>
+                <div class="grid-2-cols">
+                    <div class="auction-card">
+                        <div class="auction-image">
+                            <span class="live-badge">LIVE</span>
+                            <img src="assets/images/mockdata/6.png" alt="Tượng Thần" onerror="this.src='https://placehold.co/500x500/111/FFF?text=Artifact';">
+                        </div>
+                        <div class="auction-details">
+                            <span class="category-label">LOT 01</span>
+                            <h3>Tượng Thần Vũ Nữ Cẩm Thạch</h3>
+                            <div class="bid-stats">
+                                <div class="stat-row">
+                                    <span>Giá hiện hành:</span><strong>850,000 VNĐ</strong>
+                                </div>
+                                <div class="stat-row highlight">
+                                    <span>Thời gian còn lại:</span><strong>02:14:55</strong>
+                                </div>
+                            </div>
+                            <a href="#" class="btn btn-outline full-width">THAM GIA NGAY</a>
+                        </div>
+                    </div>
+                    <div class="auction-card">
+                        <div class="auction-image">
+                            <span class="live-badge">LIVE</span>
+                            <img src="assets/images/mockdata/7.png" alt="Chén Cổ" onerror="this.src='https://placehold.co/500x500/111/FFF?text=Tea+Set';">
+                        </div>
+                        <div class="auction-details">
+                            <span class="category-label">LOT 02</span>
+                            <h3>Bén Chén Phổ Nhĩ Louis XV</h3>
+                            <div class="bid-stats">
+                                <div class="stat-row">
+                                    <span>Giá hiện hành:</span><strong>420,000 VNĐ</strong>
+                                </div>
+                                <div class="stat-row highlight">
+                                    <span>Thời gian còn lại:</span><strong>00:45:10</strong>
+                                </div>
+                            </div>
+                            <a href="#" class="btn btn-outline full-width">THAM GIA NGAY</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-logo">TRINITY PIECE</div>
+            <ul class="footer-links">
+                <li><a href="#">Boutique</a></li>
+                <li><a href="#">Điều khoản</a></li>
+                <li><a href="#">Bảo mật</a></li>
+                <li><a href="#">Liên hệ</a></li>
+            </ul>
+            <p class="copyright">© 2026 TRINITY PIECE. ĐỘC QUYỀN VÀ BẢO LƯU MỌI QUYỀN.</p>
+        </div>
+    </footer>
+
+    <div id="auth-modal" class="modal-overlay">
+        <div class="modal-container">
+            <span class="modal-close" onclick="closeAuthModal()">✕</span>
+            
+            <div id="modal-signin" class="auth-card-content">
+                <h2>Đăng Nhập</h2>
+                <div class="divider center"></div>
+                <p>Tiếp tục hành trình sưu tầm của bạn.</p>
+                <form id="signin-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="signin-email" placeholder="Nhập email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mật khẩu</label>
+                        <input type="password" id="signin-password" placeholder="Nhập mật khẩu" required>
+                    </div>
+                    <p id="signin-status"></p> 
+                    <button type="submit" class="btn btn-primary full-width">ĐĂNG NHẬP</button>
+                </form>
+                <div class="auth-links">
+                    Chưa có tài khoản? <a href="#" onclick="openAuthModal('register')">Tạo tài khoản</a>
+                </div>
+            </div>
+
+            <div id="modal-register" class="auth-card-content" style="display: none;">
+                <h2>Tạo Tài Khoản</h2>
+                <div class="divider center"></div>
+                <p>Gia nhập giới tinh hoa sưu tầm.</p>
+                <form onsubmit="event.preventDefault(); closeAuthModal();">
+                    <div class="form-group">
+                        <label>Họ và Tên</label>
+                        <input type="text" placeholder="Tên của bạn" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mật khẩu</label>
+                        <input type="password" placeholder="Mật khẩu" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary full-width">ĐĂNG KÝ</button>
+                </form>
+                <div class="auth-links">
+                    Đã có tài khoản? <a href="#" onclick="openAuthModal('signin')">Đăng nhập</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
