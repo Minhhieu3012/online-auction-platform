@@ -2,18 +2,15 @@ import { initTheme } from "../core/theme.js";
 import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
 
-function getToastStack() {
-    return document.querySelector("[data-toast-stack]");
-}
-
 function showToast(title, message) {
-    const toastStack = getToastStack();
+    const toastStack = document.querySelector("[data-toast-stack]");
 
     if (!toastStack) {
         return;
     }
 
     const toast = document.createElement("article");
+
     toast.className = "toast";
     toast.innerHTML = `
         <p class="toast-title">${title}</p>
@@ -32,12 +29,6 @@ function showToast(title, message) {
     }, 3800);
 }
 
-function redirectToAccount() {
-    window.setTimeout(() => {
-        window.location.href = "./account.html";
-    }, 900);
-}
-
 function setFieldError(input, message) {
     const field = input.closest(".auth-field");
     const errorElement = field?.querySelector("[data-field-error]");
@@ -52,6 +43,78 @@ function setFieldError(input, message) {
 
 function isEmailValid(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function validateEmail(input) {
+    const email = input.value.trim();
+
+    if (!email) {
+        setFieldError(input, "Email is required.");
+        return false;
+    }
+
+    if (!isEmailValid(email)) {
+        setFieldError(input, "Please enter a valid email.");
+        return false;
+    }
+
+    setFieldError(input, "");
+    return true;
+}
+
+function validateRequired(input, message) {
+    if (!input.value.trim()) {
+        setFieldError(input, message);
+        return false;
+    }
+
+    setFieldError(input, "");
+    return true;
+}
+
+function validatePassword(input) {
+    const password = input.value.trim();
+
+    if (!password) {
+        setFieldError(input, "Password is required.");
+        return false;
+    }
+
+    if (password.length < 6) {
+        setFieldError(input, "Password must be at least 6 characters.");
+        return false;
+    }
+
+    setFieldError(input, "");
+    return true;
+}
+
+function validateRegisterPassword(passwordInput, confirmPasswordInput) {
+    const password = passwordInput.value.trim();
+    const confirmPassword = confirmPasswordInput.value.trim();
+    let isValid = true;
+
+    if (!password) {
+        setFieldError(passwordInput, "Password is required.");
+        isValid = false;
+    } else if (password.length < 8) {
+        setFieldError(passwordInput, "Password must be at least 8 characters.");
+        isValid = false;
+    } else {
+        setFieldError(passwordInput, "");
+    }
+
+    if (!confirmPassword) {
+        setFieldError(confirmPasswordInput, "Please confirm your password.");
+        isValid = false;
+    } else if (password !== confirmPassword) {
+        setFieldError(confirmPasswordInput, "Passwords do not match.");
+        isValid = false;
+    } else {
+        setFieldError(confirmPasswordInput, "");
+    }
+
+    return isValid;
 }
 
 function getPasswordStrength(password) {
@@ -69,7 +132,15 @@ function getPasswordStrength(password) {
         score += 1;
     }
 
-    return Math.min(score, 3);
+    if (score <= 1) {
+        return "weak";
+    }
+
+    if (score === 2) {
+        return "medium";
+    }
+
+    return "strong";
 }
 
 function updatePasswordStrength() {
@@ -80,39 +151,34 @@ function updatePasswordStrength() {
         return;
     }
 
-    const strength = getPasswordStrength(passwordInput.value);
-    strengthElement.dataset.strength = String(strength);
+    const password = passwordInput.value;
+
+    if (!password) {
+        strengthElement.removeAttribute("data-strength");
+        return;
+    }
+
+    strengthElement.dataset.strength = getPasswordStrength(password);
 }
 
 function validateLoginForm(form) {
-    let isValid = true;
-
     const emailInput = form.querySelector("[data-auth-email]");
     const passwordInput = form.querySelector("[data-auth-password]");
 
-    if (!emailInput.value.trim()) {
-        setFieldError(emailInput, "Email is required.");
+    let isValid = true;
+
+    if (!validateEmail(emailInput)) {
         isValid = false;
-    } else if (!isEmailValid(emailInput.value.trim())) {
-        setFieldError(emailInput, "Please enter a valid email address.");
-        isValid = false;
-    } else {
-        setFieldError(emailInput, "");
     }
 
-    if (!passwordInput.value.trim()) {
-        setFieldError(passwordInput, "Password is required.");
+    if (!validatePassword(passwordInput)) {
         isValid = false;
-    } else {
-        setFieldError(passwordInput, "");
     }
 
     return isValid;
 }
 
 function validateRegisterForm(form) {
-    let isValid = true;
-
     const nameInput = form.querySelector("[data-auth-name]");
     const usernameInput = form.querySelector("[data-auth-username]");
     const emailInput = form.querySelector("[data-auth-email]");
@@ -121,91 +187,107 @@ function validateRegisterForm(form) {
     const termsInput = form.querySelector("[data-auth-terms]");
     const termsError = form.querySelector("[data-terms-error]");
 
-    if (!nameInput.value.trim()) {
-        setFieldError(nameInput, "Full name is required.");
+    let isValid = true;
+
+    if (!validateRequired(nameInput, "Full name is required.")) {
         isValid = false;
-    } else {
-        setFieldError(nameInput, "");
     }
 
-    if (!usernameInput.value.trim()) {
-        setFieldError(usernameInput, "Username is required.");
+    if (!validateRequired(usernameInput, "Username is required.")) {
         isValid = false;
-    } else {
-        setFieldError(usernameInput, "");
     }
 
-    if (!emailInput.value.trim()) {
-        setFieldError(emailInput, "Email is required.");
+    if (!validateEmail(emailInput)) {
         isValid = false;
-    } else if (!isEmailValid(emailInput.value.trim())) {
-        setFieldError(emailInput, "Please enter a valid email address.");
-        isValid = false;
-    } else {
-        setFieldError(emailInput, "");
     }
 
-    if (!passwordInput.value.trim()) {
-        setFieldError(passwordInput, "Password is required.");
+    if (!validateRegisterPassword(passwordInput, confirmPasswordInput)) {
         isValid = false;
-    } else if (getPasswordStrength(passwordInput.value) < 2) {
-        setFieldError(passwordInput, "Use at least 8 characters with mixed letters or numbers.");
-        isValid = false;
-    } else {
-        setFieldError(passwordInput, "");
-    }
-
-    if (!confirmPasswordInput.value.trim()) {
-        setFieldError(confirmPasswordInput, "Please confirm your password.");
-        isValid = false;
-    } else if (confirmPasswordInput.value !== passwordInput.value) {
-        setFieldError(confirmPasswordInput, "Passwords do not match.");
-        isValid = false;
-    } else {
-        setFieldError(confirmPasswordInput, "");
     }
 
     if (!termsInput.checked) {
-        termsError.textContent = "You must agree before creating an account.";
+        if (termsError) {
+            termsError.textContent = "You must agree to continue.";
+        }
+
         isValid = false;
-    } else {
+    } else if (termsError) {
         termsError.textContent = "";
     }
 
     return isValid;
 }
 
-function handleAuthSubmit(event) {
-    event.preventDefault();
-
-    const form = event.currentTarget;
-    const mode = form.dataset.authMode;
-
-    if (mode === "login") {
-        if (!validateLoginForm(form)) {
-            showToast("Check your information", "Some sign-in fields need attention.");
-            return;
-        }
-
-        showToast("Signed in successfully", "Redirecting to your member dashboard.");
-        redirectToAccount();
+function handleLoginSubmit(form) {
+    if (!validateLoginForm(form)) {
+        showToast("Sign In Blocked", "Please check your email and password.");
         return;
     }
 
-    if (!validateRegisterForm(form)) {
-        showToast("Registration incomplete", "Please review the highlighted fields.");
-        return;
-    }
+    showToast("Signed In", "Welcome back to your unified BrosGem member dashboard.");
 
-    showToast(
-        "Account created",
-        "Unified member account mock created. Redirecting to dashboard."
-    );
-
-    redirectToAccount();
+    window.setTimeout(() => {
+        window.location.href = "./account.html";
+    }, 750);
 }
 
-function initPasswordToggles() {
+function handleRegisterSubmit(form) {
+    if (!validateRegisterForm(form)) {
+        showToast("Registration Blocked", "Please complete all required fields.");
+        return;
+    }
+
+    showToast("Account Created", "Your unified member account is ready for bidding and selling workflows.");
+
+    window.setTimeout(() => {
+        window.location.href = "./account.html";
+    }, 750);
+}
+
+function bindAuthForms() {
+    document.querySelectorAll("[data-auth-form]").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            const mode = form.dataset.authMode;
+
+            if (mode === "login") {
+                handleLoginSubmit(form);
+                return;
+            }
+
+            if (mode === "register") {
+                handleRegisterSubmit(form);
+            }
+        });
+    });
+}
+
+function bindDemoFillButtons() {
+    document.querySelectorAll("[data-fill-demo]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const form = button.closest("[data-auth-form]");
+            const emailInput = form?.querySelector("[data-auth-email]");
+            const passwordInput = form?.querySelector("[data-auth-password]");
+
+            if (emailInput) {
+                emailInput.value = button.dataset.email || "member@brosgem.com";
+                setFieldError(emailInput, "");
+            }
+
+            if (passwordInput) {
+                passwordInput.value = button.dataset.password || "Member@123";
+                setFieldError(passwordInput, "");
+            }
+
+            updatePasswordStrength();
+
+            showToast("Demo Filled", "Unified member credentials have been filled.");
+        });
+    });
+}
+
+function bindPasswordToggles() {
     document.querySelectorAll("[data-password-toggle]").forEach((button) => {
         button.addEventListener("click", () => {
             const targetId = button.dataset.passwordTarget;
@@ -215,51 +297,22 @@ function initPasswordToggles() {
                 return;
             }
 
-            const isHidden = input.type === "password";
-            input.type = isHidden ? "text" : "password";
-
-            button.textContent = isHidden ? "HIDE" : "SHOW";
-            button.setAttribute("aria-label", isHidden ? "Hide password" : "Show password");
+            const shouldShow = input.type === "password";
+            input.type = shouldShow ? "text" : "password";
+            button.textContent = shouldShow ? "HIDE" : "SHOW";
+            button.setAttribute("aria-label", shouldShow ? "Hide password" : "Show password");
         });
     });
 }
 
-function initDemoButtons() {
-    document.querySelectorAll("[data-fill-demo]").forEach((button) => {
-        button.addEventListener("click", () => {
-            const emailInput = document.querySelector("[data-auth-email]");
-            const passwordInput = document.querySelector("[data-auth-password]");
-
-            if (emailInput) {
-                emailInput.value = button.dataset.email || "";
-                setFieldError(emailInput, "");
-            }
-
-            if (passwordInput) {
-                passwordInput.value = button.dataset.password || "";
-                setFieldError(passwordInput, "");
-            }
-
-            showToast("Demo filled", "Credentials are ready for mock sign-in.");
-        });
-    });
-}
-
-function bindAuthEvents() {
-    const form = document.querySelector("[data-auth-form]");
+function bindPasswordStrength() {
     const passwordInput = document.querySelector("[data-auth-password]");
 
-    if (form) {
-        form.addEventListener("submit", handleAuthSubmit);
+    if (!passwordInput) {
+        return;
     }
 
-    if (passwordInput) {
-        passwordInput.addEventListener("input", updatePasswordStrength);
-        updatePasswordStrength();
-    }
-
-    initPasswordToggles();
-    initDemoButtons();
+    passwordInput.addEventListener("input", updatePasswordStrength);
 }
 
 function initAuthPage() {
@@ -271,7 +324,10 @@ function initAuthPage() {
         topRevealOffset: 12
     });
 
-    bindAuthEvents();
+    bindAuthForms();
+    bindDemoFillButtons();
+    bindPasswordToggles();
+    bindPasswordStrength();
 }
 
 document.addEventListener("DOMContentLoaded", initAuthPage);
