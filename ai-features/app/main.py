@@ -7,18 +7,20 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes import health, alerts
 from app.core.config import settings
-from app.workers.kafka_worker import consume_bids
 from app.db.redis_client import close_redis_pool
 from app.kafka.producer import close_kafka_producer
+
+# Sử dụng handler mới nhất đã tối ưu cho Kafka thay vì worker cũ
+from app.kafka.handlers.bid_handler import start_bid_consumer
 
 # ==========================================
 # 1. QUẢN LÝ VÒNG ĐỜI (LIFESPAN)
 # ==========================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Giai đoạn Startup: Kích hoạt Kafka Consumer chạy ngầm
-    print("[System] Khởi động AI Background Task...")
-    kafka_task = asyncio.create_task(consume_bids())
+    # Giai đoạn Startup: Kích hoạt Kafka Consumer chạy ngầm (Sử dụng code mới nhất)
+    print("[System] Khởi động AI Background Task (Bid Consumer)...")
+    kafka_task = asyncio.create_task(start_bid_consumer())
     
     # Nhường quyền điều khiển lại cho FastAPI để phục vụ HTTP requests
     yield 
@@ -31,10 +33,12 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     
-    # Dọn dẹp Connection Pool của Redis
-    await close_redis_pool()
-    # Dọn dẹp Kafka Producer
-    await close_kafka_producer()
+    # Dọn dẹp Connection Pool của Redis và Kafka Producer an toàn
+    try:
+        await close_redis_pool()
+        await close_kafka_producer()
+    except Exception as e:
+        print(f"[System Warning] Có lỗi xảy ra trong quá trình dọn dẹp: {str(e)}")
 
 # ==========================================
 # 2. KHỞI TẠO APP
@@ -53,8 +57,8 @@ app = FastAPI(
 app.include_router(health.router, prefix="/api", tags=["Monitoring"])
 
 # Endpoint xử lý logic AI chính (LSS, Bidding)
-# CHÚ Ý: AI Service hiện chạy độc lập ở port 8000. Đường dẫn ngoài sẽ là: http://localhost:8000/api/v1/alerts/bids
-app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["AI Logic"])
+# Chỉnh sửa prefix thành /api/v1 để kết hợp với /alerts bên trong file router.
+app.include_router(alerts.router, prefix="/api/v1", tags=["AI Logic"])
 
 # ==========================================
 # 4. DEBUG & SYSTEM CHECK
@@ -79,7 +83,7 @@ async def read_root():
             ),
             timeout=3.0
         )
-        mysql_status = "Connected (Đã thông với DB của Hiếu)"
+        mysql_status = "Connected (Đã thông với DB của hệ thống)"
         conn.close()
     except Exception as e:
         mysql_status = f"Error: {str(e)}"
@@ -117,7 +121,7 @@ async def read_root():
         status_code=200,
         content={
             "message": "AI System Status",
-            "status": "AI Logic đã đồng bộ 100% với Backend (Async Mode - Port 8000)",
+            "status": "AI Logic đã đồng bộ hoàn hảo với hệ thống mới nhất",
             "real_time_check": {
                 "mysql_database": mysql_status,
                 "redis_cache": redis_status,
@@ -132,7 +136,7 @@ async def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    # Đã khóa cứng port ở 8000 để nhường 3000 cho Node.js của Hiếu
+    # Đã khóa cứng port ở 8000 để nhường 3000 cho Node.js
     uvicorn.run(
         "app.main:app", 
         host="0.0.0.0", 
