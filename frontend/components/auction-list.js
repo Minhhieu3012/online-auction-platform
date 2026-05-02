@@ -155,17 +155,12 @@ const STATUS_LABELS = {
 const VALID_STATUS_FILTERS = ["all", "active", "scheduled", "closing", "ended"];
 const VALID_SORTS = ["ending-soon", "highest-bid", "newest", "most-bids"];
 
-const DEFAULT_STATUS = "active";
-const DEFAULT_CATEGORY = "all";
-const DEFAULT_SORT = "ending-soon";
-const DEFAULT_VISIBLE_COUNT = 8;
-
 const state = {
-    status: DEFAULT_STATUS,
-    category: DEFAULT_CATEGORY,
+    status: "active",
+    category: "all",
     search: "",
-    sort: DEFAULT_SORT,
-    visibleCount: DEFAULT_VISIBLE_COUNT
+    sort: "ending-soon",
+    visibleCount: 8
 };
 
 function getNumberFromMoney(value) {
@@ -184,24 +179,24 @@ function getInitialStateFromUrl() {
     const sortParam = params.get("sort");
     const searchParam = params.get("q");
 
-    state.status = VALID_STATUS_FILTERS.includes(statusParam) ? statusParam : DEFAULT_STATUS;
-    state.category = categoryParam || DEFAULT_CATEGORY;
-    state.sort = VALID_SORTS.includes(sortParam) ? sortParam : DEFAULT_SORT;
+    state.status = VALID_STATUS_FILTERS.includes(statusParam) ? statusParam : "active";
+    state.category = categoryParam || "all";
+    state.sort = VALID_SORTS.includes(sortParam) ? sortParam : "ending-soon";
     state.search = searchParam || "";
 }
 
 function updateUrl() {
     const params = new URLSearchParams();
 
-    if (state.status && state.status !== DEFAULT_STATUS) {
+    if (state.status && state.status !== "active") {
         params.set("status", state.status);
     }
 
-    if (state.category && state.category !== DEFAULT_CATEGORY) {
+    if (state.category && state.category !== "all") {
         params.set("category", state.category);
     }
 
-    if (state.sort && state.sort !== DEFAULT_SORT) {
+    if (state.sort && state.sort !== "ending-soon") {
         params.set("sort", state.sort);
     }
 
@@ -211,7 +206,7 @@ function updateUrl() {
 
     const nextUrl = params.toString()
         ? `${window.location.pathname}?${params.toString()}`
-        : window.location.pathname;
+        : `${window.location.pathname}?status=active`;
 
     window.history.replaceState({}, "", nextUrl);
 }
@@ -427,8 +422,8 @@ function renderAuctionList() {
 function bindFilterEvents() {
     document.querySelectorAll("[data-status-filter]").forEach((button) => {
         button.addEventListener("click", () => {
-            state.status = button.dataset.statusFilter || DEFAULT_STATUS;
-            state.visibleCount = DEFAULT_VISIBLE_COUNT;
+            state.status = button.dataset.statusFilter || "active";
+            state.visibleCount = 8;
             updateUrl();
             renderAuctionList();
         });
@@ -438,8 +433,8 @@ function bindFilterEvents() {
 
     if (categorySelect) {
         categorySelect.addEventListener("change", () => {
-            state.category = categorySelect.value || DEFAULT_CATEGORY;
-            state.visibleCount = DEFAULT_VISIBLE_COUNT;
+            state.category = categorySelect.value || "all";
+            state.visibleCount = 8;
             updateUrl();
             renderAuctionList();
         });
@@ -449,7 +444,7 @@ function bindFilterEvents() {
 
     if (sortSelect) {
         sortSelect.addEventListener("change", () => {
-            state.sort = sortSelect.value || DEFAULT_SORT;
+            state.sort = sortSelect.value || "ending-soon";
             updateUrl();
             renderAuctionList();
         });
@@ -460,7 +455,7 @@ function bindFilterEvents() {
     if (searchInput) {
         searchInput.addEventListener("input", () => {
             state.search = searchInput.value;
-            state.visibleCount = DEFAULT_VISIBLE_COUNT;
+            state.visibleCount = 8;
             updateUrl();
             renderAuctionList();
         });
@@ -479,11 +474,11 @@ function bindFilterEvents() {
 
     if (resetButton) {
         resetButton.addEventListener("click", () => {
-            state.status = DEFAULT_STATUS;
-            state.category = DEFAULT_CATEGORY;
+            state.status = "active";
+            state.category = "all";
             state.search = "";
-            state.sort = DEFAULT_SORT;
-            state.visibleCount = DEFAULT_VISIBLE_COUNT;
+            state.sort = "ending-soon";
+            state.visibleCount = 8;
 
             updateUrl();
             renderAuctionList();

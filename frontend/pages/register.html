@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/auth.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="register"></div>
+
+        <main class="auth-page auth-page-register">
+            <section class="auth-shell auth-shell-wide auth-shell-register">
+                <article class="auth-brand-panel auth-brand-panel-register">
+                    <div class="auth-brand-inner auth-brand-inner-compact">
+                        <p class="eyebrow">Professional Account</p>
+
+                        <h1>Collect. Bid. Sell.</h1>
+
+                        <p class="auth-brand-copy">
+                            One verified member profile for live bidding, watchlists, selling requests,
+                            and future settlement tracking.
+                        </p>
+
+                        <div class="auth-preview-card auth-preview-card-unified">
+                            <span>Unified Access</span>
+                            <strong>Member Account</strong>
+                            <p>
+                                No role selection needed. Your account can support both collector and seller workflows.
+                            </p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="auth-card auth-card-register-compact">
+                    <div class="auth-card-heading auth-card-heading-compact">
+                        <p class="eyebrow">Join the circle</p>
+                        <h2>Register</h2>
+                        <p>Create your BrosGem member profile.</p>
+                    </div>
+
+                    <form class="auth-form auth-form-compact" data-auth-form data-auth-mode="register" novalidate>
+                        <div class="auth-grid-2">
+                            <label class="auth-field" for="registerFullName">
+                                <span>Full Name</span>
+                                <input
+                                    id="registerFullName"
+                                    name="fullName"
+                                    type="text"
+                                    placeholder="Alexander Vaughn"
+                                    autocomplete="name"
+                                    data-auth-name
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="auth-field" for="registerUsername">
+                                <span>Username</span>
+                                <input
+                                    id="registerUsername"
+                                    name="username"
+                                    type="text"
+                                    placeholder="alexander.v"
+                                    autocomplete="username"
+                                    data-auth-username
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <label class="auth-field" for="registerEmail">
+                            <span>Email</span>
+                            <input
+                                id="registerEmail"
+                                name="email"
+                                type="email"
+                                placeholder="member@brosgem.com"
+                                autocomplete="email"
+                                data-auth-email
+                                required
+                            />
+                            <small data-field-error></small>
+                        </label>
+
+                        <div class="auth-grid-2">
+                            <label class="auth-field" for="registerPassword">
+                                <span>Password</span>
+
+                                <div class="auth-password-shell">
+                                    <input
+                                        id="registerPassword"
+                                        name="password"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        autocomplete="new-password"
+                                        data-auth-password
+                                        required
+                                    />
+
+                                    <button
+                                        type="button"
+                                        class="auth-password-toggle"
+                                        data-password-toggle
+                                        data-password-target="registerPassword"
+                                        aria-label="Show password"
+                                    >
+                                        SHOW
+                                    </button>
+                                </div>
+
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="auth-field" for="registerConfirmPassword">
+                                <span>Confirm Password</span>
+
+                                <div class="auth-password-shell">
+                                    <input
+                                        id="registerConfirmPassword"
+                                        name="confirmPassword"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        autocomplete="new-password"
+                                        data-auth-confirm-password
+                                        required
+                                    />
+
+                                    <button
+                                        type="button"
+                                        class="auth-password-toggle"
+                                        data-password-toggle
+                                        data-password-target="registerConfirmPassword"
+                                        aria-label="Show confirm password"
+                                    >
+                                        SHOW
+                                    </button>
+                                </div>
+
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <div class="password-strength" data-password-strength>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <small>Password strength</small>
+                        </div>
+
+                        <label class="auth-check auth-terms">
+                            <input type="checkbox" name="terms" data-auth-terms required />
+                            <span></span>
+                            I agree to the platform terms, verification policy, and auction rules.
+                        </label>
+                        <small class="auth-terms-error" data-terms-error></small>
+
+                        <button type="submit" class="button button-primary auth-submit-button">
+                            Create Account
+                        </button>
+                    </form>
+
+                    <p class="auth-switch-copy">
+                        Already registered?
+                        <a href="./login.html">Sign in to your portfolio</a>
+                    </p>
+                </article>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Publish Auction Lot | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/publish-lot.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+        <main class="publish-page">
+            <section class="publish-hero">
+                <div>
+                    <p class="eyebrow">Auction Configuration</p>
+                    <h1>Prepare lot for publishing.</h1>
+                    <p>
+                        Configure auction timing, pricing, bidding rules, visibility, and final review state
+                        before the lot appears in live auctions.
+                    </p>
+                </div>
+
+                <div class="publish-hero-actions">
+                    <a href="./admin.html#verification" class="button button-outline">Back to Queue</a>
+                    <a href="./live-auctions.html" class="button button-primary">View Auctions</a>
+                </div>
+            </section>
+
+            <section class="publish-layout">
+                <form class="publish-form" data-publish-form novalidate>
+                    <section class="publish-section">
+                        <div class="publish-section-heading">
+                            <span>01</span>
+                            <div>
+                                <h2>Lot Identity</h2>
+                                <p>Transform an approved request into a public auction lot.</p>
+                            </div>
+                        </div>
+
+                        <div class="publish-grid-2">
+                            <label class="publish-field" for="lotNumber">
+                                <span>Lot Number</span>
+                                <input
+                                    id="lotNumber"
+                                    type="text"
+                                    value="BG-LOT-2048"
+                                    data-lot-number
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="lotStatus">
+                                <span>Publishing Status</span>
+                                <select id="lotStatus" data-lot-status required>
+                                    <option value="Scheduled">Scheduled</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Private Preview">Private Preview</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <label class="publish-field" for="lotTitle">
+                            <span>Public Lot Title</span>
+                            <input
+                                id="lotTitle"
+                                type="text"
+                                value="Diamond Tennis Bracelet"
+                                placeholder="e.g. Diamond Tennis Bracelet"
+                                data-lot-title
+                                required
+                            />
+                            <small data-field-error></small>
+                        </label>
+
+                        <div class="publish-grid-2">
+                            <label class="publish-field" for="lotCategory">
+                                <span>Category</span>
+                                <select id="lotCategory" data-lot-category required>
+                                    <option value="Jewelry">Jewelry</option>
+                                    <option value="Horology">Horology</option>
+                                    <option value="Fine Art">Fine Art</option>
+                                    <option value="Automotive">Automotive</option>
+                                    <option value="Collectibles">Collectibles</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="lotSpecialist">
+                                <span>Assigned Specialist</span>
+                                <select id="lotSpecialist" data-lot-specialist required>
+                                    <option value="Seraphina Rossi">Seraphina Rossi</option>
+                                    <option value="Alexander Vaughn">Alexander Vaughn</option>
+                                    <option value="Marcus Chen">Marcus Chen</option>
+                                    <option value="Elaine Hart">Elaine Hart</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <label class="publish-field" for="lotDescription">
+                            <span>Public Description</span>
+                            <textarea
+                                id="lotDescription"
+                                data-lot-description
+                                required
+                            >A refined diamond tennis bracelet prepared for specialist-reviewed auction listing. Includes preliminary documentation, visual review assets, and seller-submitted provenance notes.</textarea>
+                            <small data-field-error></small>
+                        </label>
+                    </section>
+
+                    <section class="publish-section">
+                        <div class="publish-section-heading">
+                            <span>02</span>
+                            <div>
+                                <h2>Auction Pricing</h2>
+                                <p>Set starting bid, reserve price, increment, and buyer premium.</p>
+                            </div>
+                        </div>
+
+                        <div class="publish-grid-4">
+                            <label class="publish-field" for="startingBid">
+                                <span>Starting Bid</span>
+                                <input
+                                    id="startingBid"
+                                    type="number"
+                                    min="0"
+                                    value="42000"
+                                    data-starting-bid
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="reservePrice">
+                                <span>Reserve Price</span>
+                                <input
+                                    id="reservePrice"
+                                    type="number"
+                                    min="0"
+                                    value="60000"
+                                    data-reserve-price
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="bidIncrement">
+                                <span>Bid Increment</span>
+                                <input
+                                    id="bidIncrement"
+                                    type="number"
+                                    min="0"
+                                    value="2000"
+                                    data-bid-increment
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="buyerPremium">
+                                <span>Buyer Premium %</span>
+                                <input
+                                    id="buyerPremium"
+                                    type="number"
+                                    min="0"
+                                    value="12.5"
+                                    step="0.1"
+                                    data-buyer-premium
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <div class="publish-grid-2">
+                            <label class="publish-field" for="estimateLow">
+                                <span>Estimate Low</span>
+                                <input
+                                    id="estimateLow"
+                                    type="number"
+                                    min="0"
+                                    value="68000"
+                                    data-estimate-low
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="estimateHigh">
+                                <span>Estimate High</span>
+                                <input
+                                    id="estimateHigh"
+                                    type="number"
+                                    min="0"
+                                    value="92000"
+                                    data-estimate-high
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="publish-section">
+                        <div class="publish-section-heading">
+                            <span>03</span>
+                            <div>
+                                <h2>Auction Timing</h2>
+                                <p>Schedule the opening and closing window for bidder participation.</p>
+                            </div>
+                        </div>
+
+                        <div class="publish-grid-3">
+                            <label class="publish-field" for="startDate">
+                                <span>Start Date</span>
+                                <input
+                                    id="startDate"
+                                    type="date"
+                                    data-start-date
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="startTime">
+                                <span>Start Time</span>
+                                <input
+                                    id="startTime"
+                                    type="time"
+                                    value="09:00"
+                                    data-start-time
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="publish-field" for="duration">
+                                <span>Duration</span>
+                                <select id="duration" data-duration required>
+                                    <option value="24">24 Hours</option>
+                                    <option value="48" selected>48 Hours</option>
+                                    <option value="72">72 Hours</option>
+                                    <option value="120">5 Days</option>
+                                    <option value="168">7 Days</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <div class="publish-rule-grid">
+                            <label class="publish-toggle">
+                                <input type="checkbox" data-soft-close checked />
+                                <span></span>
+                                <div>
+                                    <strong>Enable Soft Close</strong>
+                                    <p>Extend auction automatically if bids arrive near closing time.</p>
+                                </div>
+                            </label>
+
+                            <label class="publish-toggle">
+                                <input type="checkbox" data-proxy-enabled checked />
+                                <span></span>
+                                <div>
+                                    <strong>Allow Proxy Bidding</strong>
+                                    <p>Let bidders enter a maximum bid limit for automatic increments.</p>
+                                </div>
+                            </label>
+
+                            <label class="publish-toggle">
+                                <input type="checkbox" data-private-preview />
+                                <span></span>
+                                <div>
+                                    <strong>Private Preview First</strong>
+                                    <p>Show lot only to selected verified members before public opening.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="publish-section">
+                        <div class="publish-section-heading">
+                            <span>04</span>
+                            <div>
+                                <h2>Final Review</h2>
+                                <p>Confirm that verification and pricing are ready before publishing.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-checklist">
+                            <label>
+                                <input type="checkbox" data-review-check required />
+                                <span></span>
+                                Asset information has been reviewed by a specialist.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" data-review-check required />
+                                <span></span>
+                                Price range and reserve price are approved.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" data-review-check required />
+                                <span></span>
+                                Media and provenance notes are safe for public display.
+                            </label>
+                        </div>
+
+                        <small class="review-error" data-review-error></small>
+                    </section>
+
+                    <div class="publish-actions">
+                        <button type="button" class="button button-outline" data-save-publish-draft>
+                            Save Draft
+                        </button>
+
+                        <button type="button" class="button button-outline" data-preview-publish>
+                            Preview Lot
+                        </button>
+
+                        <button type="submit" class="button button-primary">
+                            Publish Lot
+                        </button>
+                    </div>
+                </form>
+
+                <aside class="publish-preview-panel">
+                    <div class="publish-preview-sticky">
+                        <div class="preview-heading">
+                            <p class="eyebrow">Auction Preview</p>
+                            <span data-preview-status>Scheduled</span>
+                        </div>
+
+                        <article class="auction-preview-card">
+                            <div class="auction-preview-media">
+                                <img src="../assets/images/mockdata/4.png" alt="Auction lot preview" />
+                                <span data-preview-chip>Scheduled</span>
+                            </div>
+
+                            <div class="auction-preview-body">
+                                <p data-preview-lot-number>BG-LOT-2048</p>
+                                <h2 data-preview-title>Diamond Tennis Bracelet</h2>
+
+                                <div class="auction-preview-meta">
+                                    <span data-preview-category>Jewelry</span>
+                                    <span data-preview-specialist>Seraphina Rossi</span>
+                                </div>
+
+                                <p data-preview-description>
+                                    A refined diamond tennis bracelet prepared for specialist-reviewed auction listing.
+                                </p>
+
+                                <div class="auction-preview-price-grid">
+                                    <div>
+                                        <span>Estimate</span>
+                                        <strong data-preview-estimate>$68,000 - $92,000</strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Starting Bid</span>
+                                        <strong data-preview-starting>$42,000</strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Reserve</span>
+                                        <strong data-preview-reserve>$60,000</strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Increment</span>
+                                        <strong data-preview-increment>$2,000</strong>
+                                    </div>
+                                </div>
+
+                                <div class="auction-preview-countdown">
+                                    <span>Configured Window</span>
+                                    <strong data-preview-window>48 Hours</strong>
+                                </div>
+                            </div>
+                        </article>
+
+                        <div class="publish-readiness">
+                            <strong>Readiness Score</strong>
+
+                            <div class="readiness-bar">
+                                <span data-readiness-bar></span>
+                            </div>
+
+                            <p data-readiness-label>Complete required fields to publish.</p>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/publish-lot.js"></script>
+</body>
+</html>

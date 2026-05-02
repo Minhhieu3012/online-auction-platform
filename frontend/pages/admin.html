@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Operations | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+        <main class="admin-page">
+            <aside class="admin-sidebar">
+                <div class="admin-sidebar-heading">
+                    <p class="eyebrow">Admin Console</p>
+                    <h1>Operations</h1>
+                </div>
+
+                <nav class="admin-nav" aria-label="Admin navigation">
+                    <button class="admin-nav-item is-active" type="button" data-admin-tab="overview">
+                        <span>◇</span>
+                        Overview
+                    </button>
+
+                    <button class="admin-nav-item" type="button" data-admin-tab="verification">
+                        <span>▣</span>
+                        Verification Queue
+                    </button>
+
+                    <button class="admin-nav-item" type="button" data-admin-tab="fraud">
+                        <span>△</span>
+                        Fraud Alerts
+                    </button>
+
+                    <button class="admin-nav-item" type="button" data-admin-tab="settlements">
+                        <span>▤</span>
+                        Settlements
+                    </button>
+
+                    <button class="admin-nav-item" type="button" data-admin-tab="users">
+                        <span>◎</span>
+                        Users
+                    </button>
+                </nav>
+
+                <a href="./account.html" class="button button-primary admin-sidebar-cta">
+                    Member Dashboard
+                </a>
+            </aside>
+
+            <section class="admin-content">
+                <div class="admin-topbar">
+                    <div>
+                        <p class="eyebrow">System Intelligence</p>
+                        <h2 data-admin-title>Overview</h2>
+                        <p data-admin-subtitle>
+                            Monitor verification requests, fraud signals, settlements, and user access from one control layer.
+                        </p>
+                    </div>
+
+                    <div class="admin-engine-card">
+                        <span class="engine-dot"></span>
+                        <div>
+                            <strong>Live Engine</strong>
+                            <span>Mock surveillance online</span>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="admin-panel is-active" data-admin-panel="overview">
+                    <div class="admin-stat-grid">
+                        <article class="admin-stat-card">
+                            <span>Pending Reviews</span>
+                            <strong data-pending-count>04</strong>
+                            <p>Asset requests awaiting decision</p>
+                        </article>
+
+                        <article class="admin-stat-card">
+                            <span>Fraud Alerts</span>
+                            <strong>03</strong>
+                            <p>1 critical signal requires review</p>
+                        </article>
+
+                        <article class="admin-stat-card admin-stat-card-gold">
+                            <span>Settlement Volume</span>
+                            <strong>$240,140</strong>
+                            <p>Open transaction value</p>
+                        </article>
+
+                        <article class="admin-stat-card">
+                            <span>Verified Users</span>
+                            <strong>128</strong>
+                            <p>Collectors and sellers combined</p>
+                        </article>
+                    </div>
+
+                    <div class="admin-grid-2">
+                        <article class="admin-section-card">
+                            <div class="admin-section-heading">
+                                <h3>Verification Snapshot</h3>
+                                <button type="button" data-admin-jump="verification">Open queue</button>
+                            </div>
+
+                            <div class="admin-request-list" data-overview-verification-list>
+                                <div class="admin-request-row">
+                                    <img src="../assets/images/mockdata/4.png" alt="Diamond bracelet request" />
+                                    <div>
+                                        <strong>Diamond tennis bracelet</strong>
+                                        <span>Jewelry • Draft quality complete</span>
+                                    </div>
+                                    <b>Pending</b>
+                                </div>
+
+                                <div class="admin-request-row">
+                                    <img src="../assets/images/mockdata/2.png" alt="Abstract composition request" />
+                                    <div>
+                                        <strong>Abstract Composition No. 4</strong>
+                                        <span>Fine Art • Specialist review needed</span>
+                                    </div>
+                                    <b>Pending</b>
+                                </div>
+
+                                <div class="admin-request-row">
+                                    <img src="../assets/images/mockdata/1.png" alt="Vintage watch request" />
+                                    <div>
+                                        <strong>Private Estate Timepiece</strong>
+                                        <span>Horology • Provenance uploaded</span>
+                                    </div>
+                                    <b>Pending</b>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="admin-section-card">
+                            <div class="admin-section-heading">
+                                <h3>Critical Signals</h3>
+                                <button type="button" data-admin-jump="fraud">Review alerts</button>
+                            </div>
+
+                            <div class="risk-stack">
+                                <article class="risk-card risk-critical">
+                                    <span>Critical Risk</span>
+                                    <strong>98.2</strong>
+                                    <p>User #8291 shows high-frequency bidding and IP affinity.</p>
+                                </article>
+
+                                <article class="risk-card risk-medium">
+                                    <span>Medium Risk</span>
+                                    <strong>64.5</strong>
+                                    <p>Unusual bid increments on luxury yacht charter lot.</p>
+                                </article>
+
+                                <article class="risk-card risk-low">
+                                    <span>Low Risk</span>
+                                    <strong>22.1</strong>
+                                    <p>First-bid pattern from newly created account.</p>
+                                </article>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="admin-panel" data-admin-panel="verification">
+                    <article class="admin-section-card">
+                        <div class="admin-section-heading">
+                            <h3>Asset Verification Queue</h3>
+                            <span data-verification-count>4 pending</span>
+                        </div>
+
+                        <div class="verification-grid" data-verification-grid>
+                            <article class="verification-card" data-review-card>
+                                <div class="verification-media">
+                                    <img src="../assets/images/mockdata/4.png" alt="Diamond tennis bracelet" />
+                                    <span data-review-status>Pending</span>
+                                </div>
+
+                                <div class="verification-body">
+                                    <p>Request #BG-RQ-1024</p>
+                                    <h4>Diamond tennis bracelet</h4>
+
+                                    <dl>
+                                        <div>
+                                            <dt>Category</dt>
+                                            <dd>Jewelry</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Estimate</dt>
+                                            <dd>$68,000 - $92,000</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Reserve</dt>
+                                            <dd>$60,000</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Window</dt>
+                                            <dd>Within 1 month</dd>
+                                        </div>
+                                    </dl>
+
+                                    <p class="verification-note">
+                                        Certificate photo attached. Needs specialist confirmation before auction configuration.
+                                    </p>
+
+                                    <div class="verification-actions">
+                                        <button type="button" class="button button-primary" data-review-action="approve">
+                                            Approve
+                                        </button>
+                                        <button type="button" class="button button-outline" data-review-action="decline">
+                                            Decline
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="verification-card" data-review-card>
+                                <div class="verification-media">
+                                    <img src="../assets/images/mockdata/2.png" alt="Abstract composition" />
+                                    <span data-review-status>Pending</span>
+                                </div>
+
+                                <div class="verification-body">
+                                    <p>Request #BG-RQ-1025</p>
+                                    <h4>Abstract Composition No. 4</h4>
+
+                                    <dl>
+                                        <div>
+                                            <dt>Category</dt>
+                                            <dd>Fine Art</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Estimate</dt>
+                                            <dd>$38,000 - $48,000</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Reserve</dt>
+                                            <dd>$32,000</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Window</dt>
+                                            <dd>Next premium event</dd>
+                                        </div>
+                                    </dl>
+
+                                    <p class="verification-note">
+                                        Provenance note is available, but gallery record is pending manual validation.
+                                    </p>
+
+                                    <div class="verification-actions">
+                                        <button type="button" class="button button-primary" data-review-action="approve">
+                                            Approve
+                                        </button>
+                                        <button type="button" class="button button-outline" data-review-action="decline">
+                                            Decline
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="verification-card" data-review-card>
+                                <div class="verification-media">
+                                    <img src="../assets/images/mockdata/1.png" alt="Estate timepiece" />
+                                    <span data-review-status>Pending</span>
+                                </div>
+
+                                <div class="verification-body">
+                                    <p>Request #BG-RQ-1026</p>
+                                    <h4>Private Estate Timepiece</h4>
+
+                                    <dl>
+                                        <div>
+                                            <dt>Category</dt>
+                                            <dd>Horology</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Estimate</dt>
+                                            <dd>$120,000 - $160,000</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Reserve</dt>
+                                            <dd>$90,000</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Window</dt>
+                                            <dd>Flexible</dd>
+                                        </div>
+                                    </dl>
+
+                                    <p class="verification-note">
+                                        Private estate record looks complete. Movement imagery should be requested next.
+                                    </p>
+
+                                    <div class="verification-actions">
+                                        <button type="button" class="button button-primary" data-review-action="approve">
+                                            Approve
+                                        </button>
+                                        <button type="button" class="button button-outline" data-review-action="decline">
+                                            Decline
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="verification-card" data-review-card>
+                                <div class="verification-media">
+                                    <img src="../assets/images/mockdata/3.png" alt="Classic car" />
+                                    <span data-review-status>Pending</span>
+                                </div>
+
+                                <div class="verification-body">
+                                    <p>Request #BG-RQ-1027</p>
+                                    <h4>Collector car documentation</h4>
+
+                                    <dl>
+                                        <div>
+                                            <dt>Category</dt>
+                                            <dd>Automotive</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Estimate</dt>
+                                            <dd>$800,000 - $1.1M</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Reserve</dt>
+                                            <dd>$750,000</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Window</dt>
+                                            <dd>Next premium event</dd>
+                                        </div>
+                                    </dl>
+
+                                    <p class="verification-note">
+                                        Chassis record should be reviewed before public listing.
+                                    </p>
+
+                                    <div class="verification-actions">
+                                        <button type="button" class="button button-primary" data-review-action="approve">
+                                            Approve
+                                        </button>
+                                        <button type="button" class="button button-outline" data-review-action="decline">
+                                            Decline
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="admin-panel" data-admin-panel="fraud">
+                    <article class="admin-section-card">
+                        <div class="admin-section-heading">
+                            <h3>AI Fraud Surveillance</h3>
+                            <button type="button" data-admin-toast="High risk only filter applied as UI mock.">High Risk Only</button>
+                        </div>
+
+                        <div class="fraud-list">
+                            <article class="fraud-row fraud-critical">
+                                <div>
+                                    <span>Critical Risk</span>
+                                    <strong>98.2</strong>
+                                    <small>Shill probability</small>
+                                </div>
+
+                                <div>
+                                    <h4>User #8291 → “Vintage Rolex 1954”</h4>
+                                    <p>Reason: high frequency bidding / IP affinity / repeated opponent overlap.</p>
+                                </div>
+
+                                <time>14:22:01</time>
+
+                                <div class="fraud-actions">
+                                    <button type="button" data-admin-toast="Alert marked for manual investigation.">Inspect</button>
+                                    <button type="button" data-admin-toast="User temporarily restricted as UI mock.">Restrict</button>
+                                </div>
+                            </article>
+
+                            <article class="fraud-row fraud-medium">
+                                <div>
+                                    <span>Medium Risk</span>
+                                    <strong>64.5</strong>
+                                    <small>Pattern score</small>
+                                </div>
+
+                                <div>
+                                    <h4>User #1104 → “Bespoke Yacht Charter”</h4>
+                                    <p>Reason: unusual bid increments near reserve threshold.</p>
+                                </div>
+
+                                <time>14:18:55</time>
+
+                                <div class="fraud-actions">
+                                    <button type="button" data-admin-toast="Alert marked for manual investigation.">Inspect</button>
+                                    <button type="button" data-admin-toast="User watchlisted as UI mock.">Watchlist</button>
+                                </div>
+                            </article>
+
+                            <article class="fraud-row fraud-low">
+                                <div>
+                                    <span>Low Risk</span>
+                                    <strong>22.1</strong>
+                                    <small>Account signal</small>
+                                </div>
+
+                                <div>
+                                    <h4>User #9932 → “Diamond Collection B”</h4>
+                                    <p>Reason: account age / first bid / no payment history yet.</p>
+                                </div>
+
+                                <time>14:05:12</time>
+
+                                <div class="fraud-actions">
+                                    <button type="button" data-admin-toast="Alert marked as reviewed.">Mark Reviewed</button>
+                                </div>
+                            </article>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="admin-panel" data-admin-panel="settlements">
+                    <article class="admin-section-card">
+                        <div class="admin-section-heading">
+                            <h3>Financial Settlements</h3>
+                            <button type="button" data-admin-toast="Settlement report exported as UI mock.">Export</button>
+                        </div>
+
+                        <div class="admin-table-shell">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Asset</th>
+                                        <th>Buyer</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>#BG-8821</td>
+                                        <td>Art Deco Vase</td>
+                                        <td>Alexander V.</td>
+                                        <td>$42,500</td>
+                                        <td><span class="admin-status is-settled">Settled</span></td>
+                                        <td><button type="button" data-admin-toast="Settlement receipt opened as UI mock.">Receipt</button></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>#BG-8822</td>
+                                        <td>Private Sale - Patek 5711</td>
+                                        <td>Seraphina R.</td>
+                                        <td>$185,000</td>
+                                        <td><span class="admin-status is-pending">Pending</span></td>
+                                        <td><button type="button" data-admin-toast="Payment reminder sent as UI mock.">Remind</button></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>#BG-8823</td>
+                                        <td>Commission - Q4 Estate</td>
+                                        <td>Internal</td>
+                                        <td>$12,640</td>
+                                        <td><span class="admin-status is-settled">Settled</span></td>
+                                        <td><button type="button" data-admin-toast="Settlement receipt opened as UI mock.">Receipt</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="admin-panel" data-admin-panel="users">
+                    <article class="admin-section-card">
+                        <div class="admin-section-heading">
+                            <h3>User Access</h3>
+                            <button type="button" data-admin-toast="User list refreshed as UI mock.">Refresh</button>
+                        </div>
+
+                        <div class="admin-table-shell">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Capability</th>
+                                        <th>Status</th>
+                                        <th>Risk</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>Nguyen Ha Gia Huy</td>
+                                        <td>member@brosgem.com</td>
+                                        <td>Bid + Sell</td>
+                                        <td><span class="admin-status is-settled">Verified</span></td>
+                                        <td>Low</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Alexander Vaughn</td>
+                                        <td>alexander@brosgem.com</td>
+                                        <td>Bid + Sell</td>
+                                        <td><span class="admin-status is-settled">Verified</span></td>
+                                        <td>Low</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>User #8291</td>
+                                        <td>risk-user@brosgem.com</td>
+                                        <td>Bid only</td>
+                                        <td><span class="admin-status is-pending">Restricted</span></td>
+                                        <td>Critical</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </section>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/admin.js"></script>
+</body>
+</html>

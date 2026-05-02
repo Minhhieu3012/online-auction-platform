@@ -1,228 +1,224 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trinity Piece - Nền Tảng Đấu Giá Cổ Vật</title>
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BrosGem | Online Auction Platform</title>
+
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/components.css" />
 </head>
 <body>
-    <header class="header">
-        <div class="container header-inner">
-            <div class="logo">
-                <a href="index.html">
-                    <img src="assets/images/logo.png" alt="Trinity Piece Logo" onerror="this.onerror=null; this.src='https://placehold.co/200x80/ffffff/000000?text=TRINITY+PIECE&font=playfair';">
-                </a>
-            </div>
-            <nav class="main-nav">
-                <ul class="nav-links">
-                    <li><a href="#" class="active">Auctions</a></li>
-                    <li><a href="pages/collections.html">Collections</a></li>
-                    <li><a href="#">About</a></li>
-                </ul>
-            </nav>
-            <div class="auth-buttons">
-                <button onclick="openAuthModal('signin')" class="btn btn-text">SIGN IN</button>
-            </div>
-        </div>
-    </header>
+    <div class="app-shell">
+        <div data-site-header data-base-path="." data-active-page="home"></div>
 
-    <main>
-        <section class="hero container">
-            <div class="hero-content">
-                <span class="subtitle">Maison Trinity Piece</span>
-                <h1 class="title">Di Sản<br>Vượt Cõi<br>Thời Gian.</h1>
-                <div class="divider"></div>
-                <p class="description">
-                    Khám phá những vật phẩm độc bản, từ những cỗ máy thời gian cơ học đến những dấu ấn hoàng gia. Tinh hoa được giám tuyển khắt khe dành riêng cho giới tinh hoa.
-                </p>
-                <div class="hero-actions">
-                    <a href="pages/collections.html" class="btn btn-primary">XEM BỘ SƯU TẬP</a>
-                    <a href="#" class="btn btn-outline">TÌM HIỂU THÊM</a>
-                </div>
-            </div>
-            <div class="hero-image">
-                <div class="image-frame">
-                    <img src="assets/images/mockdata/1.png" alt="Sản phẩm chính" onerror="this.src='https://placehold.co/600x800/111/FFF?text=Exclusive+Item';">
-                </div>
-                <div class="hero-image-caption">
-                    <span class="caption-lot">LOT N° 1024</span>
-                    <h3>Ferrari 250 GT SWB</h3>
-                    <p>ƯỚC TÍNH: 15.000.000.000 VNĐ</p>
-                </div>
-            </div>
-        </section>
+        <main>
+            <section class="hero-section">
+                <div class="hero-background-orb" aria-hidden="true"></div>
 
-        <section class="featured-collections container">
-            <div class="section-header">
-                <h2>Tuyển Tập Nổi Bật</h2>
-                <a href="pages/collections.html" class="view-all">Xem toàn bộ</a>
-            </div>
-            <div class="carousel-wrapper" id="featured-carousel">
-                <div class="carousel-track" id="carousel-track">
-                    <div class="product-card">
-                        <div class="card-image">
-                            <img src="assets/images/mockdata/2.png" alt="Sang Ilx Di Sln" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Watch';">
-                        </div>
-                        <div class="card-info">
-                            <span class="category-label">ĐỒNG HỒ</span>
-                            <h3>Sang Ilx Di Sln</h3>
-                            <p>150,000,000 VNĐ</p>
-                        </div>
-                    </div>
-                    <div class="product-card">
-                        <div class="card-image">
-                            <img src="assets/images/mockdata/3.png" alt="Trang Sức Quý Hiếm" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Jewelry';">
-                        </div>
-                        <div class="card-info">
-                            <span class="category-label">TRANG SỨC</span>
-                            <h3>Kim Cương Hoàng Gia</h3>
-                            <p>80,000,000 VNĐ</p>
-                        </div>
-                    </div>
-                    <div class="product-card">
-                        <div class="card-image">
-                            <img src="assets/images/mockdata/4.png" alt="Nghệ Thuật Cổ Điển" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Portrait';">
-                        </div>
-                        <div class="card-info">
-                            <span class="category-label">HỘI HỌA</span>
-                            <h3>Nghệ Thuật Cổ Điển</h3>
-                            <p>300,000,000 VNĐ</p>
-                        </div>
-                    </div>
-                    <div class="product-card">
-                        <div class="card-image">
-                            <img src="assets/images/mockdata/5.png" alt="Cổ Vật Triều Đại" draggable="false" onerror="this.src='https://placehold.co/400x500/111/FFF?text=Statue';">
-                        </div>
-                        <div class="card-info">
-                            <span class="category-label">ĐIÊU KHẮC</span>
-                            <h3>Cổ Vật Triều Đại</h3>
-                            <p>500,000,000 VNĐ</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                <div class="hero-content">
+                    <p class="eyebrow" data-i18n="home.eyebrow">Bid Beyond Ownership</p>
 
-        <section class="live-auctions-section">
-            <div class="container">
-                <div class="section-header center">
-                    <span class="live-indicator">● LIVE AUCTION</span>
-                    <h2>Đấu Giá Trực Tiếp</h2>
-                    <div class="divider center"></div>
+                    <h1 class="hero-title" data-i18n="home.title">
+                        Curated assets. Real-time bidding. Verified trust.
+                    </h1>
+
+                    <p class="hero-description" data-i18n="home.description">
+                        Access rare objects through a transparent auction experience designed for collectors,
+                        sellers, and administrators who demand speed, precision, and security.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="./pages/collections.html" class="button button-primary" data-i18n="home.exploreCollections">
+                            Explore Collections
+                        </a>
+                        <a href="./pages/live-auctions.html" class="button button-outline" data-i18n="home.viewActiveLots">
+                            View Active Lots
+                        </a>
+                    </div>
                 </div>
-                <div class="grid-2-cols">
-                    <div class="auction-card">
-                        <div class="auction-image">
-                            <span class="live-badge">LIVE</span>
-                            <img src="assets/images/mockdata/6.png" alt="Tượng Thần" onerror="this.src='https://placehold.co/500x500/111/FFF?text=Artifact';">
+            </section>
+
+            <section class="trust-strip" aria-label="Platform strengths">
+                <article class="trust-item">
+                    <span class="trust-icon">◇</span>
+                    <div>
+                        <h2 data-i18n="home.aiFraud">AI Fraud Detection</h2>
+                        <p data-i18n="home.aiFraudDesc">Multi-layer shill-bidding surveillance.</p>
+                    </div>
+                </article>
+
+                <article class="trust-item">
+                    <span class="trust-icon">◷</span>
+                    <div>
+                        <h2 data-i18n="home.realTime">Real-time Bidding</h2>
+                        <p data-i18n="home.realTimeDesc">Live auction updates without refresh.</p>
+                    </div>
+                </article>
+
+                <article class="trust-item">
+                    <span class="trust-icon">▣</span>
+                    <div>
+                        <h2 data-i18n="home.secureCustody">Secure Custody</h2>
+                        <p data-i18n="home.secureCustodyDesc">Verified settlement and protected records.</p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="section-block live-auctions-section" id="live-auctions">
+                <div class="section-heading-row">
+                    <div>
+                        <p class="eyebrow" data-i18n="home.liveAuctions">Live Auctions</p>
+                        <h2 class="section-title" data-i18n="home.timeEssence">Time is of the essence</h2>
+                    </div>
+
+                    <a href="./pages/live-auctions.html" class="text-link" data-i18n="home.viewAllLots">View All Lots</a>
+                </div>
+
+                <div class="auction-grid" data-featured-auctions>
+                    <article class="auction-card">
+                        <div class="auction-card-media">
+                            <img src="./assets/images/mockdata/1.png" alt="The Chronos Alpha watch" />
+                            <span class="status-badge status-closing">Closing Soon</span>
                         </div>
-                        <div class="auction-details">
-                            <span class="category-label">LOT 01</span>
-                            <h3>Tượng Thần Vũ Nữ Cẩm Thạch</h3>
-                            <div class="bid-stats">
-                                <div class="stat-row">
-                                    <span>Giá hiện hành:</span><strong>850,000 VNĐ</strong>
+
+                        <div class="auction-card-body">
+                            <div class="auction-card-meta">
+                                <span>Lot #821</span>
+                                <span>24 bids</span>
+                            </div>
+
+                            <h3>The Chronos Alpha</h3>
+                            <p>Rare horology piece with verified provenance.</p>
+
+                            <div class="auction-card-divider"></div>
+
+                            <div class="auction-card-bottom">
+                                <div>
+                                    <span class="field-label" data-i18n="collections.currentBid">Current Bid</span>
+                                    <strong>$425,000</strong>
                                 </div>
-                                <div class="stat-row highlight">
-                                    <span>Thời gian còn lại:</span><strong>02:14:55</strong>
+                                <div>
+                                    <span class="field-label">Ends In</span>
+                                    <strong data-countdown="2026-05-12T18:30:00">02:14:45</strong>
                                 </div>
                             </div>
-                            <a href="#" class="btn btn-outline full-width">THAM GIA NGAY</a>
                         </div>
-                    </div>
-                    <div class="auction-card">
-                        <div class="auction-image">
-                            <span class="live-badge">LIVE</span>
-                            <img src="assets/images/mockdata/7.png" alt="Chén Cổ" onerror="this.src='https://placehold.co/500x500/111/FFF?text=Tea+Set';">
+                    </article>
+
+                    <article class="auction-card">
+                        <div class="auction-card-media">
+                            <img src="./assets/images/mockdata/2.png" alt="Fragmented Echo artwork" />
+                            <span class="status-badge status-active">Active</span>
                         </div>
-                        <div class="auction-details">
-                            <span class="category-label">LOT 02</span>
-                            <h3>Bén Chén Phổ Nhĩ Louis XV</h3>
-                            <div class="bid-stats">
-                                <div class="stat-row">
-                                    <span>Giá hiện hành:</span><strong>420,000 VNĐ</strong>
+
+                        <div class="auction-card-body">
+                            <div class="auction-card-meta">
+                                <span>Lot #882</span>
+                                <span>18 bids</span>
+                            </div>
+
+                            <h3>Fragmented Echo</h3>
+                            <p>Contemporary visual work from a private collection.</p>
+
+                            <div class="auction-card-divider"></div>
+
+                            <div class="auction-card-bottom">
+                                <div>
+                                    <span class="field-label" data-i18n="collections.currentBid">Current Bid</span>
+                                    <strong>$1,220,000</strong>
                                 </div>
-                                <div class="stat-row highlight">
-                                    <span>Thời gian còn lại:</span><strong>00:45:10</strong>
+                                <div>
+                                    <span class="field-label">Ends In</span>
+                                    <strong data-countdown="2026-05-13T21:00:00">18:42:10</strong>
                                 </div>
                             </div>
-                            <a href="#" class="btn btn-outline full-width">THAM GIA NGAY</a>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
+                    </article>
 
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-logo">TRINITY PIECE</div>
-            <ul class="footer-links">
-                <li><a href="#">Boutique</a></li>
-                <li><a href="#">Điều khoản</a></li>
-                <li><a href="#">Bảo mật</a></li>
-                <li><a href="#">Liên hệ</a></li>
-            </ul>
-            <p class="copyright">© 2026 TRINITY PIECE. ĐỘC QUYỀN VÀ BẢO LƯU MỌI QUYỀN.</p>
-        </div>
-    </footer>
+                    <article class="auction-card">
+                        <div class="auction-card-media">
+                            <img src="./assets/images/mockdata/3.png" alt="1962 GTO Heritage car" />
+                            <span class="status-badge status-active">Active</span>
+                        </div>
 
-    <div id="auth-modal" class="modal-overlay">
-        <div class="modal-container">
-            <span class="modal-close" onclick="closeAuthModal()">✕</span>
-            
-            <div id="modal-signin" class="auth-card-content">
-                <h2>Đăng Nhập</h2>
-                <div class="divider center"></div>
-                <p>Tiếp tục hành trình sưu tầm của bạn.</p>
-                <form id="signin-form">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="signin-email" placeholder="Nhập email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Mật khẩu</label>
-                        <input type="password" id="signin-password" placeholder="Nhập mật khẩu" required>
-                    </div>
-                    <p id="signin-status"></p> 
-                    <button type="submit" class="btn btn-primary full-width">ĐĂNG NHẬP</button>
-                </form>
-                <div class="auth-links">
-                    Chưa có tài khoản? <a href="#" onclick="openAuthModal('register')">Tạo tài khoản</a>
-                </div>
-            </div>
+                        <div class="auction-card-body">
+                            <div class="auction-card-meta">
+                                <span>Lot #883</span>
+                                <span>42 bids</span>
+                            </div>
 
-            <div id="modal-register" class="auth-card-content" style="display: none;">
-                <h2>Tạo Tài Khoản</h2>
-                <div class="divider center"></div>
-                <p>Gia nhập giới tinh hoa sưu tầm.</p>
-                <form onsubmit="event.preventDefault(); closeAuthModal();">
-                    <div class="form-group">
-                        <label>Họ và Tên</label>
-                        <input type="text" placeholder="Tên của bạn" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" placeholder="Email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Mật khẩu</label>
-                        <input type="password" placeholder="Mật khẩu" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary full-width">ĐĂNG KÝ</button>
-                </form>
-                <div class="auth-links">
-                    Đã có tài khoản? <a href="#" onclick="openAuthModal('signin')">Đăng nhập</a>
+                            <h3>1962 GTO Heritage</h3>
+                            <p>Automotive icon preserved in collector-grade condition.</p>
+
+                            <div class="auction-card-divider"></div>
+
+                            <div class="auction-card-bottom">
+                                <div>
+                                    <span class="field-label" data-i18n="collections.currentBid">Current Bid</span>
+                                    <strong>$3,800,000</strong>
+                                </div>
+                                <div>
+                                    <span class="field-label">Ends In</span>
+                                    <strong data-countdown="2026-05-15T08:00:00">2d 04:15:33</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
                 </div>
-            </div>
-        </div>
+            </section>
+
+            <section class="section-block protocol-section" id="protocol">
+                <div class="center-heading">
+                    <p class="eyebrow" data-i18n="home.protocol">The Trinity Protocol</p>
+                    <h2 class="section-title" data-i18n="home.protocolTitle">A clean three-step auction journey</h2>
+                    <p class="section-description" data-i18n="home.protocolDesc">
+                        From account verification to real-time bidding and final settlement, every interaction
+                        is designed to feel calm, premium, and trustworthy.
+                    </p>
+                </div>
+
+                <div class="protocol-grid">
+                    <article class="protocol-card">
+                        <span class="protocol-number">01</span>
+                        <h3 data-i18n="home.step1">Know Your Collector</h3>
+                        <p data-i18n="home.step1Desc">Every participant passes account validation before entering private auction rooms.</p>
+                    </article>
+
+                    <article class="protocol-card">
+                        <span class="protocol-number">02</span>
+                        <h3 data-i18n="home.step2">The Digital Gavel</h3>
+                        <p data-i18n="home.step2Desc">Place manual or proxy bids through a latency-focused interface monitored in real time.</p>
+                    </article>
+
+                    <article class="protocol-card">
+                        <span class="protocol-number">03</span>
+                        <h3 data-i18n="home.step3">Vault Settlement</h3>
+                        <p data-i18n="home.step3Desc">Winning bids move into payment pending and complete after verified transaction flow.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="portfolio-cta-section" id="valuation">
+                <div class="portfolio-cta-card">
+                    <p class="eyebrow" data-i18n="home.ctaEyebrow">Elevate Your Portfolio</p>
+                    <h2 data-i18n="home.ctaTitle">Join a verified auction ecosystem built for rare assets.</h2>
+                    <p data-i18n="home.ctaDesc">
+                        Start as a collector, seller, or administrator with an interface prepared for
+                        real-time auctions, AI alerts, and secure payment status tracking.
+                    </p>
+                    <a href="./pages/register.html" class="button button-primary" data-i18n="home.createAccount">
+                        Create Professional Account
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <div data-site-footer data-base-path="."></div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script type="module" src="./components/site-header.js"></script>
+    <script type="module" src="./components/site-footer.js"></script>
+    <script type="module" src="./js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Account | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/dashboard.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+        <main class="dashboard-page">
+            <aside class="dashboard-sidebar">
+                <div class="dashboard-sidebar-heading">
+                    <p class="eyebrow">Member Portal</p>
+                    <h1>Dashboard</h1>
+                </div>
+
+                <nav class="dashboard-nav" aria-label="Dashboard navigation">
+                    <button class="dashboard-nav-item is-active" type="button" data-dashboard-tab="overview">
+                        <span>◇</span>
+                        Overview
+                    </button>
+
+                    <button class="dashboard-nav-item" type="button" data-dashboard-tab="bids">
+                        <span>◷</span>
+                        My Bids
+                    </button>
+
+                    <button class="dashboard-nav-item" type="button" data-dashboard-tab="watching">
+                        <span>◎</span>
+                        Watching
+                    </button>
+
+                    <button class="dashboard-nav-item" type="button" data-dashboard-tab="won">
+                        <span>◆</span>
+                        Won Auctions
+                    </button>
+
+                    <button class="dashboard-nav-item" type="button" data-dashboard-tab="selling">
+                        <span>▣</span>
+                        Selling
+                    </button>
+
+                    <button class="dashboard-nav-item" type="button" data-dashboard-tab="payments">
+                        <span>▤</span>
+                        Payments
+                    </button>
+
+                    <button class="dashboard-nav-item" type="button" data-dashboard-tab="settings">
+                        <span>⚙</span>
+                        Settings
+                    </button>
+                </nav>
+
+                <a href="./live-auctions.html" class="button button-primary dashboard-sidebar-cta">
+                    Explore Auctions
+                </a>
+            </aside>
+
+            <section class="dashboard-content">
+                <div class="dashboard-topbar">
+                    <div>
+                        <p class="eyebrow">Unified Member Account</p>
+                        <h2 data-dashboard-title>Overview</h2>
+                        <p data-dashboard-subtitle>
+                            Monitor your bidding activity, watchlist, selling requests, and payment status in one place.
+                        </p>
+                    </div>
+
+                    <div class="member-card">
+                        <div class="member-avatar">GH</div>
+                        <div>
+                            <strong>Nguyen Ha Gia Huy</strong>
+                            <span>Verified Member</span>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="dashboard-panel is-active" data-dashboard-panel="overview">
+                    <div class="dashboard-stat-grid">
+                        <article class="dashboard-stat-card">
+                            <span>Active Bids</span>
+                            <strong>08</strong>
+                            <p>3 lots currently leading</p>
+                        </article>
+
+                        <article class="dashboard-stat-card">
+                            <span>Watching</span>
+                            <strong>14</strong>
+                            <p>5 lots closing within 24h</p>
+                        </article>
+
+                        <article class="dashboard-stat-card dashboard-stat-card-gold">
+                            <span>Total Exposure</span>
+                            <strong>$842,500</strong>
+                            <p>Current bidding commitment</p>
+                        </article>
+
+                        <article class="dashboard-stat-card">
+                            <span>Selling Requests</span>
+                            <strong>02</strong>
+                            <p>Pending verification flow</p>
+                        </article>
+                    </div>
+
+                    <div class="dashboard-grid-2">
+                        <article class="dashboard-section-card">
+                            <div class="dashboard-section-heading">
+                                <h3>Active Auction Tracker</h3>
+                                <a href="./live-auctions.html">View all</a>
+                            </div>
+
+                            <div class="dashboard-list">
+                                <div class="dashboard-list-row">
+                                    <img src="../assets/images/mockdata/1.png" alt="Patek Philippe lot" />
+                                    <div>
+                                        <strong>Lot #142: Patek Philippe Ref. 2499</strong>
+                                        <span>Leading • Ends in 2h 14m</span>
+                                    </div>
+                                    <b>$320,000</b>
+                                </div>
+
+                                <div class="dashboard-list-row">
+                                    <img src="../assets/images/mockdata/2.png" alt="Abstract painting lot" />
+                                    <div>
+                                        <strong>Lot #089: Soulages Peinture 1957</strong>
+                                        <span>Outbid • Raise action suggested</span>
+                                    </div>
+                                    <b>$475,000</b>
+                                </div>
+
+                                <div class="dashboard-list-row">
+                                    <img src="../assets/images/mockdata/4.png" alt="Diamond lot" />
+                                    <div>
+                                        <strong>Lot #212: Fancy Intense Blue Diamond</strong>
+                                        <span>Leading • Ends in 1d 04h</span>
+                                    </div>
+                                    <b>$72,500</b>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="dashboard-section-card">
+                            <div class="dashboard-section-heading">
+                                <h3>Account Capability</h3>
+                                <span>Unified</span>
+                            </div>
+
+                            <div class="capability-stack">
+                                <div>
+                                    <span>01</span>
+                                    <strong>Bid as Collector</strong>
+                                    <p>Place manual or proxy bids in live auctions.</p>
+                                </div>
+
+                                <div>
+                                    <span>02</span>
+                                    <strong>Submit Selling Request</strong>
+                                    <p>Send asset information for review when backend upload is connected.</p>
+                                </div>
+
+                                <div>
+                                    <span>03</span>
+                                    <strong>Track Settlement</strong>
+                                    <p>Monitor payment, invoice, and post-auction status.</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="dashboard-panel" data-dashboard-panel="bids">
+                    <article class="dashboard-section-card">
+                        <div class="dashboard-section-heading">
+                            <h3>My Bids</h3>
+                            <button type="button" data-dashboard-toast="Bid export prepared as UI mock.">Export</button>
+                        </div>
+
+                        <div class="dashboard-table-shell">
+                            <table class="dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lot</th>
+                                        <th>Your Highest Bid</th>
+                                        <th>Current Price</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>Patek Philippe Ref. 2499</td>
+                                        <td>$320,000</td>
+                                        <td>$320,000</td>
+                                        <td><span class="dashboard-status is-leading">Leading</span></td>
+                                        <td><a href="./product-detail.html?id=842">View Lot</a></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Soulages Peinture 1957</td>
+                                        <td>$450,000</td>
+                                        <td>$475,000</td>
+                                        <td><span class="dashboard-status is-outbid">Outbid</span></td>
+                                        <td><a href="./product-detail.html?id=118">Raise Bid</a></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Fancy Intense Blue Diamond</td>
+                                        <td>$72,500</td>
+                                        <td>$72,500</td>
+                                        <td><span class="dashboard-status is-leading">Leading</span></td>
+                                        <td><a href="./product-detail.html?id=883">View Lot</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="dashboard-panel" data-dashboard-panel="watching">
+                    <article class="dashboard-section-card">
+                        <div class="dashboard-section-heading">
+                            <h3>Watching</h3>
+                            <span>14 lots</span>
+                        </div>
+
+                        <div class="dashboard-card-grid">
+                            <article class="watch-card">
+                                <img src="../assets/images/mockdata/3.png" alt="Collector car" />
+                                <div>
+                                    <strong>1962 GTO Heritage</strong>
+                                    <p>Current bid: $3,800,000</p>
+                                    <a href="./product-detail.html?id=883">View detail</a>
+                                </div>
+                            </article>
+
+                            <article class="watch-card">
+                                <img src="../assets/images/mockdata/2.png" alt="Fine art" />
+                                <div>
+                                    <strong>Fragmented Echo</strong>
+                                    <p>Current bid: $1,220,000</p>
+                                    <a href="./product-detail.html?id=118">View detail</a>
+                                </div>
+                            </article>
+
+                            <article class="watch-card">
+                                <img src="../assets/images/mockdata/1.png" alt="Chronograph" />
+                                <div>
+                                    <strong>The Midnight Chronograph</strong>
+                                    <p>Current bid: $285,000</p>
+                                    <a href="./product-detail.html?id=842">View detail</a>
+                                </div>
+                            </article>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="dashboard-panel" data-dashboard-panel="won">
+                    <article class="dashboard-section-card dashboard-empty-state">
+                        <span>◆</span>
+                        <h3>Won Auctions</h3>
+                        <p>Winning lots will appear here after auction completion and payment confirmation.</p>
+                        <a href="./live-auctions.html" class="button button-outline">Browse Active Lots</a>
+                    </article>
+                </section>
+
+                <section class="dashboard-panel" data-dashboard-panel="selling">
+                    <article class="dashboard-section-card">
+                        <div class="dashboard-section-heading">
+                            <h3>Selling Requests</h3>
+                            <a href="./consign.html" class="dashboard-heading-action">
+                                New Request
+                            </a>
+                        </div>
+
+                        <div class="selling-request-grid">
+                            <article>
+                                <span>Draft</span>
+                                <strong>Diamond tennis bracelet</strong>
+                                <p>Asset information saved locally as mock state.</p>
+                            </article>
+
+                            <article>
+                                <span>Pending Review</span>
+                                <strong>Abstract Composition No. 4</strong>
+                                <p>Waiting for specialist verification simulation.</p>
+                            </article>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="dashboard-panel" data-dashboard-panel="payments">
+                    <article class="dashboard-section-card">
+                        <div class="dashboard-section-heading">
+                            <h3>Payments</h3>
+                            <span>Settlement mock</span>
+                        </div>
+
+                        <div class="dashboard-table-shell">
+                            <table class="dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Transaction</th>
+                                        <th>Asset</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>#BG-8821</td>
+                                        <td>Art Deco Vase</td>
+                                        <td>$42,500</td>
+                                        <td><span class="dashboard-status is-leading">Settled</span></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>#BG-8822</td>
+                                        <td>Private Sale - Patek 5711</td>
+                                        <td>$185,000</td>
+                                        <td><span class="dashboard-status is-pending">Pending</span></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>#BG-8823</td>
+                                        <td>Commission - Q4 Estate</td>
+                                        <td>$12,440</td>
+                                        <td><span class="dashboard-status is-leading">Settled</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="dashboard-panel" data-dashboard-panel="settings">
+                    <article class="dashboard-section-card">
+                        <div class="dashboard-section-heading">
+                            <h3>Settings</h3>
+                            <button type="button" data-dashboard-toast="Profile settings saved as UI mock.">Save</button>
+                        </div>
+
+                        <form class="settings-form">
+                            <label>
+                                <span>Display Name</span>
+                                <input type="text" value="Nguyen Ha Gia Huy" />
+                            </label>
+
+                            <label>
+                                <span>Email</span>
+                                <input type="email" value="member@brosgem.com" />
+                            </label>
+
+                            <label>
+                                <span>Phone</span>
+                                <input type="text" value="056205005458" />
+                            </label>
+
+                            <label>
+                                <span>Notification Preference</span>
+                                <select>
+                                    <option>Bid alerts + settlement updates</option>
+                                    <option>Only settlement updates</option>
+                                    <option>Critical alerts only</option>
+                                </select>
+                            </label>
+                        </form>
+                    </article>
+                </section>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/account.js"></script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/auth.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="register"></div>
+
+        <main class="auth-page auth-page-login">
+            <section class="auth-shell auth-shell-login">
+                <article class="auth-brand-panel auth-brand-panel-login">
+                    <div class="auth-brand-inner auth-brand-inner-compact">
+                        <p class="eyebrow">Private Access</p>
+
+                        <h1>Return to your portfolio.</h1>
+
+                        <p class="auth-brand-copy">
+                            Monitor active bids, saved lots, selling requests, and settlement status from one refined member dashboard.
+                        </p>
+
+                        <div class="auth-preview-card auth-preview-card-unified">
+                            <span>Member Portal</span>
+                            <strong>Bid + Sell Ready</strong>
+                            <p>
+                                One secure account prepared for collectors who also want to consign assets later.
+                            </p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="auth-card auth-card-login-compact">
+                    <div class="auth-card-heading auth-card-heading-compact">
+                        <p class="eyebrow">Welcome back</p>
+                        <h2>Sign In</h2>
+                        <p>Access your BrosGem member dashboard.</p>
+                    </div>
+
+                    <form class="auth-form auth-form-compact" data-auth-form data-auth-mode="login" novalidate>
+                        <label class="auth-field" for="loginEmail">
+                            <span>Email</span>
+                            <input
+                                id="loginEmail"
+                                name="email"
+                                type="email"
+                                placeholder="member@brosgem.com"
+                                autocomplete="email"
+                                data-auth-email
+                                required
+                            />
+                            <small data-field-error></small>
+                        </label>
+
+                        <label class="auth-field" for="loginPassword">
+                            <span>Password</span>
+
+                            <div class="auth-password-shell">
+                                <input
+                                    id="loginPassword"
+                                    name="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    autocomplete="current-password"
+                                    data-auth-password
+                                    required
+                                />
+
+                                <button
+                                    type="button"
+                                    class="auth-password-toggle"
+                                    data-password-toggle
+                                    data-password-target="loginPassword"
+                                    aria-label="Show password"
+                                >
+                                    SHOW
+                                </button>
+                            </div>
+
+                            <small data-field-error></small>
+                        </label>
+
+                        <div class="auth-options-row">
+                            <label class="auth-check">
+                                <input type="checkbox" name="remember" />
+                                <span></span>
+                                Remember me
+                            </label>
+
+                            <a href="#" class="auth-mini-link">Forgot password?</a>
+                        </div>
+
+                        <button type="submit" class="button button-primary auth-submit-button">
+                            Sign In
+                        </button>
+
+                        <div class="auth-demo-box auth-demo-box-compact">
+                            <span>Demo</span>
+                            <button type="button" data-fill-demo data-email="collector@brosgem.com" data-password="Collector@123">
+                                Member
+                            </button>
+                            <button type="button" data-fill-demo data-email="seller@brosgem.com" data-password="Seller@123">
+                                Seller
+                            </button>
+                            <button type="button" data-fill-demo data-email="admin@brosgem.com" data-password="Admin@123">
+                                Admin
+                            </button>
+                        </div>
+                    </form>
+
+                    <p class="auth-switch-copy">
+                        New to BrosGem?
+                        <a href="./register.html">Create a member account</a>
+                    </p>
+                </article>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/auth.js"></script>
+</body>
+</html>
