@@ -21,6 +21,7 @@ const CONFIG = {
 
     API: {
         BASE_URL: "http://localhost:3000/api",
+        AI_BASE_URL: "http://localhost:8000/api/v1",
         TIMEOUT_MS: 12000
     },
 

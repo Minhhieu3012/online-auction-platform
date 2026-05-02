@@ -454,6 +454,32 @@ function bindLightboxEvents() {
     });
 }
 
+function bindSocketEvents() {
+    // Chỉ định rõ đích đến là Backend ở cổng 3000
+    const socket = window.io ? window.io("http://localhost:3000") : null;
+    
+    if (!socket) {
+        console.warn("[Real-time] Không tìm thấy kết nối Socket.io.");
+        return;
+    }
+
+    // 1. Lắng nghe lệnh gia hạn thời gian từ AI/Backend
+    socket.on('auction_extended', (data) => {
+        if (data.auction_id && Number(data.auction_id) !== auction.id) return;
+        
+        const extendBy = data.extend_by || 30;
+        auction.endTime += extendBy * 1000;
+        
+        updateCountdown();
+        showToast("GIA HẠN THỜI GIAN", `Phiên đấu giá được cộng thêm ${extendBy}s do có luồng thầu sát giờ!`);
+    });
+
+    // 2. Lắng nghe cảnh báo gian lận từ AI
+    socket.on('fraud_detected', (data) => {
+        showToast("HỆ THỐNG AN NINH", "Phát hiện nghi vấn mồi giá. Báo cáo đã gửi cho Admin!");
+    });
+}
+
 function bindEvents() {
     elements.bidForm.addEventListener("submit", handleManualBid);
     elements.proxyToggle.addEventListener("change", handleProxyToggle);
@@ -480,6 +506,7 @@ function initAuctionDetailPage() {
 
     renderAuction();
     bindEvents();
+    bindSocketEvents(); // <--- Đã thêm hàm kết nối Socket
     updateCountdown();
 
     window.setInterval(updateCountdown, 1000);

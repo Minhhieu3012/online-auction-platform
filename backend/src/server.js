@@ -9,16 +9,40 @@ const { startKafkaConsumer, stopKafkaConsumer } = require("./services/kafka-cons
 const logger = require("./utils/logger");
 
 const app = require("./app");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, async () => {
+// 1. Tạo HTTP server từ Express app để có thể gắn Socket.io
+const server = http.createServer(app);
+
+// 2. Khởi tạo Socket.io server
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Cho phép Frontend ở mọi cổng (Live Server) kết nối tới
+    methods: ["GET", "POST"]
+  }
+});
+
+// Lắng nghe các sự kiện kết nối từ Frontend
+io.on("connection", (socket) => {
+  logger.info(`[Socket.io] Có client kết nối thành công: ${socket.id}`);
+  
+  socket.on("disconnect", () => {
+    logger.info(`[Socket.io] Client ngắt kết nối: ${socket.id}`);
+  });
+});
+
+// Chạy HTTP server thay vì app.listen
+server.listen(PORT, async () => {
   logger.info(`[Core Engine] Server is running on http://localhost:${PORT}`);
   logger.info(`[Health Check] http://localhost:${PORT}/api/health`);
 
   await connectProducer();
 
-  await startKafkaConsumer();
+  // 3. Truyền 'io' vào Consumer để nó có công cụ phát sóng (emit) xuống Web
+  await startKafkaConsumer(io);
 });
 
 // ==========================================
@@ -38,7 +62,7 @@ const shutdown = async () => {
     process.exit(0);
   }, 3000);
 
-  // Từ chối các request HTTP mới
+  // Từ chối các request HTTP mới và ngắt Socket.io
   server.close(() => {
     logger.info("[Core Engine] Đã đóng HTTP Server. Tắt tiến trình an toàn.");
     process.exit(0);

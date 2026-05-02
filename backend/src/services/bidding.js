@@ -55,7 +55,6 @@ class BiddingService {
         });
 
         // Kiểm tra Anti-sniping
-        // Kiểm tra Anti-sniping
         let newEndTimeForDB = null;
         try {
           const extensionCount = parseInt(auctionInfo.extension_count) || 0;
@@ -89,10 +88,10 @@ class BiddingService {
               {
                 key: auctionId.toString(),
                 value: JSON.stringify({
-                  auctionId,
-                  userId,
-                  bidAmount,
-                  version: currentVersion + 1, // version mới sau khi Lua đã tăng
+                  auction_id: auctionId.toString(), // Khớp với Pydantic schema
+                  user_id: userId.toString(),       // Khớp với Pydantic schema
+                  price: Number(bidAmount),         // Đổi bidAmount thành price
+                  version: currentVersion + 1,
                   newEndTime: newEndTimeForDB,
                   timestamp: new Date().toISOString(),
                 }),

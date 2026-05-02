@@ -32,20 +32,20 @@ function injectCommandPaletteStyles(basePath) {
     document.head.appendChild(link);
 }
 
-function createHeaderTemplate({ basePath = ".", activePage = "", action = "register" }) {
+function createHeaderTemplate({ basePath = ".", activePage = "", action = "login" }) {
     const normalizedBasePath = normalizeBasePath(basePath);
     const isRoot = normalizedBasePath === ".";
 
     const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
     const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
     const liveAuctionsHref = isRoot ? "./pages/live-auctions.html" : "./live-auctions.html";
-    const registerHref = isRoot ? "./pages/register.html" : "./register.html";
+    const loginHref = isRoot ? "./pages/login.html" : "./login.html";
     const accountHref = isRoot ? "./pages/account.html" : "./account.html";
     const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
-    const actionHref = action === "account" ? accountHref : registerHref;
-    const actionText = action === "account" ? "My Account" : "Register";
-    const actionI18n = action === "account" ? "" : 'data-i18n="nav.register"';
+    const actionHref = action === "account" ? accountHref : loginHref;
+    const actionText = action === "account" ? "My Account" : "Sign In";
+    const actionI18n = action === "account" ? "" : 'data-i18n="nav.signIn"';
 
     return `
         <header class="site-header home-luxury-header" data-header>
@@ -135,7 +135,7 @@ function renderSiteHeaders() {
     document.querySelectorAll("[data-site-header]").forEach((mountPoint) => {
         const basePath = mountPoint.dataset.basePath || ".";
         const activePage = mountPoint.dataset.activePage || "";
-        const action = mountPoint.dataset.headerAction || "register";
+        const action = mountPoint.dataset.headerAction || "login";
 
         injectCommandPaletteStyles(basePath);
 
