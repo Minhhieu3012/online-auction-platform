@@ -1,14 +1,15 @@
 /**
  * Auth Module: Xử lý Đăng nhập & Đăng ký
- * Đã sửa lỗi truy cập cấu trúc Data từ Backend
+ * Chuyển hướng về trang chủ index.html sau khi thành công
  */
 
 import { initTheme } from "../core/theme.js";
 import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
 
-console.log("[Auth] Hệ thống đã sẵn sàng.");
+console.log("[Auth] Module đang khởi tạo...");
 
+// --- HELPERS ---
 function showToast(title, message) {
     const toastStack = document.querySelector("[data-toast-stack]");
     if (!toastStack) return;
@@ -19,6 +20,7 @@ function showToast(title, message) {
     window.setTimeout(() => { toast.style.opacity = "0"; toast.remove(); }, 3800);
 }
 
+// --- SUBMISSION ---[cite: 5]
 async function handleAuthSubmit(event) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -38,25 +40,24 @@ async function handleAuthSubmit(event) {
 
             const response = await window.apiClient.post('/auth/login', { email, password });
 
-            // SỬA LỖI TẠI ĐÂY: Kiểm tra trong response.data
             const resultData = response.data || {};
             const token = response.token || resultData.token;
 
             if (response.success && token) {
-                // Lưu token và thông tin người dùng
+                // 1. Lưu Token và thông tin vào LocalStorage[cite: 5]
                 localStorage.setItem('jwt_token', token);
                 if (resultData.user) {
                     localStorage.setItem('user_info', JSON.stringify(resultData.user));
                 }
                 
-                showToast("Thành công", "Đang chuyển hướng vào hệ thống...");
+                showToast("Thành công", "Đang chuyển hướng về trang chủ...");
                 
-                // Chuyển trang sau 1 giây
+                // 2. Chuyển hướng về index.html[cite: 5]
                 window.setTimeout(() => { 
-                    window.location.href = './product-detail.html?id=842'; 
+                    window.location.href = '../index.html'; 
                 }, 1000);
             } else {
-                throw { message: response.message || "Không nhận được mã xác thực từ server." };
+                throw { message: response.message || "Email hoặc mật khẩu không đúng." };
             }
         } 
         else if (mode === "register") {
@@ -66,9 +67,7 @@ async function handleAuthSubmit(event) {
                 email: form.querySelector("[data-auth-email]").value.trim(),
                 password: form.querySelector("[data-auth-password]").value
             };
-
             const response = await window.apiClient.post('/auth/register', payload);
-
             if (response.success) {
                 showToast("Thành công", "Đã tạo tài khoản. Vui lòng đăng nhập.");
                 window.setTimeout(() => { window.location.href = './login.html'; }, 1500);
@@ -76,7 +75,7 @@ async function handleAuthSubmit(event) {
         }
     } catch (error) {
         console.error('[Auth Error]:', error);
-        showToast("Thất bại", error.message || "Lỗi kết nối.");
+        showToast("Thất bại", error.message || "Lỗi hệ thống.");
     } finally {
         if (submitButton) {
             submitButton.disabled = false;

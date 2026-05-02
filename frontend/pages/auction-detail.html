@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auction Detail | BrosGem</title>
+    <!-- CSS Styles -->
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/auction-detail.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Site Header Component -->
+        <div data-site-header data-base-path=".." data-active-page="live-auctions"></div>
+
+        <main class="auction-detail-container">
+            <!-- Hidden Auction ID for API Bridge -->
+            <input type="hidden" data-auction-id value="842" />
+
+            <div class="auction-layout">
+                <!-- CỘT TRÁI: Gallery ảnh và Lightbox -->
+                <section class="auction-gallery">
+                    <div class="main-image-frame" data-gallery-frame tabindex="0">
+                        <img src="" alt="" data-main-image />
+                        <div class="viewer-overlay">Click to Enlarge</div>
+                    </div>
+                    <div class="thumbnail-grid" data-thumbnail-grid>
+                        <!-- Thumbnails will be rendered here by JS -->
+                    </div>
+                </section>
+
+                <!-- CỘT PHẢI: Thông tin đặt giá & Lịch sử -->
+                <section class="auction-info">
+                    <header class="auction-header">
+                        <div class="status-badge" data-status-label>Live Now</div>
+                        <p class="lot-number" data-lot-label>Lot #---</p>
+                        <h1 class="product-title" data-product-title>Loading...</h1>
+                    </header>
+
+                    <!-- Bảng đặt giá (The Bidding Bridge) -->
+                    <div class="bid-panel">
+                        <div class="countdown-timer">
+                            <span class="timer-label">Time Remaining</span>
+                            <div class="timer-values">
+                                <span data-countdown-hours>00</span>h 
+                                <span data-countdown-minutes>00</span>m 
+                                <span data-countdown-seconds>00</span>s
+                            </div>
+                        </div>
+
+                        <div class="price-display">
+                            <span class="price-label">Current Bid</span>
+                            <h2 class="current-price" data-current-bid>$0</h2>
+                            <p class="active-bids-count" data-active-bids>0 bids</p>
+                        </div>
+
+                        <!-- Form Đặt Giá Quan Trọng -->
+                        <form class="bid-form" data-bid-form novalidate>
+                            <div class="bid-input-group">
+                                <span class="currency-symbol">$</span>
+                                <input type="number" 
+                                       class="bid-input" 
+                                       data-bid-input 
+                                       placeholder="Enter amount" 
+                                       required />
+                            </div>
+                            <p class="min-bid-hint" data-minimum-bid>Min bid: $0</p>
+                            <button type="submit" class="button button-primary bid-button">
+                                Place Bid
+                            </button>
+                        </form>
+
+                        <!-- Tùy chọn Proxy Bidding -->
+                        <div class="proxy-bidding">
+                            <label class="switch-control">
+                                <input type="checkbox" data-proxy-toggle />
+                                <span class="switch-slider"></span>
+                                Proxy Bidding
+                            </label>
+                            <div class="proxy-settings" data-proxy-settings hidden>
+                                <input type="number" data-proxy-max placeholder="Max budget" />
+                                <span class="proxy-info-button">?</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Thông tin chi tiết sản phẩm -->
+                    <div class="product-details">
+                        <div class="detail-section">
+                            <h3>Description</h3>
+                            <p data-product-description>...</p>
+                        </div>
+                        <div class="detail-section">
+                            <h3>Provenance</h3>
+                            <p data-provenance>...</p>
+                        </div>
+                        <div class="detail-section">
+                            <h3>Condition</h3>
+                            <p data-condition>...</p>
+                        </div>
+                        <div class="detail-meta">
+                            <span>Starting Price: <strong data-starting-price>$0</strong></span>
+                            <span>Increment: <strong data-increment>$0</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Lịch sử đặt giá (Real-time update) -->
+                    <div class="bid-history">
+                        <h3>Bid History</h3>
+                        <div class="bid-history-list" data-bid-history>
+                            <!-- Bid rows will be rendered here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Các nút giả lập để test nhanh (Xóa khi deploy thực tế) -->
+            <div class="test-controls" style="margin-top: 50px; padding: 20px; border: 1px dashed #444;">
+                <p>Test Controls:</p>
+                <button type="button" data-simulate-bid>Simulate Other User Bid</button>
+                <button type="button" data-simulate-soft-close>Simulate Soft Close (+30s)</button>
+            </div>
+        </main>
+
+        <!-- Lightbox Modal -->
+        <div class="image-lightbox" data-image-lightbox hidden>
+            <button class="lightbox-close" data-lightbox-close>&times;</button>
+            <div class="lightbox-content">
+                <button class="lightbox-nav prev" data-lightbox-prev>&#10094;</button>
+                <div class="lightbox-frame" data-lightbox-frame>
+                    <img src="" alt="" data-lightbox-image />
+                </div>
+                <button class="lightbox-nav next" data-lightbox-next>&#10095;</button>
+                <p class="lightbox-caption" data-lightbox-caption></p>
+            </div>
+        </div>
+
+        <!-- Notification Stack -->
+        <div class="toast-stack" data-toast-stack></div>
+
+        <!-- Site Footer Component -->
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <!-- SCRIPTS ORDER IS CRITICAL -->
+    <!-- 1. Thư viện Socket.io từ CDN -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <!-- 2. Core API Client của bạn -->
+    <script src="../js/core/api-client.js"></script>
+
+    <!-- 3. Web Components -->
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+
+    <!-- 4. Main Module Logic -->
+    <script type="module" src="../js/modules/auction-detail.js"></script>
+</body>
+</html>

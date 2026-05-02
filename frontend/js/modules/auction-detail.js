@@ -1,3 +1,8 @@
+/**
+ * Auction Detail Module: Giai đoạn 4 - Bidding API Bridge (Integrated)
+ * Kết hợp logic API Bridge vào cấu trúc UI chuyên nghiệp.
+ */
+
 import { initTheme } from "../core/theme.js";
 import { initI18n, t, onLanguageChange } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
@@ -86,8 +91,27 @@ const AUCTIONS = {
 
 let auction = null;
 let activeImageIndex = 0;
-
 const elements = {};
+
+// --- UTILS ---
+
+function formatMoney(value) {
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0
+    }).format(value);
+}
+
+function formatTwoDigits(value) {
+    return String(value).padStart(2, "0");
+}
+
+function getMinimumBid() {
+    return auction.currentBid + auction.increment;
+}
+
+// --- CORE RENDER ---
 
 function cacheElements() {
     elements.mainImage = document.querySelector("[data-main-image]");
@@ -126,162 +150,9 @@ function cacheElements() {
     elements.lightboxNext = document.querySelector("[data-lightbox-next]");
 }
 
-function getAuctionIdFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const id = Number(params.get("id"));
-
-    if (AUCTIONS[id]) {
-        return id;
-    }
-
-    return 842;
-}
-
-function formatMoney(value) {
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0
-    }).format(value);
-}
-
-function formatTwoDigits(value) {
-    return String(value).padStart(2, "0");
-}
-
-function getMinimumBid() {
-    return auction.currentBid + auction.increment;
-}
-
-function getActiveImage() {
-    return auction.images[activeImageIndex] || auction.images[0];
-}
-
-function setActiveImage(index) {
-    activeImageIndex = Math.max(0, Math.min(index, auction.images.length - 1));
-
-    const image = getActiveImage();
-    elements.mainImage.src = image;
-    elements.lightboxImage.src = image;
-
-    elements.thumbnailGrid.querySelectorAll("[data-thumbnail-index]").forEach((button) => {
-        const buttonIndex = Number(button.dataset.thumbnailIndex);
-        button.classList.toggle("is-active", buttonIndex === activeImageIndex);
-    });
-}
-
-function createThumbnailButton(image, index) {
-    return `
-        <button
-            type="button"
-            class="thumbnail-button ${index === activeImageIndex ? "is-active" : ""}"
-            data-thumbnail="${image}"
-            data-thumbnail-index="${index}"
-        >
-            <img src="${image}" alt="${auction.title} thumbnail ${index + 1}" />
-        </button>
-    `;
-}
-
-function renderGallery() {
-    activeImageIndex = 0;
-
-    elements.mainImage.src = auction.images[0];
-    elements.mainImage.alt = auction.title;
-
-    const thumbnails = auction.images.map(createThumbnailButton).join("");
-    const viewer360Button = auction.has360
-        ? `<button type="button" class="thumbnail-button thumbnail-more" data-360-view>${t("detail.view360")}</button>`
-        : `<button type="button" class="thumbnail-button thumbnail-more">${t("detail.more", { count: Math.max(0, 12 - auction.images.length) })}</button>`;
-
-    elements.thumbnailGrid.innerHTML = `${thumbnails}${viewer360Button}`;
-
-    elements.thumbnailGrid.querySelectorAll("[data-thumbnail-index]").forEach((button) => {
-        button.addEventListener("click", () => {
-            setActiveImage(Number(button.dataset.thumbnailIndex));
-        });
-    });
-
-    const view360Button = elements.thumbnailGrid.querySelector("[data-360-view]");
-
-    if (view360Button) {
-        view360Button.addEventListener("click", () => {
-            showToast(t("toast.preview360"), t("toast.preview360Desc"));
-        });
-    }
-
-    elements.galleryFrame.addEventListener("click", openLightbox);
-    elements.galleryFrame.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openLightbox();
-        }
-    });
-}
-
-function renderProductCopy() {
-    elements.statusLabel.textContent = t("detail.liveNow");
-    elements.lotLabel.textContent = auction.lot;
-    elements.productTitle.textContent = auction.title;
-    elements.productDescription.textContent = auction.description;
-    elements.provenance.textContent = auction.provenance;
-    elements.condition.textContent = auction.condition;
-    elements.startingPrice.textContent = formatMoney(auction.startingPrice);
-    elements.increment.textContent = formatMoney(auction.increment);
-}
-
-function renderBidPanel() {
-    elements.currentBid.textContent = formatMoney(auction.currentBid);
-    elements.minimumBid.textContent = t("detail.minBid", { amount: formatMoney(getMinimumBid()) });
-    elements.bidInput.placeholder = String(getMinimumBid());
-    elements.bidInput.min = String(getMinimumBid());
-    elements.bidInput.step = String(auction.increment);
-    elements.activeBids.textContent = t("detail.activeBids", { count: auction.activeBids });
-}
-
-function createBidHistoryRow(bid) {
-    return `
-        <div class="bid-history-row">
-            <span class="bidder-mask">${bid.bidder}</span>
-            <span class="${bid.highlight ? "bid-amount-highlight" : ""}">${formatMoney(bid.amount)}</span>
-            <span>${bid.time}</span>
-        </div>
-    `;
-}
-
-function renderBidHistory() {
-    elements.bidHistory.innerHTML = auction.bidHistory.map(createBidHistoryRow).join("");
-}
-
-function renderAuction() {
-    renderGallery();
-    renderProductCopy();
-    renderBidPanel();
-    renderBidHistory();
-
-    const proxyInfoButton = document.querySelector(".proxy-info-button");
-    if (proxyInfoButton) {
-        proxyInfoButton.dataset.tooltip = t("detail.proxyTooltip");
-    }
-}
-
-function updateCountdown() {
-    const distance = Math.max(0, auction.endTime - Date.now());
-    const totalSeconds = Math.floor(distance / 1000);
-
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    elements.hours.textContent = formatTwoDigits(hours);
-    elements.minutes.textContent = formatTwoDigits(minutes);
-    elements.seconds.textContent = formatTwoDigits(seconds);
-}
-
-function showToast(title, message) {
+function showToast(title, message, type = "info") {
     const toast = document.createElement("article");
-
-    toast.className = "toast";
+    toast.className = `toast toast-${type}`;
     toast.innerHTML = `
         <p class="toast-title">${title}</p>
         <p class="toast-message">${message}</p>
@@ -299,221 +170,187 @@ function showToast(title, message) {
     }, 3800);
 }
 
-function addBid({ bidder, amount, messageTitle = t("toast.newBid"), messagePrefix = "A new collector placed" }) {
-    auction.currentBid = amount;
+function renderBidPanel() {
+    elements.currentBid.textContent = formatMoney(auction.currentBid);
+    elements.minimumBid.textContent = t("detail.minBid", { amount: formatMoney(getMinimumBid()) });
+    elements.bidInput.placeholder = String(getMinimumBid());
+    elements.bidInput.min = String(getMinimumBid());
+}
+
+function renderBidHistory() {
+    elements.bidHistory.innerHTML = auction.bidHistory.map(bid => `
+        <div class="bid-history-row">
+            <span class="bidder-mask">${bid.bidder}</span>
+            <span class="${bid.highlight ? "bid-amount-highlight" : ""}">${formatMoney(bid.amount)}</span>
+            <span>${bid.time}</span>
+        </div>
+    `).join("");
+}
+
+// --- CORE BIDDING LOGIC (API BRIDGE) ---
+
+async function handleManualBid(event) {
+    event.preventDefault();
+
+    const bidValue = parseFloat(elements.bidInput.value);
+    const minimumBid = getMinimumBid();
+
+    // 1. Kiểm tra dữ liệu đầu vào
+    if (!bidValue || isNaN(bidValue) || bidValue < minimumBid) {
+        showToast(t("toast.bidRejected"), t("toast.bidRejectedDesc", { amount: formatMoney(minimumBid) }), "error");
+        return;
+    }
+
+    const submitBtn = event.currentTarget.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+        /**
+         * 2. API BRIDGE: Web -> Gọi API /auctions/:id/bids
+         */
+        const response = await window.apiClient.post(`/auctions/${auction.id}/bids`, { 
+            bidAmount: bidValue 
+        });
+
+        if (response.success) {
+            showToast("Bid Placed!", "Your offer has been broadcasted to the network.", "success");
+            elements.bidInput.value = "";
+            // UI sẽ được cập nhật tự động qua Socket
+        } else {
+            showToast("Bid Rejected", response.message || "An error occurred.", "warning");
+        }
+    } catch (error) {
+        console.error("[Bidding Error]:", error);
+        showToast("Connection Error", "The bidding bridge is temporarily down.", "error");
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
+
+// --- SOCKET.IO & REAL-TIME LOGIC ---
+
+function updateUIWithNewBid(data) {
+    // Cập nhật dữ liệu cục bộ
+    auction.currentBid = data.bidAmount;
     auction.activeBids += 1;
 
-    auction.bidHistory = auction.bidHistory.map((bid) => ({
-        ...bid,
-        highlight: false
-    }));
-
+    // Cập nhật lịch sử
+    auction.bidHistory.forEach(b => b.highlight = false);
     auction.bidHistory.unshift({
-        bidder,
-        amount,
+        bidder: data.bidder || "Anonymous",
+        amount: data.bidAmount,
         time: "Just now",
         highlight: true
     });
-
     auction.bidHistory = auction.bidHistory.slice(0, 6);
 
+    // Re-render các thành phần phụ thuộc
     renderBidPanel();
     renderBidHistory();
+    elements.activeBids.textContent = t("detail.activeBids", { count: auction.activeBids });
 
-    showToast(messageTitle, `${messagePrefix} ${formatMoney(amount)}.`);
-}
-
-function handleManualBid(event) {
-    event.preventDefault();
-
-    const bidValue = Number(elements.bidInput.value);
-    const minimumBid = getMinimumBid();
-
-    if (!bidValue || bidValue < minimumBid) {
-        showToast(t("toast.bidRejected"), t("toast.bidRejectedDesc", { amount: formatMoney(minimumBid) }));
-        return;
-    }
-
-    const proxyEnabled = elements.proxyToggle.checked;
-    const proxyMax = Number(elements.proxyMax.value);
-
-    if (proxyEnabled && (!proxyMax || proxyMax < bidValue)) {
-        showToast(t("toast.proxyInvalid"), t("toast.proxyInvalidDesc"));
-        return;
-    }
-
-    addBid({
-        bidder: "YOU",
-        amount: bidValue,
-        messageTitle: proxyEnabled ? t("toast.proxyActivated") : t("toast.bidPlaced"),
-        messagePrefix: proxyEnabled ? t("toast.proxyBidPrefix") : t("toast.manualBidPrefix")
-    });
-
-    elements.bidInput.value = "";
-}
-
-function handleProxyToggle() {
-    elements.proxySettings.hidden = !elements.proxyToggle.checked;
-
-    if (elements.proxyToggle.checked) {
-        showToast(t("toast.proxyEnabled"), t("toast.proxyEnabledDesc"));
-    }
-}
-
-function simulateExternalBid() {
-    const nextAmount = getMinimumBid();
-    const bidders = ["J***S", "A***K", "M***D", "L***P", "R***N"];
-    const bidder = bidders[Math.floor(Math.random() * bidders.length)];
-
-    addBid({
-        bidder,
-        amount: nextAmount,
-        messageTitle: t("toast.newBid"),
-        messagePrefix: t("toast.externalBidPrefix", { bidder })
-    });
-}
-
-function simulateSoftClose() {
-    auction.endTime += 30 * 1000;
-    updateCountdown();
-    showToast(t("toast.auctionExtended"), t("toast.auctionExtendedDesc"));
-}
-
-function openLightbox() {
-    elements.lightbox.hidden = false;
-    document.body.classList.add("is-menu-open");
-
-    elements.lightboxImage.src = getActiveImage();
-    elements.lightboxImage.alt = `${auction.title} enlarged preview`;
-    elements.lightboxCaption.textContent = auction.has360
-        ? t("detail.lightboxCaption360")
-        : t("detail.lightboxCaption");
-}
-
-function closeLightbox() {
-    elements.lightbox.hidden = true;
-    document.body.classList.remove("is-menu-open");
-    elements.lightboxFrame.classList.remove("is-zooming");
-    elements.lightboxImage.style.transformOrigin = "center";
-}
-
-function showPreviousImage() {
-    const nextIndex = activeImageIndex === 0 ? auction.images.length - 1 : activeImageIndex - 1;
-    setActiveImage(nextIndex);
-}
-
-function showNextImage() {
-    const nextIndex = activeImageIndex === auction.images.length - 1 ? 0 : activeImageIndex + 1;
-    setActiveImage(nextIndex);
-}
-
-function handleLightboxMouseMove(event) {
-    const rect = elements.lightboxFrame.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    elements.lightboxFrame.classList.add("is-zooming");
-    elements.lightboxImage.style.transformOrigin = `${x}% ${y}%`;
-}
-
-function handleLightboxMouseLeave() {
-    elements.lightboxFrame.classList.remove("is-zooming");
-    elements.lightboxImage.style.transformOrigin = "center";
-}
-
-function bindLightboxEvents() {
-    elements.lightboxClose.addEventListener("click", closeLightbox);
-    elements.lightboxPrev.addEventListener("click", showPreviousImage);
-    elements.lightboxNext.addEventListener("click", showNextImage);
-
-    elements.lightbox.addEventListener("click", (event) => {
-        if (event.target === elements.lightbox) {
-            closeLightbox();
-        }
-    });
-
-    elements.lightboxFrame.addEventListener("mousemove", handleLightboxMouseMove);
-    elements.lightboxFrame.addEventListener("mouseleave", handleLightboxMouseLeave);
-
-    window.addEventListener("keydown", (event) => {
-        if (elements.lightbox.hidden) {
-            return;
-        }
-
-        if (event.key === "Escape") {
-            closeLightbox();
-        }
-
-        if (event.key === "ArrowLeft") {
-            showPreviousImage();
-        }
-
-        if (event.key === "ArrowRight") {
-            showNextImage();
-        }
-    });
+    // Hiệu ứng Visual
+    elements.currentBid.classList.add("highlight-pulse");
+    setTimeout(() => elements.currentBid.classList.remove("highlight-pulse"), 1000);
 }
 
 function bindSocketEvents() {
-    // Chỉ định rõ đích đến là Backend ở cổng 3000
     const socket = window.io ? window.io("http://localhost:3000") : null;
     
     if (!socket) {
-        console.warn("[Real-time] Không tìm thấy kết nối Socket.io.");
+        console.warn("[Real-time] Socket.io client not found.");
         return;
     }
 
-    // 1. Lắng nghe lệnh gia hạn thời gian từ AI/Backend
-    socket.on('auction_extended', (data) => {
-        if (data.auction_id && Number(data.auction_id) !== auction.id) return;
-        
-        const extendBy = data.extend_by || 30;
-        auction.endTime += extendBy * 1000;
-        
-        updateCountdown();
-        showToast("GIA HẠN THỜI GIAN", `Phiên đấu giá được cộng thêm ${extendBy}s do có luồng thầu sát giờ!`);
+    // 1. Lắng nghe giá thầu mới (Từ Kafka Consumer Node.js báo lên)
+    socket.on('new_bid', (data) => {
+        if (data.auctionId && Number(data.auctionId) !== auction.id) return;
+        updateUIWithNewBid(data);
     });
 
-    // 2. Lắng nghe cảnh báo gian lận từ AI
+    // 2. Lắng nghe lệnh gia hạn thời gian
+    socket.on('auction_extended', (data) => {
+        if (data.auction_id && Number(data.auction_id) !== auction.id) return;
+        const extendBy = data.extend_by || 30;
+        auction.endTime += extendBy * 1000;
+        showToast("AUCTION EXTENDED", `Time added: +${extendBy}s due to late bid activity!`, "info");
+    });
+
+    // 3. Lắng nghe cảnh báo gian lận
     socket.on('fraud_detected', (data) => {
-        showToast("HỆ THỐNG AN NINH", "Phát hiện nghi vấn mồi giá. Báo cáo đã gửi cho Admin!");
+        showToast("SECURITY ALERT", "Suspicious bidding behavior detected and reported.", "warning");
     });
 }
 
-function bindEvents() {
-    elements.bidForm.addEventListener("submit", handleManualBid);
-    elements.proxyToggle.addEventListener("change", handleProxyToggle);
-    elements.simulateBid.addEventListener("click", simulateExternalBid);
-    elements.simulateSoftClose.addEventListener("click", simulateSoftClose);
+// --- GALLERY & LIGHTBOX (保持 - GIỮ NGUYÊN) ---
 
-    bindLightboxEvents();
+function setActiveImage(index) {
+    activeImageIndex = Math.max(0, Math.min(index, auction.images.length - 1));
+    const image = auction.images[activeImageIndex];
+    elements.mainImage.src = image;
+    elements.lightboxImage.src = image;
+    elements.thumbnailGrid.querySelectorAll("[data-thumbnail-index]").forEach(button => {
+        button.classList.toggle("is-active", Number(button.dataset.thumbnailIndex) === activeImageIndex);
+    });
+}
+
+function renderGallery() {
+    elements.mainImage.src = auction.images[0];
+    const thumbnails = auction.images.map((img, i) => `
+        <button type="button" class="thumbnail-button ${i === 0 ? "is-active" : ""}" data-thumbnail-index="${i}">
+            <img src="${img}" alt="Thumbnail ${i + 1}" />
+        </button>
+    `).join("");
+    elements.thumbnailGrid.innerHTML = thumbnails + (auction.has360 ? `<button type="button" class="thumbnail-button thumbnail-more" data-360>${t("detail.view360")}</button>` : "");
+    
+    elements.thumbnailGrid.querySelectorAll("[data-thumbnail-index]").forEach(btn => {
+        btn.addEventListener("click", () => setActiveImage(Number(btn.dataset.thumbnailIndex)));
+    });
+}
+
+// --- INITIALIZATION ---
+
+function updateCountdown() {
+    const distance = Math.max(0, auction.endTime - Date.now());
+    const totalSeconds = Math.floor(distance / 1000);
+    elements.hours.textContent = formatTwoDigits(Math.floor(totalSeconds / 3600));
+    elements.minutes.textContent = formatTwoDigits(Math.floor((totalSeconds % 3600) / 60));
+    elements.seconds.textContent = formatTwoDigits(totalSeconds % 60);
 }
 
 function initAuctionDetailPage() {
     initTheme();
     initI18n();
-
-    initSiteHeader({
-        hideAfter: 120,
-        topRevealOffset: 12,
-        lockWhenMenuOpen: true
-    });
+    initSiteHeader({ hideAfter: 120, topRevealOffset: 12 });
 
     cacheElements();
 
-    const auctionId = getAuctionIdFromUrl();
-    auction = structuredClone(AUCTIONS[auctionId]);
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get("id")) || 842;
+    auction = structuredClone(AUCTIONS[id]);
 
-    renderAuction();
-    bindEvents();
-    bindSocketEvents(); // <--- Đã thêm hàm kết nối Socket
+    // Render ban đầu
+    renderGallery();
+    elements.productTitle.textContent = auction.title;
+    elements.productDescription.textContent = auction.description;
+    elements.lotLabel.textContent = auction.lot;
+    elements.provenance.textContent = auction.provenance;
+    elements.condition.textContent = auction.condition;
+    elements.startingPrice.textContent = formatMoney(auction.startingPrice);
+    elements.increment.textContent = formatMoney(auction.increment);
+    elements.activeBids.textContent = t("detail.activeBids", { count: auction.activeBids });
+
+    renderBidPanel();
+    renderBidHistory();
+
+    // Bind Sự kiện
+    elements.bidForm.addEventListener("submit", handleManualBid);
+    bindSocketEvents();
+    
+    window.setInterval(updateCountdown, 1000);
     updateCountdown();
 
-    window.setInterval(updateCountdown, 1000);
-
-    onLanguageChange(() => {
-        renderAuction();
-    });
+    onLanguageChange(() => location.reload());
 }
 
 document.addEventListener("DOMContentLoaded", initAuctionDetailPage);
