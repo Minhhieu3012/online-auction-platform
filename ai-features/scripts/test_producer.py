@@ -1,45 +1,54 @@
-import asyncio
 import json
+import time
+import threading
 from datetime import datetime, timezone, timedelta
-import redis.asyncio as aioredis
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+import redis
+from kafka import KafkaProducer, KafkaConsumer
 
 # ==========================================
-# 1. MOCK NODE.JS (BACKGROUND CONSUMER)
+# 1. MOCK NODE.JS (BACKGROUND CONSUMER THREAD)
 # ==========================================
-async def listen_for_signals():
+def listen_for_signals(stop_event):
     """ Đóng vai Backend Node.js lắng nghe 2 topic từ AI chạy ngầm """
-    consumer = AIOKafkaConsumer(
-        "fraud_alerts", "auction_extensions",
-        bootstrap_servers='localhost:9092',
-        group_id="nodejs_mock_group_v2",
-        auto_offset_reset="latest"
-    )
-    await consumer.start()
-    print("🎧 [Mock Node.js] Đã kết nối! Đang chờ lệnh trừng phạt hoặc gia hạn từ AI...\n")
-    
     try:
-        async for msg in consumer:
-            topic = msg.topic
-            data = json.loads(msg.value.decode('utf-8'))
-            
-            if topic == "fraud_alerts":
-                print(f"\n🔥 [Node.js THỰC THI] Đang khóa tài khoản: {data.get('user_id')}")
-                print(f"   -> Bằng chứng (Điểm LSS): {data.get('lss_score')}")
-                print(f"   -> Lời phê: {data.get('message')}\n")
-                
-            elif topic == "auction_extensions":
-                print(f"\n⏱️ [Node.js THỰC THI] Gia hạn phiên {data.get('auction_id')} thêm {data.get('extend_by')} giây!")
-                print(f"   -> Lý do: {data.get('reason')}\n")
-    except asyncio.CancelledError:
-        pass
+        consumer = KafkaConsumer(
+            "fraud_alerts", "auction_extensions",
+            bootstrap_servers='localhost:9092',
+            group_id="nodejs_mock_group_v3",
+            auto_offset_reset="latest",
+            consumer_timeout_ms=1000  # Thoát vòng lặp mỗi 1s để check lệnh dừng hệ thống
+        )
+        print("🎧 [Mock Node.js] Đã kết nối! Đang chờ lệnh trừng phạt hoặc gia hạn từ AI...\n")
+
+        while not stop_event.is_set():
+            for msg in consumer:
+                topic = msg.topic
+                try:
+                    data = json.loads(msg.value.decode('utf-8'))
+                except Exception:
+                    continue # Bỏ qua rác không phải JSON
+
+                if topic == "fraud_alerts":
+                    print(f"\n🔥 [Node.js THỰC THI] Đang khóa tài khoản: {data.get('user_id')}")
+                    print(f"   -> Bằng chứng (Điểm LSS): {data.get('lss_score')}")
+                    print(f"   -> Lời phê: {data.get('message', 'Phát hiện gian lận')}\n")
+
+                elif topic == "auction_extensions":
+                    print(f"\n⏱️ [Node.js THỰC THI] Gia hạn phiên {data.get('auction_id')} thêm {data.get('extend_by')} giây!")
+                    print(f"   -> Lý do: {data.get('reason', 'Luồng thầu sát giờ')}\n")
+
+                if stop_event.is_set():
+                    break
+    except Exception as e:
+        print(f"[Mock Node.js Lỗi] {e}")
     finally:
-        await consumer.stop()
+        if 'consumer' in locals():
+            consumer.close()
 
 # ==========================================
 # 2. CÁC KỊCH BẢN TẤN CÔNG (PRODUCER)
 # ==========================================
-async def fire_defensive_tests(producer: AIOKafkaProducer):
+def fire_defensive_tests(producer):
     """ PHASE 1: Kiểm thử phòng thủ (Rác dữ liệu và sai Schema) """
     print("--------------------------------------------------")
     print("[PHASE 1] Khởi động súng giả lập. Đang nạp đạn kiểm tra hệ thống...")
@@ -51,7 +60,7 @@ async def fire_defensive_tests(producer: AIOKafkaProducer):
         "price": 250.0,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
-    await producer.send_and_wait("auction_bids", json.dumps(valid_bid).encode('utf-8'))
+    producer.send("auction_bids", json.dumps(valid_bid).encode('utf-8'))
     print(" -> Đã bắn: Dữ liệu chuẩn")
 
     # Viên đạn 2: Giá âm
@@ -61,17 +70,18 @@ async def fire_defensive_tests(producer: AIOKafkaProducer):
         "price": -5.0, 
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
-    await producer.send_and_wait("auction_bids", json.dumps(invalid_schema_bid).encode('utf-8'))
+    producer.send("auction_bids", json.dumps(invalid_schema_bid).encode('utf-8'))
     print(" -> Đã bắn: Dữ liệu vi phạm schema (Giá âm)")
 
     # Viên đạn 3: Rác bytes
     garbage_data = b"Hello, day la doan text gay loi he thong!"
-    await producer.send_and_wait("auction_bids", garbage_data)
+    producer.send("auction_bids", garbage_data)
     print(" -> Đã bắn: Rác dữ liệu (Không phải JSON)")
     
+    producer.flush()
     print("=> Hoàn tất Phase 1!\n")
 
-async def fire_spam_attack(producer: AIOKafkaProducer):
+def fire_spam_attack(producer):
     """ PHASE 2: Giả lập dội bom giá nhích nhẹ (Shill Bidding) """
     print("--------------------------------------------------")
     print("[PHASE 2] 🚀 BẮT ĐẦU CHIẾN DỊCH: Giả lập Shill Bidding (Dội bom giá nhích nhẹ)")
@@ -84,13 +94,14 @@ async def fire_spam_attack(producer: AIOKafkaProducer):
             "price": price,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        await producer.send_and_wait("auction_bids", json.dumps(bid).encode('utf-8'))
+        producer.send("auction_bids", json.dumps(bid).encode('utf-8'))
         print(f" -> Đã bắn đạn giá: ${price}")
-        await asyncio.sleep(0.1) 
+        time.sleep(0.1) 
 
+    producer.flush()
     print("=> Hoàn tất Phase 2! Đang chờ lá chắn Idempotency hoạt động...\n")
 
-async def fire_sniper_test(producer: AIOKafkaProducer, redis_client: aioredis.Redis):
+def fire_sniper_test(producer, redis_client):
     """ PHASE 3: Giả lập bắn tỉa giây cuối (Anti-sniping) """
     print("--------------------------------------------------")
     print("[PHASE 3] 🎯 BẮT ĐẦU CHIẾN DỊCH: Bắn tỉa giây cuối cùng")
@@ -100,8 +111,11 @@ async def fire_sniper_test(producer: AIOKafkaProducer, redis_client: aioredis.Re
     
     # Setup giờ kết thúc trong Redis (8s nữa)
     end_time = now + timedelta(seconds=8)
-    await redis_client.set(f"auction_end_time:{auction_id}", end_time.isoformat())
-    print(f"🗄️ [Kho dữ liệu Redis] Đã set giờ chốt phiên {auction_id} là: {end_time.strftime('%H:%M:%S')}")
+    try:
+        redis_client.set(f"auction_end_time:{auction_id}", end_time.isoformat())
+        print(f"🗄️ [Kho dữ liệu Redis] Đã set giờ chốt phiên {auction_id} là: {end_time.strftime('%H:%M:%S')}")
+    except Exception as e:
+        print(f"⚠️ [Cảnh báo] Không thể kết nối thư viện Redis: {e}. Vui lòng chạy 'pip install redis'")
 
     # Bắn bid sát giờ
     payload = {
@@ -112,43 +126,76 @@ async def fire_sniper_test(producer: AIOKafkaProducer, redis_client: aioredis.Re
     }
     
     print(f" -> Đang bắn giá ${payload['price']} (Cách giờ chốt 8 giây!)")
-    await producer.send_and_wait("auction_bids", json.dumps(payload).encode('utf-8'))
+    producer.send("auction_bids", json.dumps(payload).encode('utf-8'))
+    producer.flush()
     print("=> Hoàn tất Phase 3!\n")
+
+def fire_ai_ui_triggers(producer):
+    """ PHASE 4: Tích hợp mã nguồn mới - Trực tiếp kích hoạt UI """
+    print("--------------------------------------------------")
+    print("[PHASE 4] 🧠 BẮT ĐẦU CHIẾN DỊCH: AI can thiệp trực tiếp vào UI (Mã nguồn mới)")
+
+    # 1. Bắn lệnh GIA HẠN THỜI GIAN (Cộng thêm 60 giây cho phiên 842)
+    extension_data = {"auction_id": 842, "extend_by": 60}
+    producer.send("auction_extensions", json.dumps(extension_data).encode('utf-8'))
+    producer.flush() 
+    print(f"[Đã bắn] -> auction_extensions: {extension_data}")
+
+    time.sleep(2) # Chờ 2 giây cho kịch tính
+
+    # 2. Bắn lệnh CẢNH BÁO GIAN LẬN (Điểm LSS = 0.95)
+    fraud_data = {"user_id": 999, "lss_score": 0.95, "auction_id": 842}
+    producer.send("fraud_alerts", json.dumps(fraud_data).encode('utf-8'))
+    producer.flush()
+    print(f"[Đã bắn] -> fraud_alerts: {fraud_data}")
+
+    print("=> Hoàn tất Phase 4!\n")
 
 # ==========================================
 # 3. TRÌNH ĐIỀU PHỐI (ORCHESTRATOR)
 # ==========================================
-async def run_full_test_suite():
-    # Khởi động Mock Node.js chạy ngầm
-    mock_task = asyncio.create_task(listen_for_signals())
+def run_full_test_suite():
+    # Khởi động Mock Node.js chạy ngầm bằng Threading (Thay thế cho Asyncio)
+    stop_event = threading.Event()
+    mock_thread = threading.Thread(target=listen_for_signals, args=(stop_event,))
+    mock_thread.start()
     
     # Đợi 1 chút cho Consumer kết nối xong
-    await asyncio.sleep(2) 
-    
-    producer = AIOKafkaProducer(bootstrap_servers='localhost:9092')
-    await producer.start()
-    
-    redis_client = aioredis.Redis(host='localhost', port=6379, decode_responses=True)
+    time.sleep(2) 
     
     try:
-        await fire_defensive_tests(producer)
-        await asyncio.sleep(2)
+        producer = KafkaProducer(bootstrap_servers='localhost:9092')
+        redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
         
-        await fire_spam_attack(producer)
-        await asyncio.sleep(2)
+        fire_defensive_tests(producer)
+        time.sleep(2)
         
-        await fire_sniper_test(producer, redis_client)
+        fire_spam_attack(producer)
+        time.sleep(2)
+        
+        fire_sniper_test(producer, redis_client)
+        time.sleep(2)
+
+        # Kích hoạt Phase 4 (Mã nguồn mới của bạn)
+        fire_ai_ui_triggers(producer)
         
         # Đợi 3 giây cuối cùng để Mock Node.js hứng nốt các event trả về từ AI
         print("--------------------------------------------------")
         print("⏳ Đang đợi hệ thống AI xử lý và trả kết quả về Mock Node.js...")
-        await asyncio.sleep(3)
+        time.sleep(3)
         
+    except Exception as e:
+        print(f"Lỗi hệ thống: {e}")
     finally:
-        await producer.stop()
-        await redis_client.aclose()
-        mock_task.cancel()
+        if 'producer' in locals():
+            producer.close()
+        if 'redis_client' in locals():
+            redis_client.close()
+
+        # Dừng luồng chạy ngầm một cách an toàn
+        stop_event.set()
+        mock_thread.join()
         print("\n✅ HOÀN TẤT TOÀN BỘ CHUỖI KIỂM THỬ!")
 
 if __name__ == "__main__":
-    asyncio.run(run_full_test_suite())
+    run_full_test_suite()
