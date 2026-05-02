@@ -1,3 +1,5 @@
+import { initCommandPalette } from "../js/modules/command-palette.js";
+
 const HEADER_CONFIG = {
     brandName: "BrosGem",
     brandAriaLabel: "BrosGem Home"
@@ -9,6 +11,25 @@ function normalizeBasePath(basePath) {
     }
 
     return basePath.replace(/\/$/, "");
+}
+
+function injectCommandPaletteStyles(basePath) {
+    const normalizedBasePath = normalizeBasePath(basePath);
+    const isRoot = normalizedBasePath === ".";
+    const href = isRoot ? "./css/command-palette.css" : `${normalizedBasePath}/css/command-palette.css`;
+
+    const existingLink = document.querySelector('link[data-command-palette-style="true"]');
+
+    if (existingLink) {
+        return;
+    }
+
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.commandPaletteStyle = "true";
+
+    document.head.appendChild(link);
 }
 
 function createHeaderTemplate({ basePath = ".", activePage = "", action = "register" }) {
@@ -51,6 +72,23 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "regis
             </nav>
 
             <div class="header-actions home-header-actions">
+                <button
+                    class="home-search-trigger"
+                    type="button"
+                    data-command-palette-open
+                    aria-label="Search auction lots"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="19"
+                        height="19"
+                        aria-hidden="true"
+                    >
+                        <circle cx="10.5" cy="10.5" r="5.5"></circle>
+                        <path d="M15 15L20 20"></path>
+                    </svg>
+                </button>
+
                 <a href="${actionHref}" class="button button-primary button-compact home-register-button" ${actionI18n}>
                     ${actionText}
                 </a>
@@ -99,12 +137,16 @@ function renderSiteHeaders() {
         const activePage = mountPoint.dataset.activePage || "";
         const action = mountPoint.dataset.headerAction || "register";
 
+        injectCommandPaletteStyles(basePath);
+
         mountPoint.outerHTML = createHeaderTemplate({
             basePath,
             activePage,
             action
         });
     });
+
+    initCommandPalette();
 }
 
 document.addEventListener("DOMContentLoaded", renderSiteHeaders);

@@ -666,3 +666,39 @@
         grid-column: 2;
     }
 }
+
+.admin-notification-link {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    margin-left: auto;
+    border: 1px solid var(--border);
+    color: var(--primary);
+    font-size: 16px;
+    transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+.admin-notification-link:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+}
+
+.admin-notification-link span {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    min-width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #15110A;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0;
+}

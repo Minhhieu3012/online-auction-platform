@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/notifications.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+        <main class="notifications-page">
+            <section class="notifications-hero">
+                <div>
+                    <p class="eyebrow">Activity Feed</p>
+                    <h1>Notifications center.</h1>
+                    <p>
+                        Track bidding alerts, selling request updates, payment events, and security activity
+                        from one premium member inbox.
+                    </p>
+                </div>
+
+                <div class="notifications-hero-actions">
+                    <a href="./account.html" class="button button-outline">Back to Account</a>
+                    <button type="button" class="button button-primary" data-mark-all-read>
+                        Mark All Read
+                    </button>
+                </div>
+            </section>
+
+            <section class="notifications-layout">
+                <aside class="notifications-sidebar">
+                    <div class="notifications-sidebar-heading">
+                        <p class="eyebrow">Inbox Filters</p>
+                        <h2>Feed</h2>
+                    </div>
+
+                    <nav class="notification-tabs" aria-label="Notification filters">
+                        <button class="notification-tab is-active" type="button" data-notification-filter="all">
+                            <span>◇</span>
+                            All
+                            <b data-count-all>0</b>
+                        </button>
+
+                        <button class="notification-tab" type="button" data-notification-filter="bidding">
+                            <span>◷</span>
+                            Bidding
+                            <b data-count-bidding>0</b>
+                        </button>
+
+                        <button class="notification-tab" type="button" data-notification-filter="selling">
+                            <span>▣</span>
+                            Selling
+                            <b data-count-selling>0</b>
+                        </button>
+
+                        <button class="notification-tab" type="button" data-notification-filter="payments">
+                            <span>▤</span>
+                            Payments
+                            <b data-count-payments>0</b>
+                        </button>
+
+                        <button class="notification-tab" type="button" data-notification-filter="security">
+                            <span>△</span>
+                            Security
+                            <b data-count-security>0</b>
+                        </button>
+                    </nav>
+
+                    <label class="unread-toggle">
+                        <input type="checkbox" data-unread-only />
+                        <span></span>
+                        Show unread only
+                    </label>
+
+                    <button type="button" class="clear-read-button" data-clear-read>
+                        Clear Read Notifications
+                    </button>
+                </aside>
+
+                <section class="notifications-main">
+                    <div class="notifications-toolbar">
+                        <div>
+                            <p class="eyebrow">Live Activity</p>
+                            <h2 data-feed-title>All Notifications</h2>
+                        </div>
+
+                        <div class="feed-meta">
+                            <span data-visible-count>0 visible</span>
+                            <span class="feed-divider"></span>
+                            <span><strong data-unread-count>0</strong> unread</span>
+                        </div>
+                    </div>
+
+                    <div class="notifications-list" data-notifications-list></div>
+
+                    <div class="notifications-empty" data-notifications-empty hidden>
+                        <span>◇</span>
+                        <h3>No notifications found</h3>
+                        <p>Try another filter or disable unread-only mode.</p>
+                    </div>
+                </section>
+
+                <aside class="notification-detail-panel">
+                    <div class="notification-detail-sticky">
+                        <div class="detail-heading">
+                            <p class="eyebrow">Selected Event</p>
+                            <span data-detail-status>Unread</span>
+                        </div>
+
+                        <article class="detail-card" data-detail-card>
+                            <span class="detail-icon" data-detail-icon>◇</span>
+
+                            <p data-detail-category>Bidding</p>
+                            <h2 data-detail-title>Outbid on active lot</h2>
+                            <time data-detail-time>2 minutes ago</time>
+
+                            <p data-detail-message>
+                                Select a notification from the feed to inspect its full activity context.
+                            </p>
+
+                            <div class="detail-meta-grid">
+                                <div>
+                                    <span>Reference</span>
+                                    <strong data-detail-reference>—</strong>
+                                </div>
+
+                                <div>
+                                    <span>Priority</span>
+                                    <strong data-detail-priority>—</strong>
+                                </div>
+                            </div>
+
+                            <a href="./account.html" class="button button-primary detail-action" data-detail-action>
+                                Open Account
+                            </a>
+                        </article>
+
+                        <article class="detail-note">
+                            <strong>UI Scope Note</strong>
+                            <p>
+                                This notification center is frontend-only. Later, backend can map these items to
+                                real notification tables, read states, and socket events.
+                            </p>
+                        </article>
+                    </div>
+                </aside>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/notifications.js"></script>
+</body>
+</html>
