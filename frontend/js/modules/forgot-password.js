@@ -1,12 +1,7 @@
 import { initTheme } from "../core/theme.js";
 import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
-
-const state = {
-    step: "email",
-    email: "",
-    resetCode: "BG-2048"
-};
+import apiClient from "../core/api-client.js";
 
 function showToast(title, message) {
     const toastStack = document.querySelector("[data-toast-stack]");
@@ -36,7 +31,7 @@ function showToast(title, message) {
 }
 
 function setFieldError(input, message) {
-    const field = input.closest(".forgot-field");
+    const field = input?.closest(".auth-field");
     const errorElement = field?.querySelector("[data-field-error]");
 
     if (!field || !errorElement) {
@@ -47,59 +42,105 @@ function setFieldError(input, message) {
     errorElement.textContent = message || "";
 }
 
+function setFormBusy(form, isBusy) {
+    const submitButton = form.querySelector("[type='submit']");
+    const controls = form.querySelectorAll("button, input, select, textarea");
+
+    controls.forEach((control) => {
+        control.disabled = isBusy;
+    });
+
+    if (!submitButton) {
+        return;
+    }
+
+    if (isBusy) {
+        submitButton.dataset.originalText = submitButton.textContent.trim();
+        submitButton.textContent = "Processing...";
+        return;
+    }
+
+    submitButton.textContent = submitButton.dataset.originalText || submitButton.textContent;
+}
+
+function getApiErrorMessage(error, fallbackMessage) {
+    return error?.message || fallbackMessage;
+}
+
 function isEmailValid(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function setStep(nextStep) {
-    state.step = nextStep;
-
-    document.querySelectorAll("[data-forgot-step]").forEach((stepElement) => {
-        stepElement.classList.toggle("is-active", stepElement.dataset.forgotStep === nextStep);
-    });
-
-    const description = document.querySelector("[data-step-description]");
-
-    if (!description) {
-        return;
-    }
-
-    if (nextStep === "email") {
-        description.textContent = "Enter your account email. We will send a secure reset instruction.";
-    }
-
-    if (nextStep === "reset") {
-        description.textContent = `Reset instructions were prepared for ${state.email}. Enter your new password below.`;
-    }
-
-    if (nextStep === "success") {
-        description.textContent = "Your password has been reset successfully in this frontend mock flow.";
-    }
-}
-
-function validateEmailStep() {
-    const emailInput = document.querySelector("[data-recovery-email]");
-
-    if (!emailInput) {
-        return false;
-    }
-
-    const email = emailInput.value.trim();
+function validateEmail(input) {
+    const email = input.value.trim();
 
     if (!email) {
-        setFieldError(emailInput, "Email is required.");
+        setFieldError(input, "Email is required.");
         return false;
     }
 
     if (!isEmailValid(email)) {
-        setFieldError(emailInput, "Please enter a valid email.");
+        setFieldError(input, "Please enter a valid email.");
         return false;
     }
 
-    setFieldError(emailInput, "");
-    state.email = email;
-
+    setFieldError(input, "");
     return true;
+}
+
+function validateRequired(input, message) {
+    if (!input.value.trim()) {
+        setFieldError(input, message);
+        return false;
+    }
+
+    setFieldError(input, "");
+    return true;
+}
+
+function validatePassword(input) {
+    const password = input.value.trim();
+
+    if (!password) {
+        setFieldError(input, "Password is required.");
+        return false;
+    }
+
+    if (password.length < 6) {
+        setFieldError(input, "Password must be at least 6 characters.");
+        return false;
+    }
+
+    setFieldError(input, "");
+    return true;
+}
+
+function validateRegisterPassword(passwordInput, confirmPasswordInput) {
+    const password = passwordInput.value.trim();
+    const confirmPassword = confirmPasswordInput.value.trim();
+    let isValid = true;
+
+    if (!password) {
+        setFieldError(passwordInput, "Password is required.");
+        isValid = false;
+    } else if (password.length < 8) {
+        setFieldError(passwordInput, "Password must be at least 8 characters.");
+        isValid = false;
+    } else {
+        setFieldError(passwordInput, "");
+    }
+
+    if (!confirmPassword) {
+        setFieldError(confirmPasswordInput, "Please confirm your password.");
+        isValid = false;
+    } else if (password !== confirmPassword) {
+        setFieldError(confirmPasswordInput, "Passwords do not match.");
+        isValid = false;
+    } else {
+        setFieldError(confirmPasswordInput, "");
+    }
+
+    return isValid;
 }
 
 function getPasswordStrength(password) {
@@ -129,7 +170,7 @@ function getPasswordStrength(password) {
 }
 
 function updatePasswordStrength() {
-    const passwordInput = document.querySelector("[data-new-password]");
+    const passwordInput = document.querySelector("[data-auth-password]");
     const strengthElement = document.querySelector("[data-password-strength]");
 
     if (!passwordInput || !strengthElement) {
@@ -146,70 +187,205 @@ function updatePasswordStrength() {
     strengthElement.dataset.strength = getPasswordStrength(password);
 }
 
-function validateResetStep() {
-    const passwordInput = document.querySelector("[data-new-password]");
-    const confirmPasswordInput = document.querySelector("[data-confirm-new-password]");
+function validateLoginForm(form) {
+    const emailInput = form.querySelector("[data-auth-email]");
+    const passwordInput = form.querySelector("[data-auth-password]");
 
-    if (!passwordInput || !confirmPasswordInput) {
-        return false;
-    }
-
-    const password = passwordInput.value.trim();
-    const confirmPassword = confirmPasswordInput.value.trim();
     let isValid = true;
 
-    if (!password) {
-        setFieldError(passwordInput, "New password is required.");
+    if (!validateEmail(emailInput)) {
         isValid = false;
-    } else if (password.length < 8) {
-        setFieldError(passwordInput, "Password must be at least 8 characters.");
-        isValid = false;
-    } else {
-        setFieldError(passwordInput, "");
     }
 
-    if (!confirmPassword) {
-        setFieldError(confirmPasswordInput, "Please confirm your new password.");
+    if (!validatePassword(passwordInput)) {
         isValid = false;
-    } else if (password !== confirmPassword) {
-        setFieldError(confirmPasswordInput, "Passwords do not match.");
-        isValid = false;
-    } else {
-        setFieldError(confirmPasswordInput, "");
     }
 
     return isValid;
 }
 
-function handleSubmit(event) {
-    event.preventDefault();
+function validateRegisterForm(form) {
+    const nameInput = form.querySelector("[data-auth-name]");
+    const usernameInput = form.querySelector("[data-auth-username]");
+    const emailInput = form.querySelector("[data-auth-email]");
+    const passwordInput = form.querySelector("[data-auth-password]");
+    const confirmPasswordInput = form.querySelector("[data-auth-confirm-password]");
+    const termsInput = form.querySelector("[data-auth-terms]");
+    const termsError = form.querySelector("[data-terms-error]");
 
-    if (state.step === "email") {
-        if (!validateEmailStep()) {
-            showToast("Recovery Blocked", "Please enter a valid account email.");
-            return;
+    let isValid = true;
+
+    if (!validateRequired(nameInput, "Full name is required.")) {
+        isValid = false;
+    }
+
+    if (!validateRequired(usernameInput, "Username is required.")) {
+        isValid = false;
+    }
+
+    if (!validateEmail(emailInput)) {
+        isValid = false;
+    }
+
+    if (!validateRegisterPassword(passwordInput, confirmPasswordInput)) {
+        isValid = false;
+    }
+
+    if (!termsInput.checked) {
+        if (termsError) {
+            termsError.textContent = "You must agree to continue.";
         }
 
-        const resetCodeElement = document.querySelector("[data-reset-code]");
+        isValid = false;
+    } else if (termsError) {
+        termsError.textContent = "";
+    }
 
-        if (resetCodeElement) {
-            resetCodeElement.textContent = state.resetCode;
-        }
+    return isValid;
+}
 
-        showToast("Reset Link Sent", "Mock reset instruction has been prepared.");
-        setStep("reset");
+async function handleLoginSubmit(form) {
+    if (!validateLoginForm(form)) {
+        showToast("Sign In Blocked", "Please check your email and password.");
         return;
     }
 
-    if (state.step === "reset") {
-        if (!validateResetStep()) {
-            showToast("Reset Blocked", "Please check your new password fields.");
-            return;
+    const email = form.querySelector("[data-auth-email]").value.trim();
+    const password = form.querySelector("[data-auth-password]").value.trim();
+
+    setFormBusy(form, true);
+
+    try {
+        const response = await apiClient.post(
+            "/auth/login",
+            {
+                email,
+                password
+            },
+            {
+                auth: false
+            }
+        );
+
+        const { token, user } = response.data || {};
+
+        if (!token || !user) {
+            throw new Error("Backend did not return token or user data.");
         }
 
-        showToast("Password Updated", "Your password has been reset in this frontend mock.");
-        setStep("success");
+        apiClient.setAuthToken(token);
+        apiClient.setAuthUser(user);
+
+        showToast("Signed In", response.message || "Welcome back to BrosGem.");
+
+        window.setTimeout(() => {
+            window.location.href = "./account.html";
+        }, 750);
+    } catch (error) {
+        showToast("Sign In Failed", getApiErrorMessage(error, "Email or password is incorrect."));
+    } finally {
+        setFormBusy(form, false);
     }
+}
+
+async function handleRegisterSubmit(form) {
+    if (!validateRegisterForm(form)) {
+        showToast("Registration Blocked", "Please complete all required fields.");
+        return;
+    }
+
+    const username = form.querySelector("[data-auth-username]").value.trim();
+    const email = form.querySelector("[data-auth-email]").value.trim();
+    const password = form.querySelector("[data-auth-password]").value.trim();
+
+    setFormBusy(form, true);
+
+    try {
+        await apiClient.post(
+            "/auth/register",
+            {
+                username,
+                email,
+                password
+            },
+            {
+                auth: false
+            }
+        );
+
+        const loginResponse = await apiClient.post(
+            "/auth/login",
+            {
+                email,
+                password
+            },
+            {
+                auth: false
+            }
+        );
+
+        const { token, user } = loginResponse.data || {};
+
+        if (!token || !user) {
+            throw new Error("Account created, but backend did not return login token.");
+        }
+
+        apiClient.setAuthToken(token);
+        apiClient.setAuthUser(user);
+
+        showToast("Account Created", "Your unified member account is ready.");
+
+        window.setTimeout(() => {
+            window.location.href = "./account.html";
+        }, 850);
+    } catch (error) {
+        showToast("Registration Failed", getApiErrorMessage(error, "Cannot create account right now."));
+    } finally {
+        setFormBusy(form, false);
+    }
+}
+
+function bindAuthForms() {
+    document.querySelectorAll("[data-auth-form]").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            const mode = form.dataset.authMode;
+
+            if (mode === "login") {
+                handleLoginSubmit(form);
+                return;
+            }
+
+            if (mode === "register") {
+                handleRegisterSubmit(form);
+            }
+        });
+    });
+}
+
+function bindDemoFillButtons() {
+    document.querySelectorAll("[data-fill-demo]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const form = button.closest("[data-auth-form]");
+            const emailInput = form?.querySelector("[data-auth-email]");
+            const passwordInput = form?.querySelector("[data-auth-password]");
+
+            if (emailInput) {
+                emailInput.value = button.dataset.email || "member@brosgem.com";
+                setFieldError(emailInput, "");
+            }
+
+            if (passwordInput) {
+                passwordInput.value = button.dataset.password || "Member@123";
+                setFieldError(passwordInput, "");
+            }
+
+            updatePasswordStrength();
+
+            showToast("Demo Filled", "Credentials have been filled. Make sure this user exists in your database.");
+        });
+    });
 }
 
 function bindPasswordToggles() {
@@ -230,22 +406,17 @@ function bindPasswordToggles() {
     });
 }
 
-function bindEvents() {
-    const form = document.querySelector("[data-forgot-form]");
-    const passwordInput = document.querySelector("[data-new-password]");
+function bindPasswordStrength() {
+    const passwordInput = document.querySelector("[data-auth-password]");
 
-    if (form) {
-        form.addEventListener("submit", handleSubmit);
+    if (!passwordInput) {
+        return;
     }
 
-    if (passwordInput) {
-        passwordInput.addEventListener("input", updatePasswordStrength);
-    }
-
-    bindPasswordToggles();
+    passwordInput.addEventListener("input", updatePasswordStrength);
 }
 
-function initForgotPasswordPage() {
+function initAuthPage() {
     initTheme();
     initI18n();
 
@@ -254,8 +425,10 @@ function initForgotPasswordPage() {
         topRevealOffset: 12
     });
 
-    bindEvents();
-    setStep("email");
+    bindAuthForms();
+    bindDemoFillButtons();
+    bindPasswordToggles();
+    bindPasswordStrength();
 }
 
-document.addEventListener("DOMContentLoaded", initForgotPasswordPage);
+document.addEventListener("DOMContentLoaded", initAuthPage);

@@ -1,6 +1,7 @@
 import { initTheme } from "../core/theme.js";
 import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
+import apiClient from "../core/api-client.js";
 
 function showToast(title, message) {
     const toastStack = document.querySelector("[data-toast-stack]");
@@ -30,7 +31,7 @@ function showToast(title, message) {
 }
 
 function setFieldError(input, message) {
-    const field = input.closest(".auth-field");
+    const field = input?.closest(".auth-field");
     const errorElement = field?.querySelector("[data-field-error]");
 
     if (!field || !errorElement) {
@@ -39,6 +40,31 @@ function setFieldError(input, message) {
 
     field.classList.toggle("has-error", Boolean(message));
     errorElement.textContent = message || "";
+}
+
+function setFormBusy(form, isBusy) {
+    const submitButton = form.querySelector("[type='submit']");
+    const controls = form.querySelectorAll("button, input, select, textarea");
+
+    controls.forEach((control) => {
+        control.disabled = isBusy;
+    });
+
+    if (!submitButton) {
+        return;
+    }
+
+    if (isBusy) {
+        submitButton.dataset.originalText = submitButton.textContent.trim();
+        submitButton.textContent = "Processing...";
+        return;
+    }
+
+    submitButton.textContent = submitButton.dataset.originalText || submitButton.textContent;
+}
+
+function getApiErrorMessage(error, fallbackMessage) {
+    return error?.message || fallbackMessage;
 }
 
 function isEmailValid(value) {
@@ -218,30 +244,105 @@ function validateRegisterForm(form) {
     return isValid;
 }
 
-function handleLoginSubmit(form) {
+async function handleLoginSubmit(form) {
     if (!validateLoginForm(form)) {
         showToast("Sign In Blocked", "Please check your email and password.");
         return;
     }
 
-    showToast("Signed In", "Welcome back to your unified BrosGem member dashboard.");
+    const email = form.querySelector("[data-auth-email]").value.trim();
+    const password = form.querySelector("[data-auth-password]").value.trim();
 
-    window.setTimeout(() => {
-        window.location.href = "./account.html";
-    }, 750);
+    setFormBusy(form, true);
+
+    try {
+        const response = await apiClient.post(
+            "/auth/login",
+            {
+                email,
+                password
+            },
+            {
+                auth: false
+            }
+        );
+
+        const { token, user } = response.data || {};
+
+        if (!token || !user) {
+            throw new Error("Backend did not return token or user data.");
+        }
+
+        apiClient.setAuthToken(token);
+        apiClient.setAuthUser(user);
+
+        showToast("Signed In", response.message || "Welcome back to BrosGem.");
+
+        window.setTimeout(() => {
+            window.location.href = "./account.html";
+        }, 750);
+    } catch (error) {
+        showToast("Sign In Failed", getApiErrorMessage(error, "Email or password is incorrect."));
+    } finally {
+        setFormBusy(form, false);
+    }
 }
 
-function handleRegisterSubmit(form) {
+async function handleRegisterSubmit(form) {
     if (!validateRegisterForm(form)) {
         showToast("Registration Blocked", "Please complete all required fields.");
         return;
     }
 
-    showToast("Account Created", "Your unified member account is ready for bidding and selling workflows.");
+    const username = form.querySelector("[data-auth-username]").value.trim();
+    const email = form.querySelector("[data-auth-email]").value.trim();
+    const password = form.querySelector("[data-auth-password]").value.trim();
 
-    window.setTimeout(() => {
-        window.location.href = "./account.html";
-    }, 750);
+    setFormBusy(form, true);
+
+    try {
+        await apiClient.post(
+            "/auth/register",
+            {
+                username,
+                email,
+                password
+            },
+            {
+                auth: false
+            }
+        );
+
+        const loginResponse = await apiClient.post(
+            "/auth/login",
+            {
+                email,
+                password
+            },
+            {
+                auth: false
+            }
+        );
+
+        const { token, user } = loginResponse.data || {};
+
+        if (!token || !user) {
+            throw new Error("Account created, but backend did not return login token.");
+        }
+
+        apiClient.setAuthToken(token);
+        apiClient.setAuthUser(user);
+
+        showToast("Account Created", "Your unified member account is ready.");
+
+        window.setTimeout(() => {
+            window.location.href = "./account.html";
+        }, 850);
+    } catch (error) {
+        showToast("Registration Failed", getApiErrorMessage(error, "Cannot create account right now."));
+    } finally {
+        setFormBusy(form, false);
+    }
 }
 
 function bindAuthForms() {
@@ -282,7 +383,7 @@ function bindDemoFillButtons() {
 
             updatePasswordStrength();
 
-            showToast("Demo Filled", "Unified member credentials have been filled.");
+            showToast("Demo Filled", "Credentials have been filled. Make sure this user exists in your database.");
         });
     });
 }
