@@ -1,91 +1,17 @@
 import { initTheme } from "../core/theme.js";
 import { initI18n, t, onLanguageChange } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
+import apiClient from "../core/api-client.js";
 
-const AUCTIONS = {
-    842: {
-        id: 842,
-        lot: "Lot #842 • Private Collection",
-        title: "The Midnight Chronograph 'Trinity' Edition",
-        description:
-            "A singular masterpiece of horological engineering, the Midnight Chronograph represents the pinnacle of 21st-century artisanal watchmaking. Commissioned in 2021 as a one-off prototype, this timepiece features a unique hand-skeletonized movement housed in a case of brushed Grade 5 titanium with warm gold inlay.",
-        provenance: "Acquired from a private Swiss estate. First time appearing at public auction.",
-        condition: "Mint condition, original documentation and presentation case included.",
-        status: "Live Now",
-        currentBid: 285000,
-        startingPrice: 145000,
-        increment: 5000,
-        endTime: Date.now() + 4 * 60 * 60 * 1000 + 12 * 60 * 1000 + 48 * 1000,
-        activeBids: 24,
-        has360: true,
-        images: [
-            "../assets/images/mockdata/1.png",
-            "../assets/images/mockdata/2.png",
-            "../assets/images/mockdata/3.png"
-        ],
-        bidHistory: [
-            { bidder: "J***S", amount: 285000, time: "2m ago", highlight: true },
-            { bidder: "A***K", amount: 280000, time: "12m ago", highlight: false },
-            { bidder: "M***D", amount: 275000, time: "45m ago", highlight: false },
-            { bidder: "L***P", amount: 270000, time: "1h ago", highlight: false }
-        ]
-    },
-    118: {
-        id: 118,
-        lot: "Lot #118 • Fine Art",
-        title: "Fragmented Echo No. 4",
-        description:
-            "A contemporary abstract composition carrying layered mineral textures and a restrained visual rhythm. The piece belongs to a private modern art archive and enters public auction for the first time.",
-        provenance: "Private collection, Singapore. Acquired directly from the artist studio.",
-        condition: "Excellent condition with gallery certificate included.",
-        status: "Live Now",
-        currentBid: 38000,
-        startingPrice: 22000,
-        increment: 2000,
-        endTime: Date.now() + 18 * 60 * 60 * 1000 + 42 * 60 * 1000,
-        activeBids: 8,
-        has360: false,
-        images: [
-            "../assets/images/mockdata/2.png",
-            "../assets/images/mockdata/4.png",
-            "../assets/images/mockdata/6.png"
-        ],
-        bidHistory: [
-            { bidder: "R***N", amount: 38000, time: "4m ago", highlight: true },
-            { bidder: "C***E", amount: 36000, time: "19m ago", highlight: false },
-            { bidder: "T***A", amount: 34000, time: "33m ago", highlight: false }
-        ]
-    },
-    883: {
-        id: 883,
-        lot: "Lot #883 • Automotive",
-        title: "1962 GTO Heritage",
-        description:
-            "An automotive icon preserved in collector-grade condition, presented with careful documentation and period-correct detailing. A commanding lot designed for serious collectors.",
-        provenance: "European private garage, climate-controlled ownership history.",
-        condition: "Collector-grade preservation with verified inspection record.",
-        status: "Live Now",
-        currentBid: 3800000,
-        startingPrice: 2400000,
-        increment: 50000,
-        endTime: Date.now() + 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000,
-        activeBids: 42,
-        has360: false,
-        images: [
-            "../assets/images/mockdata/3.png",
-            "../assets/images/mockdata/5.png",
-            "../assets/images/mockdata/1.png"
-        ],
-        bidHistory: [
-            { bidder: "V***R", amount: 3800000, time: "1m ago", highlight: true },
-            { bidder: "N***T", amount: 3750000, time: "8m ago", highlight: false },
-            { bidder: "B***L", amount: 3700000, time: "22m ago", highlight: false }
-        ]
-    }
-};
+const FALLBACK_IMAGES = [
+    "../assets/images/mockdata/1.png",
+    "../assets/images/mockdata/2.png",
+    "../assets/images/mockdata/3.png"
+];
 
 let auction = null;
 let activeImageIndex = 0;
+let countdownInterval = null;
 
 const elements = {};
 
@@ -128,13 +54,7 @@ function cacheElements() {
 
 function getAuctionIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
-    const id = Number(params.get("id"));
-
-    if (AUCTIONS[id]) {
-        return id;
-    }
-
-    return 842;
+    return Number(params.get("id"));
 }
 
 function formatMoney(value) {
@@ -142,11 +62,89 @@ function formatMoney(value) {
         style: "currency",
         currency: "USD",
         maximumFractionDigits: 0
-    }).format(value);
+    }).format(Number(value || 0));
 }
 
 function formatTwoDigits(value) {
     return String(value).padStart(2, "0");
+}
+
+function getFallbackImage(id) {
+    const index = Math.abs(Number(id || 0)) % FALLBACK_IMAGES.length;
+    return FALLBACK_IMAGES[index];
+}
+
+function normalizeStatus(status) {
+    return String(status || "Active").trim();
+}
+
+function normalizeAuction(rawAuction) {
+    const id = rawAuction.id;
+    const image = rawAuction.imageUrl || rawAuction.image_url || getFallbackImage(id);
+    const title = rawAuction.title || rawAuction.productName || rawAuction.product_name || "Untitled Auction Lot";
+    const currentPrice = Number(rawAuction.currentPrice || rawAuction.current_price || 0);
+    const stepPrice = Number(rawAuction.stepPrice || rawAuction.step_price || 0);
+
+    const bidHistory = Array.isArray(rawAuction.bidHistory)
+        ? rawAuction.bidHistory.map((bid, index) => ({
+            bidder: bid.bidder || "B***R",
+            amount: Number(bid.amount || bid.bid_amount || 0),
+            time: formatBidTime(bid.time || bid.created_at),
+            highlight: index === 0 || Boolean(bid.highlight)
+        }))
+        : [];
+
+    return {
+        id,
+        lot: rawAuction.lot || `Lot #${String(id).padStart(3, "0")} • ${rawAuction.category || "Private Collection"}`,
+        title,
+        description: rawAuction.description || "Auction detail is being prepared by the specialist team.",
+        provenance: rawAuction.sellerUsername
+            ? `Submitted by ${rawAuction.sellerUsername}. Additional provenance documents pending backend expansion.`
+            : "Provenance information will be updated after specialist verification.",
+        condition: "Condition report will be connected in a later backend scope.",
+        status: normalizeStatus(rawAuction.status),
+        currentBid: currentPrice,
+        startingPrice: currentPrice,
+        increment: stepPrice || 100,
+        endTime: new Date(rawAuction.endTime || rawAuction.end_time || Date.now()).getTime(),
+        activeBids: Number(rawAuction.bidCount || rawAuction.bid_count || bidHistory.length || 0),
+        has360: false,
+        images: [image, ...FALLBACK_IMAGES.filter((fallbackImage) => fallbackImage !== image)].slice(0, 3),
+        bidHistory
+    };
+}
+
+function formatBidTime(value) {
+    if (!value) {
+        return "Just now";
+    }
+
+    const time = new Date(value).getTime();
+
+    if (!time) {
+        return String(value);
+    }
+
+    const diffMs = Math.max(0, Date.now() - time);
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) {
+        return "Just now";
+    }
+
+    if (diffMinutes < 60) {
+        return `${diffMinutes}m ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+        return `${diffHours}h ago`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
 }
 
 function getMinimumBid() {
@@ -161,6 +159,7 @@ function setActiveImage(index) {
     activeImageIndex = Math.max(0, Math.min(index, auction.images.length - 1));
 
     const image = getActiveImage();
+
     elements.mainImage.src = image;
     elements.lightboxImage.src = image;
 
@@ -209,18 +208,10 @@ function renderGallery() {
             showToast(t("toast.preview360"), t("toast.preview360Desc"));
         });
     }
-
-    elements.galleryFrame.addEventListener("click", openLightbox);
-    elements.galleryFrame.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openLightbox();
-        }
-    });
 }
 
 function renderProductCopy() {
-    elements.statusLabel.textContent = t("detail.liveNow");
+    elements.statusLabel.textContent = auction.status;
     elements.lotLabel.textContent = auction.lot;
     elements.productTitle.textContent = auction.title;
     elements.productDescription.textContent = auction.description;
@@ -250,6 +241,17 @@ function createBidHistoryRow(bid) {
 }
 
 function renderBidHistory() {
+    if (auction.bidHistory.length === 0) {
+        elements.bidHistory.innerHTML = `
+            <div class="bid-history-row">
+                <span class="bidder-mask">No bids</span>
+                <span>-</span>
+                <span>-</span>
+            </div>
+        `;
+        return;
+    }
+
     elements.bidHistory.innerHTML = auction.bidHistory.map(createBidHistoryRow).join("");
 }
 
@@ -260,6 +262,7 @@ function renderAuction() {
     renderBidHistory();
 
     const proxyInfoButton = document.querySelector(".proxy-info-button");
+
     if (proxyInfoButton) {
         proxyInfoButton.dataset.tooltip = t("detail.proxyTooltip");
     }
@@ -279,6 +282,10 @@ function updateCountdown() {
 }
 
 function showToast(title, message) {
+    if (!elements.toastStack) {
+        return;
+    }
+
     const toast = document.createElement("article");
 
     toast.className = "toast";
@@ -460,7 +467,44 @@ function bindEvents() {
     elements.simulateBid.addEventListener("click", simulateExternalBid);
     elements.simulateSoftClose.addEventListener("click", simulateSoftClose);
 
+    elements.galleryFrame.addEventListener("click", openLightbox);
+    elements.galleryFrame.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openLightbox();
+        }
+    });
+
     bindLightboxEvents();
+}
+
+async function loadAuctionDetail() {
+    const auctionId = getAuctionIdFromUrl();
+
+    if (!auctionId) {
+        showToast("Missing Auction", "No auction ID was provided.");
+        return;
+    }
+
+    try {
+        const response = await apiClient.get(`/auctions/${auctionId}`, null, {
+            auth: false
+        });
+
+        auction = normalizeAuction(response.data?.auction);
+
+        renderAuction();
+        updateCountdown();
+
+        if (countdownInterval) {
+            window.clearInterval(countdownInterval);
+        }
+
+        countdownInterval = window.setInterval(updateCountdown, 1000);
+    } catch (error) {
+        console.error("[Auction Detail] Cannot load auction:", error);
+        showToast("Auction Load Failed", error.message || "Cannot load auction detail from backend.");
+    }
 }
 
 function initAuctionDetailPage() {
@@ -474,18 +518,13 @@ function initAuctionDetailPage() {
     });
 
     cacheElements();
-
-    const auctionId = getAuctionIdFromUrl();
-    auction = structuredClone(AUCTIONS[auctionId]);
-
-    renderAuction();
     bindEvents();
-    updateCountdown();
-
-    window.setInterval(updateCountdown, 1000);
+    loadAuctionDetail();
 
     onLanguageChange(() => {
-        renderAuction();
+        if (auction) {
+            renderAuction();
+        }
     });
 }
 
