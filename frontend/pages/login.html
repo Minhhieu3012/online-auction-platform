@@ -11,10 +11,12 @@
 </head>
 <body>
     <div class="app-shell">
+        <!-- Header điều hướng -->
         <div data-site-header data-base-path=".." data-active-page="" data-header-action="register"></div>
 
         <main class="auth-page auth-page-login">
             <section class="auth-shell auth-shell-login">
+                <!-- Brand Panel: Chứa thông tin giới thiệu và Preview Card -->
                 <article class="auth-brand-panel auth-brand-panel-login">
                     <div class="auth-brand-inner auth-brand-inner-compact">
                         <p class="eyebrow">Private Access</p>
@@ -35,6 +37,7 @@
                     </div>
                 </article>
 
+                <!-- Auth Card: Chứa Form đăng nhập chính -->
                 <article class="auth-card auth-card-login-compact">
                     <div class="auth-card-heading auth-card-heading-compact">
                         <p class="eyebrow">Welcome back</p>
@@ -42,6 +45,7 @@
                         <p>Access your BrosGem member dashboard.</p>
                     </div>
 
+                    <!-- TRẠM KIỂM SOÁT LOGIC: data-auth-form và data-auth-mode="login" là bắt buộc -->
                     <form class="auth-form auth-form-compact" data-auth-form data-auth-mode="login" novalidate>
                         <label class="auth-field" for="loginEmail">
                             <span>Email</span>
@@ -99,6 +103,7 @@
                             Sign In
                         </button>
 
+                        <!-- Demo Box: Dùng để test nhanh các vai trò người dùng -->
                         <div class="auth-demo-box auth-demo-box-compact">
                             <span>Demo</span>
                             <button type="button" data-fill-demo data-email="collector@brosgem.com" data-password="Collector@123">
@@ -121,12 +126,13 @@
             </section>
         </main>
 
+        <!-- Toast Stack: Nơi hiển thị thông báo "Signed in" hoặc "Sign-in failed"[cite: 8] -->
         <div class="toast-stack" data-toast-stack aria-live="polite"></div>
 
         <div data-site-footer data-base-path=".."></div>
     </div>
 
-    <!-- SỬA LỖI 404: Đổi từ apiClient.js thành api-client.js[cite: 1, 2, 5] -->
+    <!-- THỨ TỰ SCRIPT: api-client.js PHẢI nạp trước auth.js để định nghĩa window.apiClient -->
     <script src="../js/core/api-client.js"></script>
 
     <script type="module" src="../components/site-header.js"></script>
