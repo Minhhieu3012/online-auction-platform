@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 require("dotenv").config();
 require("./config/db");
 require("./config/redis");
