@@ -1,6 +1,6 @@
 /**
  * Frontend Core: API Client
- * Kết hợp logic xử lý lỗi 401 thông minh hơn[cite: 3]
+ * Đã sửa lỗi: Đảm bảo Token và Header được gửi đi chính xác
  */
 
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -17,6 +17,7 @@ const apiClient = {
     async request(endpoint, method = 'GET', body = null) {
         const headers = {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'x-request-id': generateRequestId()
         };
 
@@ -36,16 +37,12 @@ const apiClient = {
             if (!response.ok || data.success === false) {
                 const errorPayload = {
                     status: response.status,
-                    errorCode: data.error_code || 'UNKNOWN_ERROR',
+                    errorCode: data.error_code || 'API_ERROR',
                     message: data.message || 'Hệ thống đang gián đoạn, vui lòng thử lại.'
                 };
 
-                /**
-                 * XỬ LÝ 401 THÔNG MINH:
-                 * Chỉ báo "Hết hạn" nếu KHÔNG PHẢI đang gọi API đăng nhập[cite: 3, 5]
-                 */
                 if (response.status === 401 && endpoint !== '/auth/login') {
-                    console.warn('[API Client] Phiên làm việc hết hạn. Đang đăng xuất...');
+                    console.warn('[API Client] Phiên làm việc hết hạn.');
                     localStorage.removeItem('jwt_token');
                 }
                 
