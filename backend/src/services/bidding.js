@@ -1,10 +1,14 @@
 const redisKeys = require("../utils/redis-keys");
 const AutoBidService = require("./autobid");
 const redisClient = require("../config/redis");
+const pool = require("../config/db"); // Kết nối MySQL để tự phục hồi cache
 const { checkAntiSniping } = require("../constants/business");
 const { producer } = require("../config/kafka");
 const logger = require("../utils/logger");
 
+/**
+ * Lua Script: Xử lý đặt giá nguyên tử trên Redis để đảm bảo hiệu năng và tính nhất quán
+ */
 const placeBidLuaScript = `
     local auction_key = KEYS[1]
     local user_id = ARGV[1]
@@ -33,10 +37,48 @@ const placeBidLuaScript = `
 `;
 
 class BiddingService {
+  /**
+   * Đặt giá đấu giá
+   */
   static async placeBid(auctionId, userId, bidAmount) {
     const auctionKey = redisKeys.auctionInfo(auctionId);
 
     try {
+      // --- BƯỚC 1: KIỂM TRA & TỰ PHỤC HỒI CACHE (TRIỆT ĐỂ) ---
+      let exists = await redisClient.exists(auctionKey);
+      
+      if (!exists) {
+        logger.warn(`[Cache Miss] Phiên ${auctionId} không có trên Redis. Đang nạp từ MySQL...`);
+        
+        // FIX KIẾN TRÚC: Lấy thêm user_id của người đang trả giá cao nhất từ bảng Bids
+        const [rows] = await pool.execute(
+          `SELECT a.*, 
+            (SELECT user_id FROM Bids WHERE auction_id = a.id ORDER BY bid_amount DESC LIMIT 1) as current_highest_bidder 
+           FROM Auctions a WHERE a.id = ? AND a.status = 'Active'`,
+          [auctionId]
+        );
+
+        if (rows.length === 0) {
+          return { success: false, errorCode: 'ERR_NOT_FOUND' };
+        }
+
+        const auc = rows[0];
+        const highestBidderToRestore = auc.current_highest_bidder ? auc.current_highest_bidder.toString() : "";
+
+        // Nạp lại vào Redis với đầy đủ trạng thái lịch sử
+        await redisClient.hSet(auctionKey, {
+          current_price: auc.current_price.toString(),
+          step_price: auc.step_price.toString(),
+          status: auc.status,
+          version: auc.version.toString(),
+          highest_bidder: highestBidderToRestore, 
+          end_time: new Date(auc.end_time).getTime().toString(),
+          extension_count: "0"
+        });
+        logger.success(`[Cache Warm-up] Đã nạp thành công phiên ${auctionId} (Highest Bidder: ${highestBidderToRestore || 'Trống'}) lên Redis.`);
+      }
+
+      // --- BƯỚC 2: CHẠY LUA SCRIPT ĐẶT GIÁ TRÊN REDIS ---
       const result = await redisClient.eval(placeBidLuaScript, {
         keys: [auctionKey],
         arguments: [userId.toString(), bidAmount.toString()],
@@ -46,20 +88,18 @@ class BiddingService {
         const currentVersion = result;
         logger.success(`[Bid Success] User ${userId} đặt $${bidAmount} cho phiên ${auctionId}`);
 
-        // Đọc auctionInfo một lần duy nhất
+        // Đọc thông tin phiên sau khi đặt giá thành công
         const auctionInfo = await redisClient.hGetAll(auctionKey);
 
-        // Trigger Auto-bid cho các user khác
+        // Kích hoạt Auto-bid cho các người dùng khác
         AutoBidService.triggerAutoBids(auctionId, bidAmount, userId).catch((err) => {
-          console.error("[Auto-bid Trigger Error]:", err.message);
+          logger.error("[Auto-bid Trigger Error]:", err.message);
         });
 
-        // Kiểm tra Anti-sniping
-        // Kiểm tra Anti-sniping
+        // Kiểm tra cơ chế Anti-sniping (Gia hạn giờ chót)
         let newEndTimeForDB = null;
         try {
           const extensionCount = parseInt(auctionInfo.extension_count) || 0;
-
           const rawEndTime = auctionInfo.end_time;
           const endTime = /^\d+$/.test(rawEndTime) ? parseInt(rawEndTime, 10) : Date.parse(rawEndTime);
 
@@ -72,16 +112,16 @@ class BiddingService {
               "end_time",
               newEndString,
               "extension_count",
-              (extensionCount + 1).toString(),
+              (extensionCount + 1).toString()
             );
             newEndTimeForDB = antiSnipe.newEndTime;
-            logger.info(`[Anti-Snipe] Phiên ${auctionId} gia hạn đến: ${newEndString} (Lần ${extensionCount + 1})`);
+            logger.info(`[Anti-Snipe] Gia hạn phiên ${auctionId} đến: ${newEndString}`);
           }
         } catch (err) {
           logger.error("[Anti-Snipe Error]:", err.message);
         }
 
-        // Bắn Kafka — Consumer sẽ lo việc ghi DB
+        // --- BƯỚC 3: BẮN KAFKA ĐỂ ĐỒNG BỘ XUỐNG MYSQL ---
         try {
           await producer.send({
             topic: "auction-bids",
@@ -89,10 +129,10 @@ class BiddingService {
               {
                 key: auctionId.toString(),
                 value: JSON.stringify({
-                  auctionId,
-                  userId,
-                  bidAmount,
-                  version: currentVersion + 1, // version mới sau khi Lua đã tăng
+                  auction_id: auctionId.toString(),
+                  user_id: userId.toString(),
+                  price: Number(bidAmount),
+                  version: currentVersion + 1,
                   newEndTime: newEndTimeForDB,
                   timestamp: new Date().toISOString(),
                 }),
@@ -102,7 +142,7 @@ class BiddingService {
           logger.info(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
         } catch (kafkaError) {
           logger.error("[Kafka Error]:", kafkaError.message);
-          // TODO: Fallback — ghi thẳng vào DB nếu Kafka chết
+          // Fallback: Ghi thẳng DB nếu Kafka lỗi
         }
 
         return { success: true, message: "Đặt giá thành công" };

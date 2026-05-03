@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Auctions | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/collections.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="live-auctions"></div>
+
+        <main class="collections-page">
+            <section class="collections-hero">
+                <div>
+                    <p class="eyebrow" data-i18n="collections.eyebrow">Curated Exclusivity</p>
+                    <h1 data-i18n="collections.title">Live Auctions</h1>
+                </div>
+
+                <div class="collections-hero-meta">
+                    <span data-result-count>0 lots found</span>
+                    <span class="meta-divider"></span>
+                    <span>
+                        <span data-i18n="collections.sortBy">Sort by:</span>
+                        <strong data-current-sort>Ending Soonest</strong>
+                    </span>
+                </div>
+            </section>
+
+            <section class="collections-toolbar" aria-label="Auction filters">
+                <div class="toolbar-left">
+                    <div class="category-trigger">
+                        <span class="category-icon">≡</span>
+                        <label for="categoryFilter" data-i18n="collections.category">Category</label>
+                        <select id="categoryFilter" class="toolbar-select" data-category-filter>
+                            <option value="all" data-i18n="collections.allCategories">All Categories</option>
+                            <option value="horology">Horology</option>
+                            <option value="fine-art">Fine Art</option>
+                            <option value="automotive">Automotive</option>
+                            <option value="jewelry">Jewelry</option>
+                            <option value="collectibles">Collectibles</option>
+                        </select>
+                    </div>
+
+                    <div class="status-tabs" role="tablist" aria-label="Auction status filter">
+                        <button type="button" class="status-tab" data-status-filter="all" data-i18n="collections.all">All</button>
+                        <button type="button" class="status-tab is-active" data-status-filter="active" data-i18n="collections.active">Active</button>
+                        <button type="button" class="status-tab" data-status-filter="scheduled" data-i18n="collections.scheduled">Scheduled</button>
+                        <button type="button" class="status-tab" data-status-filter="closing" data-i18n="collections.closing">Closing</button>
+                        <button type="button" class="status-tab" data-status-filter="ended" data-i18n="collections.ended">Ended</button>
+                    </div>
+                </div>
+
+                <div class="toolbar-right">
+                    <label class="search-box" for="auctionSearch">
+                        <span>⌕</span>
+                        <input
+                            id="auctionSearch"
+                            type="search"
+                            placeholder="Find specific objects..."
+                            autocomplete="off"
+                            data-search-input
+                            data-i18n-placeholder="collections.searchPlaceholder"
+                        />
+                    </label>
+
+                    <select class="sort-select" data-sort-select aria-label="Sort auctions">
+                        <option value="ending-soon" data-i18n="collections.sortEnding">Ending Soonest</option>
+                        <option value="highest-bid" data-i18n="collections.sortHighest">Highest Bid</option>
+                        <option value="newest" data-i18n="collections.sortNewest">Newest</option>
+                        <option value="most-bids" data-i18n="collections.sortMostBids">Most Bids</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="collections-content">
+                <div class="collections-grid" data-auction-grid></div>
+
+                <div class="empty-state" data-empty-state hidden>
+                    <span class="empty-state-icon">◇</span>
+                    <h2 data-i18n="collections.noLots">No lots matched your search</h2>
+                    <p data-i18n="collections.noLotsDesc">Try another keyword, category, or auction status.</p>
+                    <button type="button" class="button button-outline" data-reset-filters data-i18n="collections.resetFilters">
+                        Reset Filters
+                    </button>
+                </div>
+
+                <div class="load-more-area">
+                    <p class="load-more-label" data-showing-label>Showing 0 of 0 lots</p>
+                    <button type="button" class="button button-outline load-more-button" data-load-more>
+                        <span data-i18n="collections.loadMore">Load More Collections</span>
+                        <span>⌄</span>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/auction-list.js"></script>
+</body>
+</html>

@@ -1,81 +1,261 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIVE AUCTION | GHU</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/auction-detail.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auction Detail | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/auction-detail.css" />
 </head>
 <body>
-    <header class="site-header">
-        <div class="header-container">
-            <a href="../index.html" class="logo">GHU</a>
-            <nav class="nav-actions">
-                <a href="#signin" class="btn btn-outline">SIGN IN</a>
-            </nav>
-        </div>
-    </header>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="live-auctions"></div>
 
-    <main class="auction-room">
-        <div class="product-gallery">
-            <div class="image-wrapper">
-                <img src="../assets/images/mockdata/1.png" alt="Exquisite Piece" id="product-image">
-            </div>
-        </div>
-        
-        <div class="bidding-panel">
-            <div class="product-info">
-                <h1 id="product-name">LOADING...</h1>
-                <p id="product-desc" class="text-muted">Fetching auction details...</p>
-            </div>
+        <main class="auction-detail-page">
+            <section class="detail-grid">
+                <article class="product-column">
+                    <div class="gallery-shell">
+                        <div
+                            class="main-gallery-frame"
+                            data-gallery-frame
+                            role="button"
+                            tabindex="0"
+                            aria-label="Open enlarged product image"
+                        >
+                            <img src="../assets/images/mockdata/1.png" alt="Auction product preview" data-main-image />
+                            <span class="gallery-status-badge" data-status-label data-i18n="detail.liveNow">Live Now</span>
+                            <span class="gallery-zoom-hint" data-i18n="detail.clickToEnlarge">Click to enlarge • Hover to inspect</span>
+                        </div>
 
-            <div class="status-board">
-                <div class="status-block price-section">
-                    <span class="label">CURRENT BID</span>
-                    <h2 id="current-price" class="value-large">---</h2>
-                    <span id="highest-bidder-label" class="bidder-info">Waiting for bids</span>
-                </div>
-                
-                <div class="status-block time-section">
-                    <span class="label">TIME REMAINING</span>
-                    <h2 id="countdown-timer" class="value-large">--:--:--</h2>
-                    <span id="extension-badge" class="badge hidden">ANTI-SNIPING EXTENDED</span>
-                </div>
-            </div>
+                        <div class="thumbnail-grid" data-thumbnail-grid>
+                            <button type="button" class="thumbnail-button is-active" data-thumbnail="../assets/images/mockdata/1.png">
+                                <img src="../assets/images/mockdata/1.png" alt="Product thumbnail 1" />
+                            </button>
 
-            <div class="action-section">
-                <div class="bidding-form">
-                    <label class="label">PLACE DIRECT BID</label>
-                    <div class="input-group">
-                        <span class="currency-symbol">$</span>
-                        <input type="number" id="bid-input" placeholder="Enter amount" min="0" step="0.01">
-                        <button id="btn-place-bid" class="btn btn-solid">BID NOW</button>
+                            <button type="button" class="thumbnail-button" data-thumbnail="../assets/images/mockdata/2.png">
+                                <img src="../assets/images/mockdata/2.png" alt="Product thumbnail 2" />
+                            </button>
+
+                            <button type="button" class="thumbnail-button" data-thumbnail="../assets/images/mockdata/3.png">
+                                <img src="../assets/images/mockdata/3.png" alt="Product thumbnail 3" />
+                            </button>
+
+                            <button type="button" class="thumbnail-button thumbnail-more">
+                                +12 More
+                            </button>
+                        </div>
                     </div>
-                    <span id="min-bid-hint" class="hint">Minimum bid required: $0.00</span>
+
+                    <section class="product-copy">
+                        <p class="eyebrow" data-lot-label>Lot #842 • Private Collection</p>
+                        <h1 data-product-title>The Midnight Chronograph</h1>
+
+                        <p class="product-description" data-product-description>
+                            A singular masterpiece of horological engineering, this private-collection chronograph
+                            represents the pinnacle of modern artisanal watchmaking. Commissioned as a one-off
+                            prototype, the timepiece features a hand-skeletonized movement housed in brushed titanium
+                            with warm gold inlay.
+                        </p>
+
+                        <div class="product-facts">
+                            <div>
+                                <span class="field-label" data-i18n="detail.provenance">Provenance</span>
+                                <p data-provenance>Acquired from a private Swiss estate. First time appearing at public auction.</p>
+                            </div>
+
+                            <div>
+                                <span class="field-label" data-i18n="detail.condition">Condition</span>
+                                <p data-condition>Mint condition, original documentation and presentation case included.</p>
+                            </div>
+                        </div>
+
+                        <div class="auction-protocol-box">
+                            <h2 data-i18n="detail.auctionProtocol">Auction Protocol</h2>
+
+                            <div class="protocol-stats">
+                                <div>
+                                    <span class="field-label" data-i18n="detail.startingPrice">Starting Price</span>
+                                    <strong data-starting-price>$145,000</strong>
+                                </div>
+
+                                <div>
+                                    <span class="field-label" data-i18n="detail.bidIncrement">Bid Increment</span>
+                                    <strong data-increment>$5,000</strong>
+                                </div>
+
+                                <div>
+                                    <span class="field-label" data-i18n="detail.auctionType">Auction Type</span>
+                                    <strong data-i18n="detail.english">English</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </article>
+
+                <aside class="bidding-column">
+                    <section class="bid-panel">
+                        <div class="bid-panel-top">
+                            <span class="field-label" data-i18n="detail.currentBid">Current Bid</span>
+                            <span class="live-chip" data-live-chip data-i18n="detail.liveNow">Live Now</span>
+                        </div>
+
+                        <strong class="current-bid" data-current-bid>$285,000</strong>
+
+                        <div class="countdown-panel">
+                            <div class="countdown-panel-header">
+                                <span data-i18n="detail.closingIn">Closing In</span>
+                                <span data-i18n="detail.estimatedFinish">Estimated Finish</span>
+                            </div>
+
+                            <div class="countdown-grid">
+                                <div>
+                                    <strong data-countdown-hours>04</strong>
+                                    <span data-i18n="detail.hours">Hours</span>
+                                </div>
+
+                                <div class="countdown-divider">:</div>
+
+                                <div>
+                                    <strong data-countdown-minutes>12</strong>
+                                    <span data-i18n="detail.minutes">Minutes</span>
+                                </div>
+
+                                <div class="countdown-divider">:</div>
+
+                                <div>
+                                    <strong data-countdown-seconds>48</strong>
+                                    <span data-i18n="detail.seconds">Seconds</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form class="bid-form" data-bid-form>
+                            <label class="bid-input-shell" for="manualBidInput">
+                                <span>$</span>
+                                <input
+                                    id="manualBidInput"
+                                    type="number"
+                                    min="0"
+                                    step="1000"
+                                    placeholder="290,000"
+                                    data-bid-input
+                                />
+                                <small data-minimum-bid>Min bid: $290,000</small>
+                            </label>
+
+                            <label class="proxy-row">
+                                <input type="checkbox" data-proxy-toggle />
+                                <span class="custom-checkbox"></span>
+                                <span data-i18n="detail.enableProxy">Enable Proxy Bidding</span>
+
+                                <button
+                                    type="button"
+                                    class="proxy-info-button"
+                                    aria-label="Proxy bidding information"
+                                    data-tooltip="Proxy bidding lets you set your maximum price. The system will automatically raise your bid by the minimum increment only when needed, helping you stay leading without manually bidding every time."
+                                >
+                                    i
+                                </button>
+                            </label>
+
+                            <div class="proxy-settings" data-proxy-settings hidden>
+                                <label class="proxy-max-field" for="proxyMaxInput">
+                                    <span data-i18n="detail.maxBidLimit">Maximum bid limit</span>
+                                    <input
+                                        id="proxyMaxInput"
+                                        type="number"
+                                        placeholder="350,000"
+                                        data-proxy-max
+                                    />
+                                </label>
+                            </div>
+
+                            <button type="submit" class="button button-primary place-bid-button" data-i18n="detail.placeBid">
+                                Place Bid Now
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="bid-history-panel">
+                        <div class="bid-history-header">
+                            <h2 data-i18n="detail.bidHistory">Bid History</h2>
+                            <span data-active-bids>24 Active Bids</span>
+                        </div>
+
+                        <div class="bid-history-table">
+                            <div class="bid-history-row bid-history-head">
+                                <span data-i18n="detail.bidder">Bidder</span>
+                                <span data-i18n="detail.amount">Amount</span>
+                                <span data-i18n="detail.time">Time</span>
+                            </div>
+
+                            <div data-bid-history></div>
+                        </div>
+
+                        <button type="button" class="download-history-button" data-i18n="detail.downloadHistory">
+                            Download Full History
+                        </button>
+                    </section>
+
+                    <section class="simulation-panel">
+                        <h2 data-i18n="detail.uiSimulation">UI Simulation</h2>
+                        <p data-i18n="detail.uiSimulationDesc">
+                            Use these buttons to test states before connecting backend and Socket.io.
+                        </p>
+
+                        <div class="simulation-actions">
+                            <button type="button" class="button button-outline" data-simulate-bid data-i18n="detail.simulateBid">
+                                Simulate New Bid
+                            </button>
+                            <button type="button" class="button button-outline" data-simulate-soft-close data-i18n="detail.simulateSoftClose">
+                                Simulate Soft Close
+                            </button>
+                        </div>
+                    </section>
+                </aside>
+            </section>
+        </main>
+
+        <div class="image-lightbox" data-image-lightbox hidden>
+            <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close image preview">
+                ×
+            </button>
+
+            <button type="button" class="lightbox-nav lightbox-prev" data-lightbox-prev aria-label="Previous image">
+                ‹
+            </button>
+
+            <figure class="lightbox-figure">
+                <div class="lightbox-image-frame" data-lightbox-frame>
+                    <img src="../assets/images/mockdata/1.png" alt="Large product preview" data-lightbox-image />
                 </div>
 
-                <hr class="divider">
+                <figcaption data-lightbox-caption data-i18n="detail.lightboxCaption">
+                    Move your cursor across the image to inspect details.
+                </figcaption>
+            </figure>
 
-                <div class="bidding-form proxy-form">
-                    <label class="label">SET MAX PROXY BID</label>
-                    <div class="input-group">
-                        <span class="currency-symbol">$</span>
-                        <input type="number" id="proxy-input" placeholder="Your maximum limit" min="0" step="0.01">
-                        <button id="btn-set-proxy" class="btn btn-outline">SET AUTO-BID</button>
-                    </div>
-                    <span class="hint">System will bid automatically up to this amount.</span>
-                </div>
-            </div>
-            
-            <div class="notification-area" id="toast-container"></div>
+            <button type="button" class="lightbox-nav lightbox-next" data-lightbox-next aria-label="Next image">
+                ›
+            </button>
         </div>
-    </main>
 
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <!-- Nhúng thư viện Socket.io Client -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    
+    <!-- 1. Nạp bộ khung API Client trước (để tạo ra window.apiClient) -->
     <script src="../js/core/api-client.js"></script>
-    <script src="../js/core/socket-client.js"></script>
-    <script src="../js/modules/countdown.js"></script>
-    <script src="../js/modules/bid-logic.js"></script>
+
+    <!-- 2. Sau đó mới nạp logic đấu giá (để sử dụng window.apiClient ở trên) -->
+    <script type="module" src="../js/modules/auction-detail.js"></script>
 </body>
 </html>

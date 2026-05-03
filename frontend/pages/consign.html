@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Consign Asset | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/consignment.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+        <main class="consign-page">
+            <section class="consign-hero">
+                <div>
+                    <p class="eyebrow">Seller Request</p>
+                    <h1>Submit an asset for review.</h1>
+                    <p>
+                        Prepare a selling request for specialist verification. Backend upload, KYC, and approval flow
+                        can connect later without changing this UI structure.
+                    </p>
+                </div>
+
+                <a href="./account.html#selling" class="button button-outline">Back to Selling</a>
+            </section>
+
+            <section class="consign-layout">
+                <form class="consign-form" data-consign-form novalidate>
+                    <section class="consign-form-section">
+                        <div class="consign-section-heading">
+                            <span>01</span>
+                            <div>
+                                <h2>Asset Information</h2>
+                                <p>Core details used to create the first review record.</p>
+                            </div>
+                        </div>
+
+                        <div class="consign-grid-2">
+                            <label class="consign-field" for="assetTitle">
+                                <span>Asset Title</span>
+                                <input
+                                    id="assetTitle"
+                                    name="assetTitle"
+                                    type="text"
+                                    placeholder="e.g. Fancy Intense Blue Diamond Ring"
+                                    data-consign-title
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="consign-field" for="assetCategory">
+                                <span>Category</span>
+                                <select id="assetCategory" name="assetCategory" data-consign-category required>
+                                    <option value="">Select category</option>
+                                    <option value="Jewelry">Jewelry</option>
+                                    <option value="Horology">Horology</option>
+                                    <option value="Fine Art">Fine Art</option>
+                                    <option value="Automotive">Automotive</option>
+                                    <option value="Collectibles">Collectibles</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <div class="consign-grid-2">
+                            <label class="consign-field" for="assetOrigin">
+                                <span>Origin / Provenance</span>
+                                <input
+                                    id="assetOrigin"
+                                    name="assetOrigin"
+                                    type="text"
+                                    placeholder="Private collection, certified estate, gallery..."
+                                    data-consign-origin
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="consign-field" for="assetCondition">
+                                <span>Condition</span>
+                                <select id="assetCondition" name="assetCondition" data-consign-condition required>
+                                    <option value="">Select condition</option>
+                                    <option value="Mint condition">Mint condition</option>
+                                    <option value="Excellent condition">Excellent condition</option>
+                                    <option value="Very good condition">Very good condition</option>
+                                    <option value="Good condition">Good condition</option>
+                                    <option value="Restoration required">Restoration required</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <label class="consign-field" for="assetDescription">
+                            <span>Description</span>
+                            <textarea
+                                id="assetDescription"
+                                name="assetDescription"
+                                placeholder="Describe the asset history, materials, uniqueness, documentation, and reason it is suitable for auction..."
+                                data-consign-description
+                                required
+                            ></textarea>
+                            <small data-field-error></small>
+                        </label>
+                    </section>
+
+                    <section class="consign-form-section">
+                        <div class="consign-section-heading">
+                            <span>02</span>
+                            <div>
+                                <h2>Media Upload</h2>
+                                <p>Mock image upload with local preview. Backend storage can connect later.</p>
+                            </div>
+                        </div>
+
+                        <label class="upload-zone" for="assetImages" data-upload-zone>
+                            <input
+                                id="assetImages"
+                                name="assetImages"
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                data-consign-images
+                            />
+
+                            <span class="upload-icon">◇</span>
+                            <strong>Drop high-resolution images or click to browse</strong>
+                            <small>Recommended: front, side, detail, certificate. JPG / PNG / WEBP.</small>
+                        </label>
+
+                        <div class="upload-preview-grid" data-upload-preview></div>
+                    </section>
+
+                    <section class="consign-form-section">
+                        <div class="consign-section-heading">
+                            <span>03</span>
+                            <div>
+                                <h2>Auction Preference</h2>
+                                <p>Initial price expectation for review. Final pricing can be adjusted by specialists.</p>
+                            </div>
+                        </div>
+
+                        <div class="consign-grid-3">
+                            <label class="consign-field" for="estimateLow">
+                                <span>Estimate Low</span>
+                                <input
+                                    id="estimateLow"
+                                    name="estimateLow"
+                                    type="number"
+                                    min="0"
+                                    placeholder="50000"
+                                    data-consign-estimate-low
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="consign-field" for="estimateHigh">
+                                <span>Estimate High</span>
+                                <input
+                                    id="estimateHigh"
+                                    name="estimateHigh"
+                                    type="number"
+                                    min="0"
+                                    placeholder="85000"
+                                    data-consign-estimate-high
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="consign-field" for="reservePrice">
+                                <span>Reserve Price</span>
+                                <input
+                                    id="reservePrice"
+                                    name="reservePrice"
+                                    type="number"
+                                    min="0"
+                                    placeholder="60000"
+                                    data-consign-reserve
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <div class="consign-grid-2">
+                            <label class="consign-field" for="auctionWindow">
+                                <span>Preferred Auction Window</span>
+                                <select id="auctionWindow" name="auctionWindow" data-consign-window required>
+                                    <option value="">Select window</option>
+                                    <option value="Within 2 weeks">Within 2 weeks</option>
+                                    <option value="Within 1 month">Within 1 month</option>
+                                    <option value="Next premium event">Next premium event</option>
+                                    <option value="Flexible">Flexible</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="consign-field" for="contactPreference">
+                                <span>Contact Preference</span>
+                                <select id="contactPreference" name="contactPreference" data-consign-contact required>
+                                    <option value="">Select contact preference</option>
+                                    <option value="Email">Email</option>
+                                    <option value="Phone">Phone</option>
+                                    <option value="Email + Phone">Email + Phone</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <label class="consign-check">
+                            <input type="checkbox" data-consign-confirm required />
+                            <span></span>
+                            I confirm the information is accurate and I understand this submission is a review request, not an immediate listing.
+                        </label>
+                        <small class="consign-confirm-error" data-confirm-error></small>
+                    </section>
+
+                    <div class="consign-actions">
+                        <button type="button" class="button button-outline" data-save-draft>
+                            Save Draft
+                        </button>
+
+                        <button type="submit" class="button button-primary">
+                            Submit For Review
+                        </button>
+                    </div>
+                </form>
+
+                <aside class="consign-preview-panel">
+                    <div class="preview-sticky">
+                        <div class="preview-heading">
+                            <p class="eyebrow">Live Preview</p>
+                            <span>Pre-review</span>
+                        </div>
+
+                        <article class="preview-card">
+                            <div class="preview-media">
+                                <img src="../assets/images/mockdata/4.png" alt="Asset preview" data-preview-image />
+                                <span>Draft</span>
+                            </div>
+
+                            <div class="preview-body">
+                                <p data-preview-lot>Request Draft</p>
+                                <h2 data-preview-title>Untitled Asset</h2>
+
+                                <div class="preview-meta">
+                                    <span data-preview-category>Category pending</span>
+                                    <span data-preview-condition>Condition pending</span>
+                                </div>
+
+                                <p class="preview-description" data-preview-description>
+                                    Your asset description will appear here as you type.
+                                </p>
+
+                                <div class="preview-price-box">
+                                    <span>Estimated Range</span>
+                                    <strong data-preview-estimate>$0 - $0</strong>
+                                </div>
+
+                                <div class="preview-price-box">
+                                    <span>Reserve Price</span>
+                                    <strong data-preview-reserve>$0</strong>
+                                </div>
+                            </div>
+                        </article>
+
+                        <div class="review-note">
+                            <strong>Review flow</strong>
+                            <p>
+                                Submission → Specialist review → Verification → Auction configuration → Published lot.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/consignment.js"></script>
+</body>
+</html>

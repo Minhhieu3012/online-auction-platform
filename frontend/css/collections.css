@@ -1,0 +1,469 @@
+.collections-page {
+    width: min(var(--page-max-width), 100%);
+    margin: 0 auto;
+    padding: 64px var(--container-padding) 104px;
+}
+
+.collections-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+}
+
+.collections-hero h1 {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(48px, 7vw, 92px);
+    font-weight: 300;
+    line-height: 0.95;
+    letter-spacing: -0.07em;
+    text-transform: uppercase;
+}
+
+.collections-hero-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    color: var(--text-soft);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.collections-hero-meta strong {
+    color: var(--primary);
+    font-weight: 900;
+}
+
+.meta-divider {
+    width: 56px;
+    height: 1px;
+    background: var(--border);
+}
+
+.collections-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.toolbar-left,
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+
+.category-trigger {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.category-icon {
+    color: var(--primary);
+    font-size: 22px;
+    transform: rotate(180deg);
+}
+
+.category-trigger label {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.toolbar-select,
+.sort-select {
+    min-height: 44px;
+    padding: 0 36px 0 14px;
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(45deg, transparent 50%, var(--text-muted) 50%) right 16px center / 6px 6px no-repeat,
+        var(--surface);
+    color: var(--text-soft);
+    outline: none;
+    appearance: none;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition:
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+.toolbar-select:focus,
+.sort-select:focus {
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+.status-tabs {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.status-tab {
+    min-height: 36px;
+    padding: 0 22px;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.status-tab:hover {
+    color: var(--primary);
+}
+
+.status-tab.is-active {
+    background: var(--primary);
+    color: #17120A;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(360px, 32vw);
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+.search-box:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.search-box span {
+    color: var(--text-muted);
+    font-size: 19px;
+}
+
+.search-box input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.search-box input::placeholder {
+    color: var(--text-muted);
+}
+
+.collections-content {
+    padding-top: 72px;
+}
+
+.collections-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+}
+
+.collections-lot-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition:
+        transform var(--transition-medium),
+        border-color var(--transition-medium),
+        box-shadow var(--transition-medium);
+}
+
+.collections-lot-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-soft);
+}
+
+.collections-lot-card-media {
+    position: relative;
+    aspect-ratio: 0.95 / 1;
+    overflow: hidden;
+    background: var(--surface-strong);
+}
+
+.collections-lot-card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(0.55) var(--image-filter);
+    transition:
+        filter var(--transition-medium),
+        transform 520ms ease;
+}
+
+.collections-lot-card:hover .collections-lot-card-media img {
+    transform: scale(1.045);
+    filter: grayscale(0.15) var(--image-filter);
+}
+
+.countdown-chip {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 14px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    backdrop-filter: blur(12px);
+}
+
+.collections-lot-card-body {
+    padding: 28px;
+}
+
+.lot-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.bid-count {
+    color: var(--primary);
+}
+
+.collections-lot-card h2 {
+    min-height: 56px;
+    margin: 0;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.24;
+    letter-spacing: -0.035em;
+    text-transform: uppercase;
+}
+
+.collections-lot-card-description {
+    min-height: 40px;
+    margin: 12px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.lot-price-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 26px 0;
+    padding-top: 26px;
+    border-top: 1px solid var(--border);
+}
+
+.lot-price-grid strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.lot-price-grid .highlight-value {
+    color: var(--primary);
+}
+
+.view-details-link {
+    width: 100%;
+}
+
+.empty-state {
+    width: min(680px, 100%);
+    margin: 0 auto;
+    padding: 72px 32px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.empty-state-icon {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 28px;
+    color: var(--primary);
+    border: 1px solid var(--border-strong);
+    font-size: 28px;
+}
+
+.empty-state h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+}
+
+.empty-state p {
+    margin: 14px auto 28px;
+    color: var(--text-soft);
+    line-height: 1.7;
+}
+
+.load-more-area {
+    display: grid;
+    place-items: center;
+    gap: 24px;
+    margin-top: 72px;
+    padding-top: 42px;
+    border-top: 1px solid var(--border);
+}
+
+.load-more-label {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.load-more-button {
+    width: min(420px, 100%);
+}
+
+.load-more-button[hidden] {
+    display: none;
+}
+
+@media (max-width: 1280px) {
+    .collections-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .collections-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+        justify-content: space-between;
+    }
+
+    .search-box {
+        width: 100%;
+        flex: 1;
+    }
+}
+
+@media (max-width: 960px) {
+    .collections-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .collections-hero-meta {
+        justify-content: flex-start;
+        white-space: normal;
+    }
+
+    .collections-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .category-trigger {
+        justify-content: space-between;
+    }
+
+    .toolbar-select,
+    .sort-select {
+        width: 100%;
+    }
+
+    .status-tabs {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .status-tab {
+        flex: 1 0 auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .collections-page {
+        padding-top: 46px;
+        padding-bottom: 72px;
+    }
+
+    .collections-hero {
+        padding-bottom: 34px;
+    }
+
+    .collections-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .collections-content {
+        padding-top: 46px;
+    }
+
+    .collections-lot-card-media {
+        aspect-ratio: 1.12 / 1;
+    }
+
+    .collections-lot-card-body {
+        padding: 24px;
+    }
+
+    .lot-price-grid {
+        grid-template-columns: 1fr;
+    }
+}
