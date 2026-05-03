@@ -1,6 +1,7 @@
 const redisKeys = require("../utils/redis-keys");
 const AutoBidService = require("./autobid");
 const redisClient = require("../config/redis");
+const pool = require("../config/db");
 const { checkAntiSniping } = require("../constants/business");
 const { producer } = require("../config/kafka");
 const logger = require("../utils/logger");
@@ -32,83 +33,232 @@ const placeBidLuaScript = `
     return current_version
 `;
 
+function toMysqlDateTime(dateOrMs) {
+  return new Date(dateOrMs).toISOString().slice(0, 19).replace("T", " ");
+}
+
 class BiddingService {
+  static async hydrateAuctionCacheIfMissing(auctionId) {
+    const auctionKey = redisKeys.auctionInfo(auctionId);
+    const exists = await redisClient.exists(auctionKey);
+
+    if (exists) {
+      return true;
+    }
+
+    const [rows] = await pool.execute(
+      `
+        SELECT
+          id,
+          status,
+          current_price,
+          step_price,
+          end_time,
+          version
+        FROM Auctions
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [auctionId],
+    );
+
+    if (rows.length === 0) {
+      return false;
+    }
+
+    const auction = rows[0];
+    const endTimeMs = new Date(auction.end_time).getTime();
+
+    await redisClient.hSet(auctionKey, {
+      current_price: String(auction.current_price),
+      step_price: String(auction.step_price),
+      status: String(auction.status),
+      version: String(auction.version || 0),
+      highest_bidder: "",
+      end_time: String(endTimeMs),
+      extension_count: "0",
+    });
+
+    return true;
+  }
+
+  static async sendBidEventToKafka({
+    auctionId,
+    userId,
+    bidAmount,
+    version,
+    newEndTime,
+  }) {
+    await producer.send({
+      topic: "auction-bids",
+      messages: [
+        {
+          key: String(auctionId),
+          value: JSON.stringify({
+            auctionId,
+            userId,
+            bidAmount,
+            version,
+            newEndTime,
+            timestamp: new Date().toISOString(),
+          }),
+        },
+      ],
+    });
+  }
+
+  static async fallbackPersistBidToDB({
+    auctionId,
+    userId,
+    bidAmount,
+    version,
+    newEndTime,
+  }) {
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      await connection.execute(
+        `
+          INSERT INTO Bids (auction_id, user_id, bid_amount)
+          VALUES (?, ?, ?)
+        `,
+        [auctionId, userId, bidAmount],
+      );
+
+      if (newEndTime) {
+        await connection.execute(
+          `
+            UPDATE Auctions
+            SET current_price = ?, version = ?, end_time = ?
+            WHERE id = ?
+          `,
+          [bidAmount, version, toMysqlDateTime(newEndTime), auctionId],
+        );
+      } else {
+        await connection.execute(
+          `
+            UPDATE Auctions
+            SET current_price = ?, version = ?
+            WHERE id = ?
+          `,
+          [bidAmount, version, auctionId],
+        );
+      }
+
+      await connection.commit();
+
+      logger.info(`[DB Fallback] Đã lưu bid $${bidAmount} cho phiên ${auctionId}`);
+    } catch (error) {
+      await connection.rollback();
+      logger.error("[DB Fallback Error]:", error.message);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   static async placeBid(auctionId, userId, bidAmount) {
     const auctionKey = redisKeys.auctionInfo(auctionId);
 
     try {
+      const hydrated = await BiddingService.hydrateAuctionCacheIfMissing(auctionId);
+
+      if (!hydrated) {
+        return {
+          success: false,
+          errorCode: "ERR_AUCTION_NOT_FOUND",
+        };
+      }
+
       const result = await redisClient.eval(placeBidLuaScript, {
         keys: [auctionKey],
-        arguments: [userId.toString(), bidAmount.toString()],
+        arguments: [String(userId), String(bidAmount)],
       });
 
-      if (typeof result === "number") {
-        const currentVersion = result;
-        logger.success(`[Bid Success] User ${userId} đặt $${bidAmount} cho phiên ${auctionId}`);
+      if (typeof result !== "number") {
+        return {
+          success: false,
+          errorCode: result,
+        };
+      }
 
-        // Đọc auctionInfo một lần duy nhất
-        const auctionInfo = await redisClient.hGetAll(auctionKey);
+      const currentVersion = result;
+      const nextVersion = currentVersion + 1;
 
-        // Trigger Auto-bid cho các user khác
-        AutoBidService.triggerAutoBids(auctionId, bidAmount, userId).catch((err) => {
-          console.error("[Auto-bid Trigger Error]:", err.message);
+      logger.success(`[Bid Success] User ${userId} đặt $${bidAmount} cho phiên ${auctionId}`);
+
+      const auctionInfo = await redisClient.hGetAll(auctionKey);
+
+      AutoBidService.triggerAutoBids(auctionId, bidAmount, userId).catch((err) => {
+        console.error("[Auto-bid Trigger Error]:", err.message);
+      });
+
+      let newEndTimeForDB = null;
+      let currentEndTime = auctionInfo.end_time;
+
+      try {
+        const extensionCount = parseInt(auctionInfo.extension_count, 10) || 0;
+        const rawEndTime = auctionInfo.end_time;
+        const endTime = /^\d+$/.test(rawEndTime) ? parseInt(rawEndTime, 10) : Date.parse(rawEndTime);
+
+        const antiSnipe = checkAntiSniping(endTime, extensionCount);
+
+        if (antiSnipe.shouldExtend) {
+          const newEndString = new Date(antiSnipe.newEndTime).toISOString();
+
+          await redisClient.hSet(
+            auctionKey,
+            "end_time",
+            String(antiSnipe.newEndTime),
+            "extension_count",
+            String(extensionCount + 1),
+          );
+
+          newEndTimeForDB = antiSnipe.newEndTime;
+          currentEndTime = String(antiSnipe.newEndTime);
+
+          logger.info(`[Anti-Snipe] Phiên ${auctionId} gia hạn đến: ${newEndString} (Lần ${extensionCount + 1})`);
+        }
+      } catch (err) {
+        logger.error("[Anti-Snipe Error]:", err.message);
+      }
+
+      try {
+        await BiddingService.sendBidEventToKafka({
+          auctionId,
+          userId,
+          bidAmount,
+          version: nextVersion,
+          newEndTime: newEndTimeForDB,
         });
 
-        // Kiểm tra Anti-sniping
-        // Kiểm tra Anti-sniping
-        let newEndTimeForDB = null;
-        try {
-          const extensionCount = parseInt(auctionInfo.extension_count) || 0;
+        logger.info(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
+      } catch (kafkaError) {
+        logger.error("[Kafka Error]:", kafkaError.message);
 
-          const rawEndTime = auctionInfo.end_time;
-          const endTime = /^\d+$/.test(rawEndTime) ? parseInt(rawEndTime, 10) : Date.parse(rawEndTime);
-
-          const antiSnipe = checkAntiSniping(endTime, extensionCount);
-          if (antiSnipe.shouldExtend) {
-            const newEndString = new Date(antiSnipe.newEndTime).toISOString();
-
-            await redisClient.hSet(
-              auctionKey,
-              "end_time",
-              newEndString,
-              "extension_count",
-              (extensionCount + 1).toString(),
-            );
-            newEndTimeForDB = antiSnipe.newEndTime;
-            logger.info(`[Anti-Snipe] Phiên ${auctionId} gia hạn đến: ${newEndString} (Lần ${extensionCount + 1})`);
-          }
-        } catch (err) {
-          logger.error("[Anti-Snipe Error]:", err.message);
-        }
-
-        // Bắn Kafka — Consumer sẽ lo việc ghi DB
-        try {
-          await producer.send({
-            topic: "auction-bids",
-            messages: [
-              {
-                key: auctionId.toString(),
-                value: JSON.stringify({
-                  auctionId,
-                  userId,
-                  bidAmount,
-                  version: currentVersion + 1, // version mới sau khi Lua đã tăng
-                  newEndTime: newEndTimeForDB,
-                  timestamp: new Date().toISOString(),
-                }),
-              },
-            ],
-          });
-          logger.info(`[Kafka] Đã đẩy sự kiện Bid ($${bidAmount}) vào topic 'auction-bids'`);
-        } catch (kafkaError) {
-          logger.error("[Kafka Error]:", kafkaError.message);
-          // TODO: Fallback — ghi thẳng vào DB nếu Kafka chết
-        }
-
-        return { success: true, message: "Đặt giá thành công" };
-      } else {
-        return { success: false, errorCode: result };
+        await BiddingService.fallbackPersistBidToDB({
+          auctionId,
+          userId,
+          bidAmount,
+          version: nextVersion,
+          newEndTime: newEndTimeForDB,
+        });
       }
+
+      return {
+        success: true,
+        message: "Đặt giá thành công!",
+        data: {
+          auctionId,
+          bidAmount,
+          currentPrice: bidAmount,
+          version: nextVersion,
+          endTime: currentEndTime,
+          minNextBid: bidAmount + Number(auctionInfo.step_price || 0),
+        },
+      };
     } catch (error) {
       logger.error("[Bidding Error]:", error);
       throw new Error("Hệ thống đang quá tải, vui lòng thử lại sau");

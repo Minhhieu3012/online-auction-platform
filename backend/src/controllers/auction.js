@@ -17,6 +17,20 @@ function normalizeStatusForSql(status) {
   return statusMap[String(status || "").toLowerCase()] || null;
 }
 
+function normalizeCreateStatus(status) {
+  const normalized = normalizeStatusForSql(status);
+
+  if (normalized === "Scheduled") {
+    return "Scheduled";
+  }
+
+  if (normalized === "Active") {
+    return "Active";
+  }
+
+  return "Active";
+}
+
 function normalizeSort(sort) {
   const allowedSorts = ["ending-soon", "highest-bid", "newest", "most-bids"];
 
@@ -272,6 +286,7 @@ class AuctionController {
       startingPrice,
       stepPrice,
       durationMinutes,
+      status,
     } = req.body;
 
     const userId = req.user.id;
@@ -280,7 +295,24 @@ class AuctionController {
       return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập đủ thông tin.", 400);
     }
 
+    const numericStartingPrice = Number(startingPrice);
+    const numericStepPrice = Number(stepPrice);
+    const numericDurationMinutes = Number(durationMinutes);
+
+    if (
+      !Number.isFinite(numericStartingPrice) ||
+      numericStartingPrice <= 0 ||
+      !Number.isFinite(numericStepPrice) ||
+      numericStepPrice <= 0 ||
+      !Number.isFinite(numericDurationMinutes) ||
+      numericDurationMinutes <= 0
+    ) {
+      return sendError(res, "ERR_INVALID_PRICE", "Giá hoặc thời lượng đấu giá không hợp lệ.", 400);
+    }
+
+    const auctionStatus = normalizeCreateStatus(status);
     const connection = await pool.getConnection();
+
     let auctionId;
     let productId;
     let endTime;
@@ -293,20 +325,31 @@ class AuctionController {
         [
           productName,
           description || "",
-          category || "collectibles",
+          category || "Collectibles",
           imageUrl || null,
         ],
       );
 
       productId = prodResult.insertId;
 
-      endTime = new Date(Date.now() + durationMinutes * 60000);
+      endTime = new Date(Date.now() + numericDurationMinutes * 60000);
       const mysqlEndTime = endTime.toISOString().slice(0, 19).replace("T", " ");
 
       const [aucResult] = await connection.execute(
-        `INSERT INTO Auctions (product_id, created_by, status, current_price, step_price, end_time, version)
-         VALUES (?, ?, 'Active', ?, ?, ?, 0)`,
-        [productId, userId, startingPrice, stepPrice, mysqlEndTime],
+        `
+          INSERT INTO Auctions
+            (product_id, created_by, status, current_price, step_price, end_time, version)
+          VALUES
+            (?, ?, ?, ?, ?, ?, 0)
+        `,
+        [
+          productId,
+          userId,
+          auctionStatus,
+          numericStartingPrice,
+          numericStepPrice,
+          mysqlEndTime,
+        ],
       );
 
       auctionId = aucResult.insertId;
@@ -314,7 +357,7 @@ class AuctionController {
       await connection.commit();
     } catch (error) {
       await connection.rollback();
-      console.error("[DB Error]:", error);
+      console.error("[Auction Create DB Error]:", error);
       return sendError(res, "ERR_SERVER", "Lỗi hệ thống khi lưu phiên đấu giá.", 500);
     } finally {
       connection.release();
@@ -324,12 +367,12 @@ class AuctionController {
       const auctionKey = redisKeys.auctionInfo(auctionId);
 
       await redisClient.hSet(auctionKey, {
-        current_price: startingPrice.toString(),
-        step_price: stepPrice.toString(),
-        status: "Active",
+        current_price: String(numericStartingPrice),
+        step_price: String(numericStepPrice),
+        status: auctionStatus,
         version: "0",
         highest_bidder: "",
-        end_time: endTime.getTime().toString(),
+        end_time: String(endTime.getTime()),
         extension_count: "0",
       });
 
@@ -344,6 +387,7 @@ class AuctionController {
         auctionId,
         productId,
         endTime,
+        status: auctionStatus,
       },
       "Tạo phiên đấu giá thành công!",
       201,

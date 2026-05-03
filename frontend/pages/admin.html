@@ -26,6 +26,11 @@
                         Overview
                     </button>
 
+                    <button class="admin-nav-item" type="button" data-admin-tab="auctions">
+                        <span>◷</span>
+                        Auctions
+                    </button>
+
                     <button class="admin-nav-item" type="button" data-admin-tab="verification">
                         <span>▣</span>
                         Verification Queue
@@ -47,7 +52,11 @@
                     </button>
                 </nav>
 
-                <a href="./account.html" class="button button-primary admin-sidebar-cta">
+                <a href="./publish-lot.html" class="button button-primary admin-sidebar-cta">
+                    Publish New Lot
+                </a>
+
+                <a href="./account.html" class="button button-outline admin-sidebar-secondary-cta">
                     Member Dashboard
                 </a>
             </aside>
@@ -58,7 +67,7 @@
                         <p class="eyebrow">System Intelligence</p>
                         <h2 data-admin-title>Overview</h2>
                         <p data-admin-subtitle>
-                            Monitor verification requests, fraud signals, settlements, and user access from one control layer.
+                            Monitor auction operations, verification requests, fraud signals, settlements, and user access from one control layer.
                         </p>
                     </div>
 
@@ -66,7 +75,7 @@
                         <span class="engine-dot"></span>
                         <div>
                             <strong>Live Engine</strong>
-                            <span>Mock surveillance online</span>
+                            <span data-admin-engine-label>Backend auction API connected</span>
                         </div>
 
                         <a href="./notifications.html" class="admin-notification-link" aria-label="Open notifications">
@@ -79,94 +88,179 @@
                 <section class="admin-panel is-active" data-admin-panel="overview">
                     <div class="admin-stat-grid">
                         <article class="admin-stat-card">
-                            <span>Pending Reviews</span>
-                            <strong data-pending-count>04</strong>
-                            <p>Asset requests awaiting decision</p>
+                            <span>Total Auctions</span>
+                            <strong data-total-auctions>00</strong>
+                            <p>All lots loaded from backend</p>
                         </article>
 
                         <article class="admin-stat-card">
-                            <span>Fraud Alerts</span>
-                            <strong>03</strong>
-                            <p>1 critical signal requires review</p>
+                            <span>Active Auctions</span>
+                            <strong data-active-auctions>00</strong>
+                            <p>Currently open for bidding</p>
                         </article>
 
                         <article class="admin-stat-card admin-stat-card-gold">
-                            <span>Settlement Volume</span>
-                            <strong>$240,140</strong>
-                            <p>Open transaction value</p>
+                            <span>Total Bid Volume</span>
+                            <strong data-total-volume>$0</strong>
+                            <p>Current price sum across lots</p>
                         </article>
 
                         <article class="admin-stat-card">
-                            <span>Verified Users</span>
-                            <strong>128</strong>
-                            <p>Collectors and sellers combined</p>
+                            <span>Total Bids</span>
+                            <strong data-total-bids>00</strong>
+                            <p>Bid count aggregated from auctions</p>
                         </article>
                     </div>
 
                     <div class="admin-grid-2">
                         <article class="admin-section-card">
                             <div class="admin-section-heading">
-                                <h3>Verification Snapshot</h3>
-                                <button type="button" data-admin-jump="verification">Open queue</button>
+                                <h3>Live Auction Snapshot</h3>
+                                <button type="button" data-admin-jump="auctions">Open auctions</button>
                             </div>
 
-                            <div class="admin-request-list" data-overview-verification-list>
-                                <div class="admin-request-row">
-                                    <img src="../assets/images/mockdata/4.png" alt="Diamond bracelet request" />
-                                    <div>
-                                        <strong>Diamond tennis bracelet</strong>
-                                        <span>Jewelry • Draft quality complete</span>
-                                    </div>
-                                    <b>Pending</b>
-                                </div>
-
-                                <div class="admin-request-row">
-                                    <img src="../assets/images/mockdata/2.png" alt="Abstract composition request" />
-                                    <div>
-                                        <strong>Abstract Composition No. 4</strong>
-                                        <span>Fine Art • Specialist review needed</span>
-                                    </div>
-                                    <b>Pending</b>
-                                </div>
-
-                                <div class="admin-request-row">
-                                    <img src="../assets/images/mockdata/1.png" alt="Vintage watch request" />
-                                    <div>
-                                        <strong>Private Estate Timepiece</strong>
-                                        <span>Horology • Provenance uploaded</span>
-                                    </div>
-                                    <b>Pending</b>
+                            <div class="admin-request-list" data-overview-auction-list>
+                                <div class="admin-empty-mini">
+                                    <span>◇</span>
+                                    <p>Loading backend auctions...</p>
                                 </div>
                             </div>
                         </article>
 
                         <article class="admin-section-card">
                             <div class="admin-section-heading">
-                                <h3>Critical Signals</h3>
-                                <button type="button" data-admin-jump="fraud">Review alerts</button>
+                                <h3>Operations Pulse</h3>
+                                <button type="button" data-refresh-auctions>Refresh API</button>
                             </div>
 
                             <div class="risk-stack">
                                 <article class="risk-card risk-critical">
-                                    <span>Critical Risk</span>
-                                    <strong>98.2</strong>
-                                    <p>User #8291 shows high-frequency bidding and IP affinity.</p>
+                                    <span>Backend</span>
+                                    <strong data-backend-status>...</strong>
+                                    <p data-backend-status-copy>Checking auction API availability.</p>
                                 </article>
 
                                 <article class="risk-card risk-medium">
-                                    <span>Medium Risk</span>
-                                    <strong>64.5</strong>
-                                    <p>Unusual bid increments on luxury yacht charter lot.</p>
+                                    <span>Scheduled</span>
+                                    <strong data-scheduled-auctions>00</strong>
+                                    <p>Lots configured but not yet active.</p>
                                 </article>
 
                                 <article class="risk-card risk-low">
-                                    <span>Low Risk</span>
-                                    <strong>22.1</strong>
-                                    <p>First-bid pattern from newly created account.</p>
+                                    <span>Ended</span>
+                                    <strong data-ended-auctions>00</strong>
+                                    <p>Lots no longer accepting bids.</p>
                                 </article>
                             </div>
                         </article>
                     </div>
+                </section>
+
+                <section class="admin-panel" data-admin-panel="auctions">
+                    <article class="admin-section-card">
+                        <div class="admin-section-heading admin-auction-heading">
+                            <div>
+                                <h3>Auction Management</h3>
+                                <p>
+                                    Manage backend auction lots, inspect status, and jump into detail pages for live monitoring.
+                                </p>
+                            </div>
+
+                            <div class="admin-heading-actions">
+                                <button type="button" data-refresh-auctions>Refresh</button>
+                                <a href="./publish-lot.html">Publish Lot</a>
+                            </div>
+                        </div>
+
+                        <section class="admin-auction-toolbar" aria-label="Auction management filters">
+                            <label class="admin-search-field" for="adminAuctionSearch">
+                                <span>Search</span>
+                                <input
+                                    id="adminAuctionSearch"
+                                    type="search"
+                                    placeholder="Search title, seller, category, lot..."
+                                    data-admin-auction-search
+                                />
+                            </label>
+
+                            <label class="admin-filter-field" for="adminStatusFilter">
+                                <span>Status</span>
+                                <select id="adminStatusFilter" data-admin-status-filter>
+                                    <option value="all">All</option>
+                                    <option value="active">Active</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="closing">Closing</option>
+                                    <option value="ended">Ended</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </label>
+
+                            <label class="admin-filter-field" for="adminCategoryFilter">
+                                <span>Category</span>
+                                <select id="adminCategoryFilter" data-admin-category-filter>
+                                    <option value="all">All Categories</option>
+                                    <option value="jewelry">Jewelry</option>
+                                    <option value="horology">Horology</option>
+                                    <option value="fine-art">Fine Art</option>
+                                    <option value="automotive">Automotive</option>
+                                    <option value="collectibles">Collectibles</option>
+                                </select>
+                            </label>
+
+                            <label class="admin-filter-field" for="adminSortFilter">
+                                <span>Sort</span>
+                                <select id="adminSortFilter" data-admin-sort-filter>
+                                    <option value="ending-soon">Ending Soonest</option>
+                                    <option value="highest-bid">Highest Price</option>
+                                    <option value="newest">Newest</option>
+                                    <option value="most-bids">Most Bids</option>
+                                </select>
+                            </label>
+                        </section>
+
+                        <div class="admin-auction-summary-row">
+                            <p data-admin-auction-count>0 auctions loaded</p>
+                            <p data-admin-auction-showing>Showing 0 records</p>
+                        </div>
+
+                        <div class="admin-table-shell admin-auction-table-shell">
+                            <table class="admin-table admin-auction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lot</th>
+                                        <th>Asset</th>
+                                        <th>Category</th>
+                                        <th>Seller</th>
+                                        <th>Status</th>
+                                        <th>Current Price</th>
+                                        <th>Bids</th>
+                                        <th>Ends</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody data-admin-auction-table>
+                                    <tr>
+                                        <td colspan="9">
+                                            <div class="admin-table-state">
+                                                <span>◇</span>
+                                                <p>Loading auctions from backend...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="admin-empty-state" data-admin-auction-empty hidden>
+                            <span>◇</span>
+                            <h4>No auctions matched</h4>
+                            <p>Try another keyword, category, or status filter.</p>
+                            <button type="button" class="button button-outline" data-reset-admin-auction-filters>
+                                Reset Filters
+                            </button>
+                        </div>
+                    </article>
                 </section>
 
                 <section class="admin-panel" data-admin-panel="verification">
@@ -360,7 +454,7 @@
                     <article class="admin-section-card">
                         <div class="admin-section-heading">
                             <h3>AI Fraud Surveillance</h3>
-                            <button type="button" data-admin-toast="High risk only filter applied as UI mock.">High Risk Only</button>
+                            <button type="button" data-admin-toast="High risk only filter applied as UI-ready mock.">High Risk Only</button>
                         </div>
 
                         <div class="fraud-list">
@@ -380,7 +474,7 @@
 
                                 <div class="fraud-actions">
                                     <button type="button" data-admin-toast="Alert marked for manual investigation.">Inspect</button>
-                                    <button type="button" data-admin-toast="User temporarily restricted as UI mock.">Restrict</button>
+                                    <button type="button" data-admin-toast="User temporarily restricted as UI-ready mock.">Restrict</button>
                                 </div>
                             </article>
 
@@ -400,7 +494,7 @@
 
                                 <div class="fraud-actions">
                                     <button type="button" data-admin-toast="Alert marked for manual investigation.">Inspect</button>
-                                    <button type="button" data-admin-toast="User watchlisted as UI mock.">Watchlist</button>
+                                    <button type="button" data-admin-toast="User watchlisted as UI-ready mock.">Watchlist</button>
                                 </div>
                             </article>
 
@@ -430,7 +524,7 @@
                     <article class="admin-section-card">
                         <div class="admin-section-heading">
                             <h3>Financial Settlements</h3>
-                            <button type="button" data-admin-toast="Settlement report exported as UI mock.">Export</button>
+                            <button type="button" data-admin-toast="Settlement report exported as UI-ready mock.">Export</button>
                         </div>
 
                         <div class="admin-table-shell">
@@ -453,7 +547,7 @@
                                         <td>Alexander V.</td>
                                         <td>$42,500</td>
                                         <td><span class="admin-status is-settled">Settled</span></td>
-                                        <td><button type="button" data-admin-toast="Settlement receipt opened as UI mock.">Receipt</button></td>
+                                        <td><button type="button" data-admin-toast="Settlement receipt opened as UI-ready mock.">Receipt</button></td>
                                     </tr>
 
                                     <tr>
@@ -462,7 +556,7 @@
                                         <td>Seraphina R.</td>
                                         <td>$185,000</td>
                                         <td><span class="admin-status is-pending">Pending</span></td>
-                                        <td><button type="button" data-admin-toast="Payment reminder sent as UI mock.">Remind</button></td>
+                                        <td><button type="button" data-admin-toast="Payment reminder sent as UI-ready mock.">Remind</button></td>
                                     </tr>
 
                                     <tr>
@@ -471,7 +565,7 @@
                                         <td>Internal</td>
                                         <td>$12,640</td>
                                         <td><span class="admin-status is-settled">Settled</span></td>
-                                        <td><button type="button" data-admin-toast="Settlement receipt opened as UI mock.">Receipt</button></td>
+                                        <td><button type="button" data-admin-toast="Settlement receipt opened as UI-ready mock.">Receipt</button></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -483,7 +577,7 @@
                     <article class="admin-section-card">
                         <div class="admin-section-heading">
                             <h3>User Access</h3>
-                            <button type="button" data-admin-toast="User list refreshed as UI mock.">Refresh</button>
+                            <button type="button" data-admin-toast="User list will connect after admin/user API is available.">Refresh</button>
                         </div>
 
                         <div class="admin-table-shell">
@@ -500,11 +594,11 @@
 
                                 <tbody>
                                     <tr>
-                                        <td>Nguyen Ha Gia Huy</td>
-                                        <td>member@brosgem.com</td>
-                                        <td>Bid + Sell</td>
-                                        <td><span class="admin-status is-settled">Verified</span></td>
-                                        <td>Low</td>
+                                        <td data-current-admin-name>Current Session User</td>
+                                        <td data-current-admin-email>session@brosgem.com</td>
+                                        <td>Bid + Sell + Admin UI</td>
+                                        <td><span class="admin-status is-settled">Session Active</span></td>
+                                        <td>Dev Mode</td>
                                     </tr>
 
                                     <tr>

@@ -57,6 +57,45 @@ function getAuctionIdFromUrl() {
     return Number(params.get("id"));
 }
 
+function requireLoginForBid() {
+    const token = apiClient.getAuthToken();
+    const user = apiClient.getAuthUser();
+
+    if (!token || !user) {
+        showToast("Login Required", "Please sign in before placing a bid.");
+
+        window.setTimeout(() => {
+            const currentUrl = `${window.location.pathname}${window.location.search}`;
+            window.location.href = `./login.html?redirect=${encodeURIComponent(currentUrl)}`;
+        }, 700);
+
+        return false;
+    }
+
+    return true;
+}
+
+function setBidFormBusy(isBusy) {
+    const controls = elements.bidForm?.querySelectorAll("button, input") || [];
+    const submitButton = elements.bidForm?.querySelector("[type='submit']");
+
+    controls.forEach((control) => {
+        control.disabled = isBusy;
+    });
+
+    if (!submitButton) {
+        return;
+    }
+
+    if (isBusy) {
+        submitButton.dataset.originalText = submitButton.textContent.trim();
+        submitButton.textContent = "Placing Bid...";
+        return;
+    }
+
+    submitButton.textContent = submitButton.dataset.originalText || "Place Bid Now";
+}
+
 function formatMoney(value) {
     return new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -76,6 +115,38 @@ function getFallbackImage(id) {
 
 function normalizeStatus(status) {
     return String(status || "Active").trim();
+}
+
+function formatBidTime(value) {
+    if (!value) {
+        return "Just now";
+    }
+
+    const time = new Date(value).getTime();
+
+    if (!time) {
+        return String(value);
+    }
+
+    const diffMs = Math.max(0, Date.now() - time);
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) {
+        return "Just now";
+    }
+
+    if (diffMinutes < 60) {
+        return `${diffMinutes}m ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+        return `${diffHours}h ago`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
 }
 
 function normalizeAuction(rawAuction) {
@@ -113,38 +184,6 @@ function normalizeAuction(rawAuction) {
         images: [image, ...FALLBACK_IMAGES.filter((fallbackImage) => fallbackImage !== image)].slice(0, 3),
         bidHistory
     };
-}
-
-function formatBidTime(value) {
-    if (!value) {
-        return "Just now";
-    }
-
-    const time = new Date(value).getTime();
-
-    if (!time) {
-        return String(value);
-    }
-
-    const diffMs = Math.max(0, Date.now() - time);
-    const diffMinutes = Math.floor(diffMs / 60000);
-
-    if (diffMinutes < 1) {
-        return "Just now";
-    }
-
-    if (diffMinutes < 60) {
-        return `${diffMinutes}m ago`;
-    }
-
-    const diffHours = Math.floor(diffMinutes / 60);
-
-    if (diffHours < 24) {
-        return `${diffHours}h ago`;
-    }
-
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
 }
 
 function getMinimumBid() {
@@ -269,6 +308,10 @@ function renderAuction() {
 }
 
 function updateCountdown() {
+    if (!auction) {
+        return;
+    }
+
     const distance = Math.max(0, auction.endTime - Date.now());
     const totalSeconds = Math.floor(distance / 1000);
 
@@ -306,7 +349,7 @@ function showToast(title, message) {
     }, 3800);
 }
 
-function addBid({ bidder, amount, messageTitle = t("toast.newBid"), messagePrefix = "A new collector placed" }) {
+function addOptimisticBid({ amount, bidder = "YOU" }) {
     auction.currentBid = amount;
     auction.activeBids += 1;
 
@@ -326,12 +369,19 @@ function addBid({ bidder, amount, messageTitle = t("toast.newBid"), messagePrefi
 
     renderBidPanel();
     renderBidHistory();
-
-    showToast(messageTitle, `${messagePrefix} ${formatMoney(amount)}.`);
 }
 
-function handleManualBid(event) {
+async function handleManualBid(event) {
     event.preventDefault();
+
+    if (!auction) {
+        showToast("Auction Loading", "Please wait until auction detail is loaded.");
+        return;
+    }
+
+    if (!requireLoginForBid()) {
+        return;
+    }
 
     const bidValue = Number(elements.bidInput.value);
     const minimumBid = getMinimumBid();
@@ -349,14 +399,52 @@ function handleManualBid(event) {
         return;
     }
 
-    addBid({
-        bidder: "YOU",
-        amount: bidValue,
-        messageTitle: proxyEnabled ? t("toast.proxyActivated") : t("toast.bidPlaced"),
-        messagePrefix: proxyEnabled ? t("toast.proxyBidPrefix") : t("toast.manualBidPrefix")
-    });
+    setBidFormBusy(true);
 
-    elements.bidInput.value = "";
+    try {
+        if (proxyEnabled) {
+            await apiClient.post(`/auctions/${auction.id}/autobid`, {
+                maxAmount: proxyMax
+            });
+
+            showToast("Proxy Enabled", `Proxy bidding limit set to ${formatMoney(proxyMax)}.`);
+        }
+
+        const response = await apiClient.post(`/auctions/${auction.id}/bids`, {
+            bidAmount: bidValue
+        });
+
+        const currentPrice = Number(response.data?.currentPrice || bidValue);
+
+        addOptimisticBid({
+            amount: currentPrice,
+            bidder: "YOU"
+        });
+
+        if (response.data?.endTime) {
+            const parsedEndTime = /^\d+$/.test(String(response.data.endTime))
+                ? Number(response.data.endTime)
+                : new Date(response.data.endTime).getTime();
+
+            if (parsedEndTime) {
+                auction.endTime = parsedEndTime;
+                updateCountdown();
+            }
+        }
+
+        elements.bidInput.value = "";
+
+        showToast("Bid Placed", response.message || `Your bid ${formatMoney(currentPrice)} has been placed.`);
+
+        window.setTimeout(() => {
+            loadAuctionDetail();
+        }, 900);
+    } catch (error) {
+        console.error("[Place Bid] Failed:", error);
+        showToast("Bid Failed", error.message || "Cannot place bid right now.");
+    } finally {
+        setBidFormBusy(false);
+    }
 }
 
 function handleProxyToggle() {
@@ -368,25 +456,28 @@ function handleProxyToggle() {
 }
 
 function simulateExternalBid() {
-    const nextAmount = getMinimumBid();
-    const bidders = ["J***S", "A***K", "M***D", "L***P", "R***N"];
-    const bidder = bidders[Math.floor(Math.random() * bidders.length)];
+    if (!auction) {
+        return;
+    }
 
-    addBid({
-        bidder,
-        amount: nextAmount,
-        messageTitle: t("toast.newBid"),
-        messagePrefix: t("toast.externalBidPrefix", { bidder })
-    });
+    showToast("Simulation Disabled", "External bids should now be tested through another logged-in account.");
 }
 
 function simulateSoftClose() {
+    if (!auction) {
+        return;
+    }
+
     auction.endTime += 30 * 1000;
     updateCountdown();
     showToast(t("toast.auctionExtended"), t("toast.auctionExtendedDesc"));
 }
 
 function openLightbox() {
+    if (!auction) {
+        return;
+    }
+
     elements.lightbox.hidden = false;
     document.body.classList.add("is-menu-open");
 
