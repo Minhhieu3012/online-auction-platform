@@ -1,6 +1,11 @@
 import CONFIG from "./config.js";
 import storage from "./storage.js";
 
+/**
+ * Frontend Core: API Client
+ * Đã hợp nhất: Cấu trúc request mạnh mẽ từ nhánh frontend & tự động xử lý 401 Auth từ dev.
+ */
+
 class ApiError extends Error {
     constructor({
         message = "Hệ thống đang gián đoạn, vui lòng thử lại.",
@@ -191,10 +196,17 @@ const apiClient = {
             const payload = await parseResponseBody(response);
 
             if (!response.ok || payload?.success === false) {
+                
+                // Tích hợp logic xử lý 401 từ nhánh dev
+                if (response.status === 401 && !endpoint.includes('/login') && !endpoint.includes('/auth')) {
+                    console.warn('[API Client] Phiên làm việc hết hạn hoặc không hợp lệ.');
+                    clearAuth();
+                }
+
                 throw new ApiError({
                     status: response.status,
                     errorCode: payload?.error_code || payload?.errorCode || "API_ERROR",
-                    message: payload?.message || "Request failed.",
+                    message: payload?.message || "Hệ thống đang gián đoạn, vui lòng thử lại.",
                     data: payload?.data || null,
                     endpoint,
                     method: upperMethod

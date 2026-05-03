@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="app-shell">
-        <div data-site-header data-base-path=".." data-active-page="" data-header-action="register"></div>
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="login"></div>
 
         <main class="auth-page auth-page-register">
             <section class="auth-shell auth-shell-wide auth-shell-register">
@@ -22,7 +22,7 @@
                         <h1>Collect. Bid. Sell.</h1>
 
                         <p class="auth-brand-copy">
-                            One verified member profile for live bidding, watchlists, selling requests,
+                            One verified member profile for live bidding, watchlists, selling requests, 
                             and future settlement tracking.
                         </p>
 
@@ -177,6 +177,9 @@
 
         <div data-site-footer data-base-path=".."></div>
     </div>
+
+    <!-- CỐ ĐỊNH: Nhúng Core API Client trước để tránh lỗi undefined[cite: 3, 5] -->
+    <script src="../js/core/api-client.js"></script>
 
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>

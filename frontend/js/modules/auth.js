@@ -1,23 +1,22 @@
+/**
+ * Auth Module: Xử lý Đăng nhập & Đăng ký
+ * Đã hợp nhất: Giao diện & Validation của Frontend + Chuyển hướng trang chủ của Dev
+ */
+
 import { initTheme } from "../core/theme.js";
 import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
 import apiClient from "../core/api-client.js";
 
+// --- HELPERS & UI FEEDBACK ---
 function showToast(title, message) {
     const toastStack = document.querySelector("[data-toast-stack]");
 
-    if (!toastStack) {
-        return;
-    }
+    if (!toastStack) return;
 
     const toast = document.createElement("article");
-
     toast.className = "toast";
-    toast.innerHTML = `
-        <p class="toast-title">${title}</p>
-        <p class="toast-message">${message}</p>
-    `;
-
+    toast.innerHTML = `<p class="toast-title">${title}</p><p class="toast-message">${message}</p>`;
     toastStack.appendChild(toast);
 
     window.setTimeout(() => {
@@ -34,9 +33,7 @@ function setFieldError(input, message) {
     const field = input?.closest(".auth-field");
     const errorElement = field?.querySelector("[data-field-error]");
 
-    if (!field || !errorElement) {
-        return;
-    }
+    if (!field || !errorElement) return;
 
     field.classList.toggle("has-error", Boolean(message));
     errorElement.textContent = message || "";
@@ -50,9 +47,7 @@ function setFormBusy(form, isBusy) {
         control.disabled = isBusy;
     });
 
-    if (!submitButton) {
-        return;
-    }
+    if (!submitButton) return;
 
     if (isBusy) {
         submitButton.dataset.originalText = submitButton.textContent.trim();
@@ -67,23 +62,21 @@ function getApiErrorMessage(error, fallbackMessage) {
     return error?.message || fallbackMessage;
 }
 
+// --- VALIDATION RULES ---
 function isEmailValid(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function validateEmail(input) {
     const email = input.value.trim();
-
     if (!email) {
         setFieldError(input, "Email is required.");
         return false;
     }
-
     if (!isEmailValid(email)) {
         setFieldError(input, "Please enter a valid email.");
         return false;
     }
-
     setFieldError(input, "");
     return true;
 }
@@ -93,24 +86,20 @@ function validateRequired(input, message) {
         setFieldError(input, message);
         return false;
     }
-
     setFieldError(input, "");
     return true;
 }
 
 function validatePassword(input) {
     const password = input.value.trim();
-
     if (!password) {
         setFieldError(input, "Password is required.");
         return false;
     }
-
     if (password.length < 6) {
         setFieldError(input, "Password must be at least 6 characters.");
         return false;
     }
-
     setFieldError(input, "");
     return true;
 }
@@ -143,29 +132,15 @@ function validateRegisterPassword(passwordInput, confirmPasswordInput) {
     return isValid;
 }
 
+// --- PASSWORD STRENGTH ---
 function getPasswordStrength(password) {
     let score = 0;
+    if (password.length >= 8) score += 1;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
+    if (/\d/.test(password) || /[^A-Za-z0-9]/.test(password)) score += 1;
 
-    if (password.length >= 8) {
-        score += 1;
-    }
-
-    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) {
-        score += 1;
-    }
-
-    if (/\d/.test(password) || /[^A-Za-z0-9]/.test(password)) {
-        score += 1;
-    }
-
-    if (score <= 1) {
-        return "weak";
-    }
-
-    if (score === 2) {
-        return "medium";
-    }
-
+    if (score <= 1) return "weak";
+    if (score === 2) return "medium";
     return "strong";
 }
 
@@ -173,12 +148,9 @@ function updatePasswordStrength() {
     const passwordInput = document.querySelector("[data-auth-password]");
     const strengthElement = document.querySelector("[data-password-strength]");
 
-    if (!passwordInput || !strengthElement) {
-        return;
-    }
+    if (!passwordInput || !strengthElement) return;
 
     const password = passwordInput.value;
-
     if (!password) {
         strengthElement.removeAttribute("data-strength");
         return;
@@ -187,19 +159,14 @@ function updatePasswordStrength() {
     strengthElement.dataset.strength = getPasswordStrength(password);
 }
 
+// --- FORM HANDLERS ---
 function validateLoginForm(form) {
     const emailInput = form.querySelector("[data-auth-email]");
     const passwordInput = form.querySelector("[data-auth-password]");
-
     let isValid = true;
 
-    if (!validateEmail(emailInput)) {
-        isValid = false;
-    }
-
-    if (!validatePassword(passwordInput)) {
-        isValid = false;
-    }
+    if (!validateEmail(emailInput)) isValid = false;
+    if (!validatePassword(passwordInput)) isValid = false;
 
     return isValid;
 }
@@ -215,27 +182,13 @@ function validateRegisterForm(form) {
 
     let isValid = true;
 
-    if (!validateRequired(nameInput, "Full name is required.")) {
-        isValid = false;
-    }
-
-    if (!validateRequired(usernameInput, "Username is required.")) {
-        isValid = false;
-    }
-
-    if (!validateEmail(emailInput)) {
-        isValid = false;
-    }
-
-    if (!validateRegisterPassword(passwordInput, confirmPasswordInput)) {
-        isValid = false;
-    }
+    if (!validateRequired(nameInput, "Full name is required.")) isValid = false;
+    if (!validateRequired(usernameInput, "Username is required.")) isValid = false;
+    if (!validateEmail(emailInput)) isValid = false;
+    if (!validateRegisterPassword(passwordInput, confirmPasswordInput)) isValid = false;
 
     if (!termsInput.checked) {
-        if (termsError) {
-            termsError.textContent = "You must agree to continue.";
-        }
-
+        if (termsError) termsError.textContent = "You must agree to continue.";
         isValid = false;
     } else if (termsError) {
         termsError.textContent = "";
@@ -258,28 +211,27 @@ async function handleLoginSubmit(form) {
     try {
         const response = await apiClient.post(
             "/auth/login",
-            {
-                email,
-                password
-            },
-            {
-                auth: false
-            }
+            { email, password },
+            { auth: false }
         );
 
-        const { token, user } = response.data || {};
+        // Lấy dữ liệu từ cấu trúc của Backend thật
+        const resultData = response.data || {};
+        const token = response.token || resultData.token;
+        const user = response.user || resultData.user;
 
-        if (!token || !user) {
-            throw new Error("Backend did not return token or user data.");
+        if (!token) {
+            throw new Error("Backend did not return token.");
         }
 
         apiClient.setAuthToken(token);
-        apiClient.setAuthUser(user);
+        if (user) apiClient.setAuthUser(user);
 
         showToast("Signed In", response.message || "Welcome back to BrosGem.");
 
+        // FIX CONFLICT: Sử dụng định tuyến trang chủ của nhánh Dev
         window.setTimeout(() => {
-            window.location.href = "./account.html";
+            window.location.href = "../index.html";
         }, 750);
     } catch (error) {
         showToast("Sign In Failed", getApiErrorMessage(error, "Email or password is incorrect."));
@@ -294,6 +246,7 @@ async function handleRegisterSubmit(form) {
         return;
     }
 
+    const fullName = form.querySelector("[data-auth-name]").value.trim();
     const username = form.querySelector("[data-auth-username]").value.trim();
     const email = form.querySelector("[data-auth-email]").value.trim();
     const password = form.querySelector("[data-auth-password]").value.trim();
@@ -301,42 +254,36 @@ async function handleRegisterSubmit(form) {
     setFormBusy(form, true);
 
     try {
+        // Gọi API đăng ký
         await apiClient.post(
             "/auth/register",
-            {
-                username,
-                email,
-                password
-            },
-            {
-                auth: false
-            }
+            { full_name: fullName, username, email, password },
+            { auth: false }
         );
 
+        // Đăng ký xong tự động đăng nhập (UX tốt từ nhánh Frontend)
         const loginResponse = await apiClient.post(
             "/auth/login",
-            {
-                email,
-                password
-            },
-            {
-                auth: false
-            }
+            { email, password },
+            { auth: false }
         );
 
-        const { token, user } = loginResponse.data || {};
+        const resultData = loginResponse.data || {};
+        const token = loginResponse.token || resultData.token;
+        const user = loginResponse.user || resultData.user;
 
-        if (!token || !user) {
+        if (!token) {
             throw new Error("Account created, but backend did not return login token.");
         }
 
         apiClient.setAuthToken(token);
-        apiClient.setAuthUser(user);
+        if (user) apiClient.setAuthUser(user);
 
         showToast("Account Created", "Your unified member account is ready.");
 
+        // FIX CONFLICT: Chuyển hướng về trang chủ thay vì account
         window.setTimeout(() => {
-            window.location.href = "./account.html";
+            window.location.href = "../index.html";
         }, 850);
     } catch (error) {
         showToast("Registration Failed", getApiErrorMessage(error, "Cannot create account right now."));
@@ -345,6 +292,7 @@ async function handleRegisterSubmit(form) {
     }
 }
 
+// --- BINDING EVENTS ---
 function bindAuthForms() {
     document.querySelectorAll("[data-auth-form]").forEach((form) => {
         form.addEventListener("submit", (event) => {
@@ -382,7 +330,6 @@ function bindDemoFillButtons() {
             }
 
             updatePasswordStrength();
-
             showToast("Demo Filled", "Credentials have been filled. Make sure this user exists in your database.");
         });
     });
@@ -394,9 +341,7 @@ function bindPasswordToggles() {
             const targetId = button.dataset.passwordTarget;
             const input = document.getElementById(targetId);
 
-            if (!input) {
-                return;
-            }
+            if (!input) return;
 
             const shouldShow = input.type === "password";
             input.type = shouldShow ? "text" : "password";
@@ -408,10 +353,7 @@ function bindPasswordToggles() {
 
 function bindPasswordStrength() {
     const passwordInput = document.querySelector("[data-auth-password]");
-
-    if (!passwordInput) {
-        return;
-    }
+    if (!passwordInput) return;
 
     passwordInput.addEventListener("input", updatePasswordStrength);
 }

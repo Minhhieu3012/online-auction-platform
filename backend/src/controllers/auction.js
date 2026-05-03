@@ -1,8 +1,9 @@
-const redisKeys = require("../utils/redis-keys");
 const pool = require("../config/db");
 const redisClient = require("../config/redis");
+const redisKeys = require("../utils/redis-keys");
 const { scheduleAuctionClose } = require("../config/queue");
 const { sendSuccess, sendError } = require("../utils/response");
+const logger = require("../utils/logger");
 
 function normalizeStatusForSql(status) {
   const statusMap = {
@@ -84,6 +85,9 @@ function mapAuctionRow(row) {
 }
 
 class AuctionController {
+  // ==========================================
+  // API FRONTEND: LẤY DANH SÁCH & CHI TIẾT
+  // ==========================================
   static async listAuctions(req, res) {
     const {
       status,
@@ -178,7 +182,7 @@ class AuctionController {
         "Lấy danh sách phiên đấu giá thành công.",
       );
     } catch (error) {
-      console.error("[Auction List Error]:", error);
+      logger.error("[Auction List Error]:", error);
       return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi lấy danh sách đấu giá.", 500);
     }
   }
@@ -272,27 +276,35 @@ class AuctionController {
         "Lấy chi tiết phiên đấu giá thành công.",
       );
     } catch (error) {
-      console.error("[Auction Detail Error]:", error);
+      logger.error("[Auction Detail Error]:", error);
       return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi lấy chi tiết đấu giá.", 500);
     }
   }
 
+  // ==========================================
+  // API BACKEND: TẠO MỚI (ĐÃ MERGE FRONTEND FIELDS)
+  // ==========================================
+  /**
+   * Tạo phiên đấu giá: Kết hợp logic Transaction MySQL và nạp dữ liệu vào Redis/BullMQ
+   */
   static async createAuction(req, res) {
-    const {
-      productName,
-      description,
-      category,
-      imageUrl,
-      startingPrice,
-      stepPrice,
-      durationMinutes,
-      status,
+    // 1. Trích xuất dữ liệu từ Request Body (Đã gộp thêm category, imageUrl, status của Frontend)
+    const { 
+      productName, 
+      description, 
+      category, 
+      imageUrl, 
+      startingPrice, 
+      stepPrice, 
+      durationMinutes, 
+      status 
     } = req.body;
+    
+    const userId = req.user.id; // Lấy từ JWT Auth Middleware
 
-    const userId = req.user.id;
-
+    // Kiểm tra dữ liệu đầu vào cơ bản
     if (!productName || !startingPrice || !stepPrice || !durationMinutes) {
-      return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập đủ thông tin.", 400);
+      return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập đủ thông tin sản phẩm và giá.", 400);
     }
 
     const numericStartingPrice = Number(startingPrice);
@@ -317,9 +329,13 @@ class AuctionController {
     let productId;
     let endTime;
 
+    // ==========================================
+    // KHỐI 1: GIAO DỊCH MYSQL (BẢO ĐẢM DỮ LIỆU GỐC)
+    // ==========================================
     try {
       await connection.beginTransaction();
 
+      // Bước A: Tạo Sản phẩm trước để lấy product_id (Gộp thêm category và image_url)
       const [prodResult] = await connection.execute(
         "INSERT INTO Products (name, description, category, image_url) VALUES (?, ?, ?, ?)",
         [
@@ -329,12 +345,13 @@ class AuctionController {
           imageUrl || null,
         ],
       );
-
       productId = prodResult.insertId;
 
+      // Bước B: Tính toán mốc thời gian kết thúc (datetime)
       endTime = new Date(Date.now() + numericDurationMinutes * 60000);
       const mysqlEndTime = endTime.toISOString().slice(0, 19).replace("T", " ");
 
+      // Bước C: Tạo Phiên đấu giá trong bảng Auctions
       const [aucResult] = await connection.execute(
         `
           INSERT INTO Auctions
@@ -351,21 +368,29 @@ class AuctionController {
           mysqlEndTime,
         ],
       );
-
       auctionId = aucResult.insertId;
 
+      // Xác nhận lưu dữ liệu thành công vào MySQL
       await connection.commit();
+      logger.info(`[DB Success] Đã chốt lưu phiên đấu giá ${auctionId} vào MySQL.`);
+
     } catch (error) {
-      await connection.rollback();
-      console.error("[Auction Create DB Error]:", error);
+      // Nếu có bất kỳ lỗi nào, hủy bỏ toàn bộ dữ liệu đã chèn để tránh rác DB
+      if (connection) await connection.rollback();
+      logger.error(`[MySQL Transaction Error]: ${error.message || error}`);
       return sendError(res, "ERR_SERVER", "Lỗi hệ thống khi lưu phiên đấu giá.", 500);
     } finally {
+      // Giải phóng kết nối ngay lập tức để tối ưu tài nguyên hệ thống
       connection.release();
     }
 
+    // ==========================================
+    // KHỐI 2: TÁC VỤ NỀN (REDIS CACHE & BULLMQ QUEUE)
+    // ==========================================
     try {
+      // Bước D: Nạp dữ liệu vào Redis để phục vụ việc Bid tốc độ cao (Real-time)
       const auctionKey = redisKeys.auctionInfo(auctionId);
-
+      
       await redisClient.hSet(auctionKey, {
         current_price: String(numericStartingPrice),
         step_price: String(numericStepPrice),
@@ -376,11 +401,17 @@ class AuctionController {
         extension_count: "0",
       });
 
+      // Bước E: Hẹn giờ đóng phiên bằng BullMQ
       await scheduleAuctionClose(auctionId, endTime);
+      logger.success(`[System Sync] Phiên ${auctionId} đã sẵn sàng trên Redis và BullMQ.`);
     } catch (error) {
-      console.error(`[Background Error] Phiên ${auctionId} rớt Cache/Queue:`, error);
+      // Không crash API vì DB đã an toàn, chỉ log lỗi để Retry sau
+      logger.error(`[Background Task Error] Phiên ${auctionId} lỗi đồng bộ Cache/Queue: ${error.message || error}`);
     }
 
+    // ==========================================
+    // TRẢ VỀ KẾT QUẢ THÀNH CÔNG
+    // ==========================================
     return sendSuccess(
       res,
       {
@@ -389,8 +420,8 @@ class AuctionController {
         endTime,
         status: auctionStatus,
       },
-      "Tạo phiên đấu giá thành công!",
-      201,
+      "Tạo phiên đấu giá và khởi động bộ đếm giờ thành công!",
+      201
     );
   }
 }

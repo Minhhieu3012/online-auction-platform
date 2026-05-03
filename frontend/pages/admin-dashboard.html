@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrosGem - Security Dashboard</title>
+    <!-- Giả định bạn dùng Bootstrap hoặc Tailwind cho UI -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #121212; color: #ffffff; }
+        .table { color: #ffffff; }
+        .risk-high { color: #ff4d4d; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4 text-warning">🛡️ AI Fraud Monitoring System</h2>
+        <p class="text-muted">Danh sách 50 tài khoản có rủi ro cao nhất được AI phát hiện theo thời gian thực.</p>
+        
+        <div class="table-responsive">
+            <table class="table table-dark table-hover border-secondary">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Risk Score</th>
+                        <th>Lý do (AI Phân tích)</th>
+                        <th>Thời gian phát hiện</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="fraud-alerts-body">
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Đang tải dữ liệu từ AI Engine...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Cấu hình URL gọi thẳng vào AI Service
+        const AI_API_URL = 'http://localhost:8000/api/v1/alerts';
+
+        async function fetchFraudAlerts() {
+            try {
+                const response = await fetch(AI_API_URL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                renderAlerts(data);
+            } catch (error) {
+                console.error("[Dashboard Error] Không thể kết nối tới AI Engine:", error);
+                document.getElementById('fraud-alerts-body').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger">Mất kết nối với AI Engine. Vui lòng kiểm tra port 8000.</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderAlerts(alerts) {
+            const tbody = document.getElementById('fraud-alerts-body');
+            tbody.innerHTML = ''; // Xóa trạng thái loading
+
+            if (alerts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-success">Hệ thống an toàn. Chưa phát hiện gian lận.</td></tr>`;
+                return;
+            }
+
+            alerts.forEach(alert => {
+                // Xử lý mảng reasons nếu API trả về JSON array
+                let reasonsText = "";
+                try {
+                    const parsedReasons = typeof alert.reasons === 'string' ? JSON.parse(alert.reasons) : alert.reasons;
+                    reasonsText = Array.isArray(parsedReasons) ? parsedReasons.join(', ') : parsedReasons;
+                } catch(e) {
+                    reasonsText = alert.reasons;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>#${alert.user_id}</strong></td>
+                    <td class="${alert.risk_score >= 0.8 ? 'risk-high' : 'text-warning'}">
+                        ${(alert.risk_score * 100).toFixed(1)}%
+                    </td>
+                    <td>${reasonsText}</td>
+                    <td>${new Date(alert.created_at || alert.timestamp).toLocaleString('vi-VN')}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="banUser(${alert.user_id})">Khóa Tạm Thời</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Auto-refresh mỗi 10 giây để giữ tính Real-time cho Admin
+        fetchFraudAlerts();
+        setInterval(fetchFraudAlerts, 10000);
+
+        function banUser(userId) {
+            alert(`Đã gửi lệnh khóa tài khoản #${userId} xuống Backend!`);
+            // Thực tế: Gọi API /api/admin/users/${userId}/ban của Node.js Backend
+        }
+    </script>
+</body>
+</html>
