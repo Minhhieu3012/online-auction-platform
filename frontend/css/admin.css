@@ -76,12 +76,17 @@
     background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
 }
 
-.admin-sidebar-cta {
+.admin-sidebar-cta,
+.admin-sidebar-secondary-cta {
     width: 100%;
     min-height: 44px;
     margin-top: 36px;
     padding: 0 16px;
     font-size: 10px;
+}
+
+.admin-sidebar-secondary-cta {
+    margin-top: 12px;
 }
 
 .admin-content {
@@ -243,8 +248,17 @@
     text-transform: uppercase;
 }
 
+.admin-section-heading p {
+    max-width: 720px;
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
 .admin-section-heading button,
-.admin-section-heading span {
+.admin-section-heading span,
+.admin-heading-actions a {
     border: 0;
     background: transparent;
     color: var(--primary);
@@ -253,6 +267,13 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     cursor: pointer;
+}
+
+.admin-heading-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
 }
 
 .admin-request-list {
@@ -296,6 +317,30 @@
     font-size: 11px;
     font-weight: 900;
     letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin-empty-mini {
+    min-height: 160px;
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    padding: 24px;
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.admin-empty-mini span {
+    color: var(--primary);
+    font-size: 28px;
+}
+
+.admin-empty-mini p {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
@@ -346,6 +391,270 @@
 
 .risk-low {
     border-left-color: var(--text-muted);
+}
+
+.admin-auction-toolbar {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) repeat(3, minmax(150px, 0.35fr));
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 16px;
+}
+
+.admin-search-field,
+.admin-filter-field {
+    display: grid;
+    gap: 8px;
+}
+
+.admin-search-field span,
+.admin-filter-field span {
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.admin-search-field input,
+.admin-filter-field select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    outline: 0;
+    background: color-mix(in srgb, var(--surface-strong) 72%, transparent);
+    color: var(--text);
+    font-size: 12px;
+}
+
+.admin-search-field input:focus,
+.admin-filter-field select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.admin-auction-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin: 0 0 14px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.admin-auction-summary-row p {
+    margin: 0;
+}
+
+.admin-table-shell {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+}
+
+.admin-table {
+    width: 100%;
+    min-width: 780px;
+    border-collapse: collapse;
+}
+
+.admin-auction-table {
+    min-width: 1120px;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 18px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.admin-table th {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.admin-table td {
+    color: var(--text-soft);
+    font-size: 13px;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.admin-table td > strong {
+    display: block;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-table-muted {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.admin-auction-asset {
+    min-width: 320px;
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+}
+
+.admin-auction-asset img {
+    width: 54px;
+    height: 54px;
+    object-fit: cover;
+    filter: var(--image-filter);
+}
+
+.admin-auction-asset strong {
+    display: block;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.admin-auction-asset span {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.admin-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 0 9px;
+    border: 1px solid currentColor;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin-status.is-settled,
+.admin-status.is-active-status {
+    color: var(--primary);
+}
+
+.admin-status.is-scheduled-status {
+    color: var(--text-soft);
+}
+
+.admin-status.is-closing-status {
+    color: #E0B06D;
+}
+
+.admin-status.is-ended-status {
+    color: var(--text-muted);
+}
+
+.admin-status.is-pending {
+    color: var(--text-soft);
+}
+
+.admin-row-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-row-actions a,
+.fraud-actions button,
+.admin-table button {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.admin-row-actions a:hover,
+.fraud-actions button:hover,
+.admin-table button:hover {
+    border-color: var(--primary);
+}
+
+.admin-table-state {
+    min-height: 170px;
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.admin-table-state span {
+    color: var(--primary);
+    font-size: 28px;
+}
+
+.admin-table-state p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.admin-empty-state {
+    min-height: 240px;
+    display: grid;
+    place-items: center;
+    gap: 12px;
+    margin-top: 18px;
+    padding: 34px;
+    border: 1px dashed var(--border);
+    text-align: center;
+}
+
+.admin-empty-state[hidden] {
+    display: none;
+}
+
+.admin-empty-state span {
+    color: var(--primary);
+    font-size: 38px;
+}
+
+.admin-empty-state h4 {
+    margin: 0;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin-empty-state p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
 }
 
 .verification-grid {
@@ -536,137 +845,6 @@
     gap: 8px;
 }
 
-.fraud-actions button,
-.admin-table button {
-    min-height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--primary);
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-}
-
-.fraud-actions button:hover,
-.admin-table button:hover {
-    border-color: var(--primary);
-}
-
-.admin-table-shell {
-    overflow-x: auto;
-    border: 1px solid var(--border);
-}
-
-.admin-table {
-    width: 100%;
-    min-width: 780px;
-    border-collapse: collapse;
-}
-
-.admin-table th,
-.admin-table td {
-    padding: 18px;
-    border-bottom: 1px solid var(--border);
-    text-align: left;
-}
-
-.admin-table th {
-    color: var(--text-muted);
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
-.admin-table td {
-    color: var(--text-soft);
-    font-size: 13px;
-}
-
-.admin-table tr:last-child td {
-    border-bottom: 0;
-}
-
-.admin-status {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 24px;
-    padding: 0 9px;
-    border: 1px solid currentColor;
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.admin-status.is-settled {
-    color: var(--primary);
-}
-
-.admin-status.is-pending {
-    color: var(--text-soft);
-}
-
-@media (max-width: 1220px) {
-    .admin-page {
-        grid-template-columns: 1fr;
-    }
-
-    .admin-sidebar {
-        position: static;
-        min-height: auto;
-    }
-
-    .admin-nav {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .admin-grid-2,
-    .admin-stat-grid,
-    .verification-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-@media (max-width: 880px) {
-    .admin-topbar {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .admin-engine-card {
-        width: 100%;
-    }
-
-    .admin-nav,
-    .admin-grid-2,
-    .admin-stat-grid,
-    .verification-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .verification-card,
-    .fraud-row {
-        grid-template-columns: 1fr;
-    }
-
-    .verification-media {
-        min-height: 220px;
-    }
-
-    .admin-request-row {
-        grid-template-columns: 50px minmax(0, 1fr);
-    }
-
-    .admin-request-row b {
-        grid-column: 2;
-    }
-}
-
 .admin-notification-link {
     position: relative;
     width: 38px;
@@ -701,4 +879,71 @@
     font-size: 9px;
     font-weight: 900;
     letter-spacing: 0;
+}
+
+@media (max-width: 1220px) {
+    .admin-page {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-sidebar {
+        position: static;
+        min-height: auto;
+    }
+
+    .admin-nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .admin-grid-2,
+    .admin-stat-grid,
+    .verification-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-auction-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 880px) {
+    .admin-topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .admin-engine-card {
+        width: 100%;
+    }
+
+    .admin-nav,
+    .admin-grid-2,
+    .admin-stat-grid,
+    .verification-grid,
+    .admin-auction-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .verification-card,
+    .fraud-row {
+        grid-template-columns: 1fr;
+    }
+
+    .verification-media {
+        min-height: 220px;
+    }
+
+    .admin-request-row {
+        grid-template-columns: 50px minmax(0, 1fr);
+    }
+
+    .admin-request-row b {
+        grid-column: 2;
+    }
+
+    .admin-section-heading,
+    .admin-auction-summary-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

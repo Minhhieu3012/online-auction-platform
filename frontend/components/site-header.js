@@ -1,4 +1,5 @@
 import { initCommandPalette } from "../js/modules/command-palette.js";
+import apiClient from "../js/core/api-client.js";
 
 const HEADER_CONFIG = {
     brandName: "BrosGem",
@@ -10,6 +11,10 @@ function normalizeBasePath(basePath) {
         return ".";
     }
     return basePath.replace(/\/$/, "");
+}
+
+function isAuthenticated() {
+    return Boolean(apiClient.getAuthToken() && apiClient.getAuthUser());
 }
 
 function injectCommandPaletteStyles(basePath) {
@@ -30,6 +35,7 @@ function injectCommandPaletteStyles(basePath) {
 function createHeaderTemplate({ basePath = ".", activePage = "", action = "login" }) {
     const normalizedBasePath = normalizeBasePath(basePath);
     const isRoot = normalizedBasePath === ".";
+    const authenticated = isAuthenticated();
 
     const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
     const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
@@ -38,14 +44,21 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "login
     const accountHref = isRoot ? "./pages/account.html" : "./account.html";
     const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
-    const actionHref = action === "account" ? accountHref : loginHref;
-    
-    // Logic nhãn nút: Đã xóa hoàn toàn tiền tố NAV.
+    // ==========================================
+    // GIẢI QUYẾT CONFLICT: Hợp nhất logic Dev & Frontend
+    // ==========================================
+    let actionHref = loginHref;
     let actionText = "LOGIN";
+    let actionI18n = 'data-i18n="nav.login"';
+
     if (action === "account") {
+        actionHref = accountHref;
         actionText = "MY ACCOUNT";
-    } else if (action === "logout") {
+        actionI18n = 'data-i18n="nav.account"';
+    } else if (action === "logout" || authenticated) {
+        actionHref = "#"; // Đặt # vì đã có Event Listener JS lo việc xóa localStorage
         actionText = "LOGOUT";
+        actionI18n = 'data-i18n="nav.logout"';
     }
 
     return `
@@ -82,7 +95,7 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "login
                     </svg>
                 </button>
 
-                <a href="${actionHref}" class="button button-primary button-compact home-register-button" data-auth-btn>
+                <a href="${actionHref}" class="button button-primary button-compact home-register-button" data-auth-btn ${actionI18n}>
                     ${actionText}
                 </a>
 

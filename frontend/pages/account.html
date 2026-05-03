@@ -73,10 +73,10 @@
                     </div>
 
                     <div class="member-card">
-                        <div class="member-avatar">GH</div>
+                        <div class="member-avatar" data-member-avatar>BG</div>
                         <div>
-                            <strong>Nguyen Ha Gia Huy</strong>
-                            <span>Verified Member</span>
+                            <strong data-member-name>Loading member...</strong>
+                            <span data-member-subtitle>Verified Member</span>
                         </div>
 
                         <a href="./notifications.html" class="member-notification-link" aria-label="Open notifications">
@@ -102,8 +102,8 @@
 
                         <article class="dashboard-stat-card dashboard-stat-card-gold">
                             <span>Total Exposure</span>
-                            <strong>$842,500</strong>
-                            <p>Current bidding commitment</p>
+                            <strong data-member-balance>$0</strong>
+                            <p>Account balance from backend session</p>
                         </article>
 
                         <article class="dashboard-stat-card">
@@ -349,23 +349,23 @@
                     <article class="dashboard-section-card">
                         <div class="dashboard-section-heading">
                             <h3>Settings</h3>
-                            <button type="button" data-dashboard-toast="Profile settings saved as UI mock.">Save</button>
+                            <button type="button" data-dashboard-toast="Profile settings will be connected to backend in a later scope.">Save</button>
                         </div>
 
                         <form class="settings-form">
                             <label>
                                 <span>Display Name</span>
-                                <input type="text" value="Nguyen Ha Gia Huy" />
+                                <input type="text" data-settings-name readonly />
                             </label>
 
                             <label>
                                 <span>Email</span>
-                                <input type="email" value="member@brosgem.com" />
+                                <input type="email" data-settings-email readonly />
                             </label>
 
                             <label>
-                                <span>Phone</span>
-                                <input type="text" value="056205005458" />
+                                <span>User ID</span>
+                                <input type="text" data-settings-user-id readonly />
                             </label>
 
                             <label>
@@ -377,6 +377,10 @@
                                 </select>
                             </label>
                         </form>
+
+                        <button type="button" class="button button-outline dashboard-logout-button" data-logout-button>
+                            Sign Out
+                        </button>
                     </article>
                 </section>
             </section>

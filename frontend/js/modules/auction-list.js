@@ -1,155 +1,25 @@
 import { initTheme } from "../core/theme.js";
 import { initI18n, t, onLanguageChange } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
+import apiClient from "../core/api-client.js";
 
-const AUCTION_LOTS = [
-    {
-        id: 842,
-        lot: "Lot 842",
-        title: "The Midnight Chronograph",
-        category: "horology",
-        status: "active",
-        image: "../assets/images/mockdata/1.png",
-        estimate: "$220,000 - $340,000",
-        currentBid: "$285,000",
-        startingBid: "$145,000",
-        bidCount: 24,
-        endingAt: "2026-05-12T18:30:00",
-        createdAt: "2026-04-30T10:00:00"
-    },
-    {
-        id: 118,
-        lot: "Lot 118",
-        title: "Fragmented Echo",
-        category: "fine-art",
-        status: "active",
-        image: "../assets/images/mockdata/2.png",
-        estimate: "$900,000 - $1.4M",
-        currentBid: "$1,220,000",
-        startingBid: "$720,000",
-        bidCount: 18,
-        endingAt: "2026-05-13T21:00:00",
-        createdAt: "2026-04-28T10:00:00"
-    },
-    {
-        id: 883,
-        lot: "Lot 883",
-        title: "1962 GTO Heritage",
-        category: "automotive",
-        status: "active",
-        image: "../assets/images/mockdata/3.png",
-        estimate: "$3.4M - $4.2M",
-        currentBid: "$3,800,000",
-        startingBid: "$2,900,000",
-        bidCount: 42,
-        endingAt: "2026-05-15T08:00:00",
-        createdAt: "2026-04-27T10:00:00"
-    },
-    {
-        id: 254,
-        lot: "Lot 254",
-        title: "Imperial Sapphire Necklace",
-        category: "jewelry",
-        status: "active",
-        image: "../assets/images/mockdata/4.png",
-        estimate: "$220,000 - $350,000",
-        currentBid: "$295,000",
-        startingBid: "$180,000",
-        bidCount: 32,
-        endingAt: "2026-05-14T11:20:00",
-        createdAt: "2026-04-26T10:00:00"
-    },
-    {
-        id: 402,
-        lot: "Lot 402",
-        title: "Patek Philippe Ref. 2499",
-        category: "horology",
-        status: "closing",
-        image: "../assets/images/mockdata/5.png",
-        estimate: "$1.2M - $1.8M",
-        currentBid: "$1,450,000",
-        startingBid: "$950,000",
-        bidCount: 14,
-        endingAt: "2026-05-10T19:10:00",
-        createdAt: "2026-04-22T10:00:00"
-    },
-    {
-        id: 721,
-        lot: "Lot 721",
-        title: "Diamond Tennis Bracelet",
-        category: "jewelry",
-        status: "closing",
-        image: "../assets/images/mockdata/6.png",
-        estimate: "$68,000 - $92,000",
-        currentBid: "$81,000",
-        startingBid: "$42,000",
-        bidCount: 21,
-        endingAt: "2026-05-10T20:00:00",
-        createdAt: "2026-04-21T10:00:00"
-    },
-    {
-        id: 7,
-        lot: "Lot 007",
-        title: "1964 Aston Martin DB5",
-        category: "automotive",
-        status: "scheduled",
-        image: "../assets/images/mockdata/7.png",
-        estimate: "$800,000 - $1.1M",
-        currentBid: "",
-        startingBid: "$750,000",
-        bidCount: 0,
-        endingAt: "2026-05-18T18:00:00",
-        createdAt: "2026-04-20T10:00:00"
-    },
-    {
-        id: 611,
-        lot: "Lot 611",
-        title: "Rare Emerald Signet Ring",
-        category: "jewelry",
-        status: "scheduled",
-        image: "../assets/images/mockdata/1.png",
-        estimate: "$42,000 - $66,000",
-        currentBid: "",
-        startingBid: "$30,000",
-        bidCount: 0,
-        endingAt: "2026-05-19T18:00:00",
-        createdAt: "2026-04-19T10:00:00"
-    },
-    {
-        id: 319,
-        lot: "Lot 319",
-        title: "Art Deco Vase",
-        category: "collectibles",
-        status: "ended",
-        image: "../assets/images/mockdata/2.png",
-        estimate: "$38,000 - $48,000",
-        currentBid: "$42,500",
-        startingBid: "$22,000",
-        bidCount: 11,
-        endingAt: "2026-04-25T18:00:00",
-        createdAt: "2026-04-01T10:00:00"
-    },
-    {
-        id: 520,
-        lot: "Lot 520",
-        title: "Private Estate Timepiece",
-        category: "horology",
-        status: "ended",
-        image: "../assets/images/mockdata/3.png",
-        estimate: "$120,000 - $160,000",
-        currentBid: "$138,000",
-        startingBid: "$90,000",
-        bidCount: 16,
-        endingAt: "2026-04-22T18:00:00",
-        createdAt: "2026-03-28T10:00:00"
-    }
+const FALLBACK_IMAGES = [
+    "../assets/images/mockdata/1.png",
+    "../assets/images/mockdata/2.png",
+    "../assets/images/mockdata/3.png",
+    "../assets/images/mockdata/4.png",
+    "../assets/images/mockdata/5.png",
+    "../assets/images/mockdata/6.png",
+    "../assets/images/mockdata/7.png"
 ];
 
 const STATUS_LABELS = {
     active: "Active",
     closing: "Closing Soon",
     scheduled: "Scheduled",
-    ended: "Ended"
+    ended: "Ended",
+    payment_pending: "Payment Pending",
+    completed: "Completed"
 };
 
 const VALID_STATUS_FILTERS = ["all", "active", "scheduled", "closing", "ended"];
@@ -160,13 +30,73 @@ const DEFAULT_CATEGORY = "all";
 const DEFAULT_SORT = "ending-soon";
 const DEFAULT_VISIBLE_COUNT = 8;
 
+let AUCTION_LOTS = [];
+
 const state = {
     status: DEFAULT_STATUS,
     category: DEFAULT_CATEGORY,
     search: "",
     sort: DEFAULT_SORT,
-    visibleCount: DEFAULT_VISIBLE_COUNT
+    visibleCount: DEFAULT_VISIBLE_COUNT,
+    isLoading: false
 };
+
+function normalizeStatus(status) {
+    const value = String(status || "").trim().toLowerCase();
+
+    if (value === "payment pending") {
+        return "payment_pending";
+    }
+
+    return value || "active";
+}
+
+function normalizeCategory(category) {
+    return String(category || "collectibles")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+}
+
+function formatMoney(value) {
+    const numberValue = Number(value || 0);
+
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0
+    }).format(numberValue);
+}
+
+function getFallbackImage(id) {
+    const index = Math.abs(Number(id || 0)) % FALLBACK_IMAGES.length;
+
+    return FALLBACK_IMAGES[index];
+}
+
+function normalizeAuction(rawAuction) {
+    const id = rawAuction.id;
+    const status = normalizeStatus(rawAuction.status);
+    const category = normalizeCategory(rawAuction.category);
+    const currentPrice = Number(rawAuction.currentPrice || rawAuction.current_price || 0);
+    const stepPrice = Number(rawAuction.stepPrice || rawAuction.step_price || 0);
+
+    return {
+        id,
+        lot: rawAuction.lot || `Lot ${String(id).padStart(3, "0")}`,
+        title: rawAuction.title || rawAuction.productName || rawAuction.product_name || "Untitled Auction Lot",
+        description: rawAuction.description || "",
+        category,
+        status,
+        image: rawAuction.imageUrl || rawAuction.image_url || getFallbackImage(id),
+        estimate: rawAuction.estimate || "Estimate available on request",
+        currentBid: currentPrice ? formatMoney(currentPrice) : "",
+        startingBid: formatMoney(currentPrice || stepPrice || 0),
+        bidCount: Number(rawAuction.bidCount || rawAuction.bid_count || 0),
+        endingAt: rawAuction.endTime || rawAuction.end_time || rawAuction.endingAt || new Date().toISOString(),
+        createdAt: rawAuction.createdAt || rawAuction.created_at || new Date().toISOString()
+    };
+}
 
 function getNumberFromMoney(value) {
     if (!value) {
@@ -217,7 +147,7 @@ function updateUrl() {
 }
 
 function getCountdownLabel(lot) {
-    if (lot.status === "ended") {
+    if (lot.status === "ended" || lot.status === "completed") {
         return t("collections.auctionEnded");
     }
 
@@ -282,7 +212,7 @@ function getStatusClass(status) {
         return "status-closing";
     }
 
-    if (status === "ended") {
+    if (status === "ended" || status === "completed") {
         return "status-ended";
     }
 
@@ -302,7 +232,7 @@ function createAuctionCard(lot) {
         <article class="auction-card" data-lot-id="${lot.id}">
             <div class="auction-card-media">
                 <img src="${lot.image}" alt="${lot.title}" />
-                <span class="status-badge ${getStatusClass(lot.status)}">${STATUS_LABELS[lot.status]}</span>
+                <span class="status-badge ${getStatusClass(lot.status)}">${STATUS_LABELS[lot.status] || lot.status}</span>
             </div>
 
             <div class="auction-card-body">
@@ -389,6 +319,19 @@ function renderLots() {
         return;
     }
 
+    if (state.isLoading) {
+        grid.innerHTML = `
+            <article class="auction-card">
+                <div class="auction-card-body">
+                    <p class="eyebrow">Loading</p>
+                    <h3>Fetching auction lots...</h3>
+                    <p>Connecting to backend inventory.</p>
+                </div>
+            </article>
+        `;
+        return;
+    }
+
     const filteredLots = getFilteredLots();
     const visibleLots = filteredLots.slice(0, state.visibleCount);
 
@@ -422,6 +365,27 @@ function renderAuctionList() {
     updateSortSelect();
     updateSearchInput();
     renderLots();
+}
+
+async function fetchAuctions() {
+    state.isLoading = true;
+    renderLots();
+
+    try {
+        const response = await apiClient.get("/auctions", null, {
+            auth: false
+        });
+
+        const auctions = response.data?.auctions || [];
+
+        AUCTION_LOTS = auctions.map(normalizeAuction);
+    } catch (error) {
+        console.error("[Auction List] Cannot load auctions:", error);
+        AUCTION_LOTS = [];
+    } finally {
+        state.isLoading = false;
+        renderAuctionList();
+    }
 }
 
 function bindFilterEvents() {
@@ -503,6 +467,7 @@ function initAuctionListPage() {
     getInitialStateFromUrl();
     bindFilterEvents();
     renderAuctionList();
+    fetchAuctions();
 
     window.setInterval(renderLots, 1000);
 

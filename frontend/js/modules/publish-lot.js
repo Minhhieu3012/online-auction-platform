@@ -1,6 +1,15 @@
 import { initTheme } from "../core/theme.js";
 import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
+import apiClient from "../core/api-client.js";
+
+const CATEGORY_IMAGE_MAP = {
+    Jewelry: "../assets/images/mockdata/4.png",
+    Horology: "../assets/images/mockdata/1.png",
+    "Fine Art": "../assets/images/mockdata/2.png",
+    Automotive: "../assets/images/mockdata/3.png",
+    Collectibles: "../assets/images/mockdata/5.png"
+};
 
 function formatCurrency(value) {
     const number = Number(value);
@@ -44,7 +53,7 @@ function showToast(title, message) {
 }
 
 function setFieldError(input, message) {
-    const field = input.closest(".publish-field");
+    const field = input?.closest(".publish-field");
     const errorElement = field?.querySelector("[data-field-error]");
 
     if (!field || !errorElement) {
@@ -53,6 +62,44 @@ function setFieldError(input, message) {
 
     field.classList.toggle("has-error", Boolean(message));
     errorElement.textContent = message || "";
+}
+
+function setFormBusy(form, isBusy) {
+    const controls = form.querySelectorAll("button, input, select, textarea");
+    const submitButton = form.querySelector("[type='submit']");
+
+    controls.forEach((control) => {
+        control.disabled = isBusy;
+    });
+
+    if (!submitButton) {
+        return;
+    }
+
+    if (isBusy) {
+        submitButton.dataset.originalText = submitButton.textContent.trim();
+        submitButton.textContent = "Publishing...";
+        return;
+    }
+
+    submitButton.textContent = submitButton.dataset.originalText || "Publish Lot";
+}
+
+function requireLogin() {
+    const token = apiClient.getAuthToken();
+    const user = apiClient.getAuthUser();
+
+    if (!token || !user) {
+        showToast("Login Required", "Please sign in before publishing an auction lot.");
+
+        window.setTimeout(() => {
+            window.location.href = "./login.html?redirect=publish-lot";
+        }, 700);
+
+        return false;
+    }
+
+    return true;
 }
 
 function getValue(selector) {
@@ -67,6 +114,24 @@ function setText(selector, value) {
     }
 }
 
+function getSelectedCategoryImage() {
+    const category = getValue("[data-lot-category]") || "Collectibles";
+
+    return CATEGORY_IMAGE_MAP[category] || CATEGORY_IMAGE_MAP.Collectibles;
+}
+
+function normalizeBackendStatus(status) {
+    if (status === "Scheduled") {
+        return "Scheduled";
+    }
+
+    if (status === "Active") {
+        return "Active";
+    }
+
+    return "Scheduled";
+}
+
 function updateDefaultStartDate() {
     const startDateInput = document.querySelector("[data-start-date]");
 
@@ -78,6 +143,14 @@ function updateDefaultStartDate() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     startDateInput.value = tomorrow.toISOString().split("T")[0];
+}
+
+function updatePreviewImage() {
+    const previewImage = document.querySelector(".auction-preview-media img");
+
+    if (previewImage) {
+        previewImage.src = getSelectedCategoryImage();
+    }
 }
 
 function updatePreview() {
@@ -112,6 +185,7 @@ function updatePreview() {
 
     setText("[data-preview-window]", durationLabel);
 
+    updatePreviewImage();
     updateReadiness();
 }
 
@@ -284,8 +358,56 @@ function updateReadiness() {
     }
 }
 
-function handleSubmit(event) {
+function buildAuctionPayload() {
+    const durationHours = Number(getValue("[data-duration]") || 48);
+    const durationMinutes = Math.max(1, durationHours * 60);
+
+    const category = getValue("[data-lot-category]") || "Collectibles";
+    const status = normalizeBackendStatus(getValue("[data-lot-status]"));
+
+    return {
+        productName: getValue("[data-lot-title]"),
+        description: getValue("[data-lot-description]"),
+        category,
+        imageUrl: getSelectedCategoryImage(),
+        startingPrice: Number(getValue("[data-starting-bid]")),
+        stepPrice: Number(getValue("[data-bid-increment]")),
+        durationMinutes,
+        status
+    };
+}
+
+function saveDraftLocally() {
+    const draft = {
+        lotNumber: getValue("[data-lot-number]"),
+        status: getValue("[data-lot-status]"),
+        title: getValue("[data-lot-title]"),
+        category: getValue("[data-lot-category]"),
+        specialist: getValue("[data-lot-specialist]"),
+        description: getValue("[data-lot-description]"),
+        startingBid: getValue("[data-starting-bid]"),
+        reservePrice: getValue("[data-reserve-price]"),
+        bidIncrement: getValue("[data-bid-increment]"),
+        buyerPremium: getValue("[data-buyer-premium]"),
+        estimateLow: getValue("[data-estimate-low]"),
+        estimateHigh: getValue("[data-estimate-high]"),
+        startDate: getValue("[data-start-date]"),
+        startTime: getValue("[data-start-time]"),
+        duration: getValue("[data-duration]"),
+        updatedAt: new Date().toISOString()
+    };
+
+    window.localStorage.setItem("brosgem_publish_lot_draft", JSON.stringify(draft));
+}
+
+async function handleSubmit(event) {
     event.preventDefault();
+
+    const form = event.currentTarget;
+
+    if (!requireLogin()) {
+        return;
+    }
 
     if (!validateForm()) {
         showToast("Publish Blocked", "Please complete all required configuration and review checks.");
@@ -293,11 +415,31 @@ function handleSubmit(event) {
         return;
     }
 
-    showToast("Lot Published", "Auction lot mock has been published. Redirecting to Live Auctions.");
+    const payload = buildAuctionPayload();
 
-    window.setTimeout(() => {
-        window.location.href = "./live-auctions.html";
-    }, 950);
+    setFormBusy(form, true);
+
+    try {
+        const response = await apiClient.post("/auctions", payload);
+
+        const auctionId = response.data?.auctionId;
+
+        showToast("Lot Published", response.message || "Auction lot has been created successfully.");
+
+        window.setTimeout(() => {
+            if (auctionId) {
+                window.location.href = `./product-detail.html?id=${auctionId}`;
+                return;
+            }
+
+            window.location.href = "./live-auctions.html";
+        }, 900);
+    } catch (error) {
+        console.error("[Publish Lot] Cannot publish auction:", error);
+        showToast("Publish Failed", error.message || "Cannot publish lot right now.");
+    } finally {
+        setFormBusy(form, false);
+    }
 }
 
 function bindPreviewEvents() {
@@ -346,7 +488,8 @@ function bindActions() {
 
     if (saveDraftButton) {
         saveDraftButton.addEventListener("click", () => {
-            showToast("Draft Saved", "Auction configuration draft saved as UI mock.");
+            saveDraftLocally();
+            showToast("Draft Saved", "Auction configuration draft has been saved locally.");
         });
     }
 
@@ -367,6 +510,7 @@ function initPublishLotPage() {
         topRevealOffset: 12
     });
 
+    requireLogin();
     updateDefaultStartDate();
     bindPreviewEvents();
     bindActions();

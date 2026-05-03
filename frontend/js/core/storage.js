@@ -14,12 +14,37 @@ const storage = {
         }
     },
 
+    getRaw(key, fallbackValue = null) {
+        try {
+            const rawValue = window.localStorage.getItem(key);
+
+            if (rawValue === null || rawValue === undefined) {
+                return fallbackValue;
+            }
+
+            return rawValue;
+        } catch (error) {
+            console.warn(`[storage] Cannot read raw key "${key}"`, error);
+            return fallbackValue;
+        }
+    },
+
     set(key, value) {
         try {
             window.localStorage.setItem(key, JSON.stringify(value));
             return true;
         } catch (error) {
             console.warn(`[storage] Cannot write key "${key}"`, error);
+            return false;
+        }
+    },
+
+    setRaw(key, value) {
+        try {
+            window.localStorage.setItem(key, String(value));
+            return true;
+        } catch (error) {
+            console.warn(`[storage] Cannot write raw key "${key}"`, error);
             return false;
         }
     },
