@@ -1,10 +1,10 @@
+// frontend/js/modules/auth.js
 /**
  * Auth Module: Xử lý Đăng nhập & Đăng ký
  * Đã hợp nhất: Giao diện & Validation của Frontend + Chuyển hướng trang chủ của Dev
  */
 
 import { initTheme } from "../core/theme.js";
-import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
 import apiClient from "../core/api-client.js";
 
@@ -51,7 +51,7 @@ function setFormBusy(form, isBusy) {
 
     if (isBusy) {
         submitButton.dataset.originalText = submitButton.textContent.trim();
-        submitButton.textContent = "Processing...";
+        submitButton.textContent = "Đang xử lý...";
         return;
     }
 
@@ -70,11 +70,11 @@ function isEmailValid(value) {
 function validateEmail(input) {
     const email = input.value.trim();
     if (!email) {
-        setFieldError(input, "Email is required.");
+        setFieldError(input, "Vui lòng nhập Email.");
         return false;
     }
     if (!isEmailValid(email)) {
-        setFieldError(input, "Please enter a valid email.");
+        setFieldError(input, "Email không hợp lệ.");
         return false;
     }
     setFieldError(input, "");
@@ -93,11 +93,11 @@ function validateRequired(input, message) {
 function validatePassword(input) {
     const password = input.value.trim();
     if (!password) {
-        setFieldError(input, "Password is required.");
+        setFieldError(input, "Vui lòng nhập Mật khẩu.");
         return false;
     }
     if (password.length < 6) {
-        setFieldError(input, "Password must be at least 6 characters.");
+        setFieldError(input, "Mật khẩu phải có ít nhất 6 ký tự.");
         return false;
     }
     setFieldError(input, "");
@@ -110,20 +110,20 @@ function validateRegisterPassword(passwordInput, confirmPasswordInput) {
     let isValid = true;
 
     if (!password) {
-        setFieldError(passwordInput, "Password is required.");
+        setFieldError(passwordInput, "Vui lòng nhập Mật khẩu.");
         isValid = false;
     } else if (password.length < 8) {
-        setFieldError(passwordInput, "Password must be at least 8 characters.");
+        setFieldError(passwordInput, "Mật khẩu phải có ít nhất 8 ký tự.");
         isValid = false;
     } else {
         setFieldError(passwordInput, "");
     }
 
     if (!confirmPassword) {
-        setFieldError(confirmPasswordInput, "Please confirm your password.");
+        setFieldError(confirmPasswordInput, "Vui lòng xác nhận mật khẩu.");
         isValid = false;
     } else if (password !== confirmPassword) {
-        setFieldError(confirmPasswordInput, "Passwords do not match.");
+        setFieldError(confirmPasswordInput, "Mật khẩu không khớp.");
         isValid = false;
     } else {
         setFieldError(confirmPasswordInput, "");
@@ -132,31 +132,73 @@ function validateRegisterPassword(passwordInput, confirmPasswordInput) {
     return isValid;
 }
 
-// --- PASSWORD STRENGTH ---
+// --- PASSWORD STRENGTH (ĐÃ FIX LỖI) ---
 function getPasswordStrength(password) {
     let score = 0;
-    if (password.length >= 8) score += 1;
-    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
-    if (/\d/.test(password) || /[^A-Za-z0-9]/.test(password)) score += 1;
+    
+    // Quy tắc check độ mạnh tiêu chuẩn thị trường
+    if (password.length >= 6) score += 1;
+    if (password.length >= 10) score += 1;
+    if (/[a-z]/.test(password)) score += 1; // Có chữ thường
+    if (/[A-Z]/.test(password)) score += 1; // Có chữ hoa
+    if (/\d/.test(password)) score += 1;    // Có số
+    if (/[^A-Za-z0-9]/.test(password)) score += 1; // Có ký tự đặc biệt
 
-    if (score <= 1) return "weak";
-    if (score === 2) return "medium";
-    return "strong";
+    if (score <= 2 || password.length < 6) {
+        return { level: "weak", color: "#ef4444", text: "Yếu" };
+    }
+    if (score <= 4) {
+        return { level: "medium", color: "#f59e0b", text: "Trung bình" };
+    }
+    return { level: "strong", color: "#10b981", text: "Mạnh" };
 }
 
-function updatePasswordStrength() {
-    const passwordInput = document.querySelector("[data-auth-password]");
-    const strengthElement = document.querySelector("[data-password-strength]");
+function updatePasswordStrength(event) {
+    // 1. Xác định chính xác input đang được gõ thay vì querySelector tĩnh
+    const passwordInput = event ? event.target : document.querySelector("[data-auth-password]");
+    if (!passwordInput) return;
 
-    if (!passwordInput || !strengthElement) return;
+    // 2. Tìm container độ mạnh nằm TRONG CÙNG một form để tránh nhầm lẫn (ví dụ: login vs register)
+    const form = passwordInput.closest("form");
+    if (!form) return;
 
+    const strengthContainer = form.querySelector("[data-password-strength]");
+    if (!strengthContainer) return;
+
+    const spans = strengthContainer.querySelectorAll("span");
+    const textEl = strengthContainer.querySelector("small");
     const password = passwordInput.value;
+
     if (!password) {
-        strengthElement.removeAttribute("data-strength");
+        strengthContainer.removeAttribute("data-strength");
+        spans.forEach(span => span.style.backgroundColor = ""); // Trả về màu CSS mặc định
+        if (textEl) {
+            textEl.textContent = "Độ mạnh mật khẩu";
+            textEl.style.color = "";
+        }
         return;
     }
 
-    strengthElement.dataset.strength = getPasswordStrength(password);
+    const strength = getPasswordStrength(password);
+    strengthContainer.dataset.strength = strength.level;
+
+    // 3. Ép màu sắc trực tiếp lên thanh bar (Bypass lỗi thiếu CSS)
+    spans.forEach((span, index) => {
+        span.style.transition = "background-color 0.3s ease";
+        let shouldColor = false;
+
+        if (strength.level === "weak" && index === 0) shouldColor = true;
+        if (strength.level === "medium" && index <= 1) shouldColor = true;
+        if (strength.level === "strong" && index <= 2) shouldColor = true;
+
+        // Nếu thoả mãn điều kiện thì tô màu, nếu không thì trả về rỗng để CSS lo phần màu nền "trống"
+        span.style.backgroundColor = shouldColor ? strength.color : ""; 
+    });
+
+    if (textEl) {
+        textEl.textContent = `Độ mạnh: ${strength.text}`;
+        textEl.style.color = strength.color;
+    }
 }
 
 // --- FORM HANDLERS ---
@@ -182,13 +224,13 @@ function validateRegisterForm(form) {
 
     let isValid = true;
 
-    if (!validateRequired(nameInput, "Full name is required.")) isValid = false;
-    if (!validateRequired(usernameInput, "Username is required.")) isValid = false;
+    if (!validateRequired(nameInput, "Vui lòng nhập Họ và tên.")) isValid = false;
+    if (!validateRequired(usernameInput, "Vui lòng nhập Tên đăng nhập.")) isValid = false;
     if (!validateEmail(emailInput)) isValid = false;
     if (!validateRegisterPassword(passwordInput, confirmPasswordInput)) isValid = false;
 
     if (!termsInput.checked) {
-        if (termsError) termsError.textContent = "You must agree to continue.";
+        if (termsError) termsError.textContent = "Bạn phải đồng ý với điều khoản.";
         isValid = false;
     } else if (termsError) {
         termsError.textContent = "";
@@ -199,7 +241,7 @@ function validateRegisterForm(form) {
 
 async function handleLoginSubmit(form) {
     if (!validateLoginForm(form)) {
-        showToast("Sign In Blocked", "Please check your email and password.");
+        showToast("Lỗi Đăng Nhập", "Vui lòng kiểm tra lại email và mật khẩu.");
         return;
     }
 
@@ -215,26 +257,24 @@ async function handleLoginSubmit(form) {
             { auth: false }
         );
 
-        // Lấy dữ liệu từ cấu trúc của Backend thật
         const resultData = response.data || {};
         const token = response.token || resultData.token;
         const user = response.user || resultData.user;
 
         if (!token) {
-            throw new Error("Backend did not return token.");
+            throw new Error("Máy chủ không trả về token.");
         }
 
         apiClient.setAuthToken(token);
         if (user) apiClient.setAuthUser(user);
 
-        showToast("Signed In", response.message || "Welcome back to BrosGem.");
+        showToast("Đăng Nhập Thành Công", response.message || "Chào mừng trở lại BrosGem.");
 
-        // FIX CONFLICT: Sử dụng định tuyến trang chủ của nhánh Dev
         window.setTimeout(() => {
             window.location.href = "../index.html";
         }, 750);
     } catch (error) {
-        showToast("Sign In Failed", getApiErrorMessage(error, "Email or password is incorrect."));
+        showToast("Đăng Nhập Thất Bại", getApiErrorMessage(error, "Email hoặc mật khẩu không chính xác."));
     } finally {
         setFormBusy(form, false);
     }
@@ -242,7 +282,7 @@ async function handleLoginSubmit(form) {
 
 async function handleRegisterSubmit(form) {
     if (!validateRegisterForm(form)) {
-        showToast("Registration Blocked", "Please complete all required fields.");
+        showToast("Lỗi Đăng Ký", "Vui lòng điền đầy đủ các trường bắt buộc.");
         return;
     }
 
@@ -254,14 +294,12 @@ async function handleRegisterSubmit(form) {
     setFormBusy(form, true);
 
     try {
-        // Gọi API đăng ký
         await apiClient.post(
             "/auth/register",
             { full_name: fullName, username, email, password },
             { auth: false }
         );
 
-        // Đăng ký xong tự động đăng nhập (UX tốt từ nhánh Frontend)
         const loginResponse = await apiClient.post(
             "/auth/login",
             { email, password },
@@ -273,20 +311,19 @@ async function handleRegisterSubmit(form) {
         const user = loginResponse.user || resultData.user;
 
         if (!token) {
-            throw new Error("Account created, but backend did not return login token.");
+            throw new Error("Tạo tài khoản thành công nhưng không lấy được token đăng nhập.");
         }
 
         apiClient.setAuthToken(token);
         if (user) apiClient.setAuthUser(user);
 
-        showToast("Account Created", "Your unified member account is ready.");
+        showToast("Tạo Tài Khoản Thành Công", "Tài khoản thành viên đã sẵn sàng.");
 
-        // FIX CONFLICT: Chuyển hướng về trang chủ thay vì account
         window.setTimeout(() => {
             window.location.href = "../index.html";
         }, 850);
     } catch (error) {
-        showToast("Registration Failed", getApiErrorMessage(error, "Cannot create account right now."));
+        showToast("Đăng Ký Thất Bại", getApiErrorMessage(error, "Không thể tạo tài khoản lúc này."));
     } finally {
         setFormBusy(form, false);
     }
@@ -327,10 +364,12 @@ function bindDemoFillButtons() {
             if (passwordInput) {
                 passwordInput.value = button.dataset.password || "Member@123";
                 setFieldError(passwordInput, "");
+                
+                // Kích hoạt sự kiện input giả lập để thanh độ mạnh nhảy màu ngay khi bấm Demo Fill
+                passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
 
-            updatePasswordStrength();
-            showToast("Demo Filled", "Credentials have been filled. Make sure this user exists in your database.");
+            showToast("Đã điền dữ liệu mẫu", "Vui lòng kiểm tra chắc chắn user này có trong Database.");
         });
     });
 }
@@ -345,22 +384,22 @@ function bindPasswordToggles() {
 
             const shouldShow = input.type === "password";
             input.type = shouldShow ? "text" : "password";
-            button.textContent = shouldShow ? "HIDE" : "SHOW";
-            button.setAttribute("aria-label", shouldShow ? "Hide password" : "Show password");
+            button.textContent = shouldShow ? "ẨN" : "HIỆN";
+            button.setAttribute("aria-label", shouldShow ? "Ẩn mật khẩu" : "Hiện mật khẩu");
         });
     });
 }
 
 function bindPasswordStrength() {
-    const passwordInput = document.querySelector("[data-auth-password]");
-    if (!passwordInput) return;
-
-    passwordInput.addEventListener("input", updatePasswordStrength);
+    // FIX BUG: Phải lặp qua tất cả các field nhập pass (kể cả forgot-password) để gắn sự kiện
+    const passwordInputs = document.querySelectorAll("[data-auth-password], [data-new-password]");
+    passwordInputs.forEach(input => {
+        input.addEventListener("input", updatePasswordStrength);
+    });
 }
 
 function initAuthPage() {
     initTheme();
-    initI18n();
 
     initSiteHeader({
         hideAfter: 120,

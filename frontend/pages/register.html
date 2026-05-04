@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Register | BrosGem</title>
+    <title>Đăng Ký | BrosGem</title>
 
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/components.css" />
@@ -17,20 +17,20 @@
             <section class="auth-shell auth-shell-wide auth-shell-register">
                 <article class="auth-brand-panel auth-brand-panel-register">
                     <div class="auth-brand-inner auth-brand-inner-compact">
-                        <p class="eyebrow">Professional Account</p>
+                        <p class="eyebrow">Tài Khoản Chuyên Nghiệp</p>
 
-                        <h1>Collect. Bid. Sell.</h1>
+                        <h1>Sưu Tập. Trả Giá. Phân Phối.</h1>
 
                         <p class="auth-brand-copy">
-                            One verified member profile for live bidding, watchlists, selling requests, 
-                            and future settlement tracking.
+                            Một hồ sơ thành viên được xác thực cho mọi nhu cầu: đấu giá trực tiếp, danh sách theo dõi, yêu cầu bán hàng, 
+                            và theo dõi đối soát thanh toán trong tương lai.
                         </p>
 
                         <div class="auth-preview-card auth-preview-card-unified">
-                            <span>Unified Access</span>
-                            <strong>Member Account</strong>
+                            <span>Truy Cập Tích Hợp</span>
+                            <strong>Tài Khoản Thành Viên</strong>
                             <p>
-                                No role selection needed. Your account can support both collector and seller workflows.
+                                Không cần chọn vai trò. Tài khoản của bạn có thể hỗ trợ cả luồng công việc của nhà sưu tập và người bán.
                             </p>
                         </div>
                     </div>
@@ -38,20 +38,20 @@
 
                 <article class="auth-card auth-card-register-compact">
                     <div class="auth-card-heading auth-card-heading-compact">
-                        <p class="eyebrow">Join the circle</p>
-                        <h2>Register</h2>
-                        <p>Create your BrosGem member profile.</p>
+                        <p class="eyebrow">Gia nhập vòng tròn</p>
+                        <h2>Đăng Ký</h2>
+                        <p>Tạo hồ sơ thành viên BrosGem của bạn.</p>
                     </div>
 
                     <form class="auth-form auth-form-compact" data-auth-form data-auth-mode="register" novalidate>
                         <div class="auth-grid-2">
                             <label class="auth-field" for="registerFullName">
-                                <span>Full Name</span>
+                                <span>Họ và Tên</span>
                                 <input
                                     id="registerFullName"
                                     name="fullName"
                                     type="text"
-                                    placeholder="Alexander Vaughn"
+                                    placeholder="Ví dụ: Nguyễn Văn A"
                                     autocomplete="name"
                                     data-auth-name
                                     required
@@ -60,12 +60,12 @@
                             </label>
 
                             <label class="auth-field" for="registerUsername">
-                                <span>Username</span>
+                                <span>Tên Đăng Nhập</span>
                                 <input
                                     id="registerUsername"
                                     name="username"
                                     type="text"
-                                    placeholder="alexander.v"
+                                    placeholder="nguyen.vana"
                                     autocomplete="username"
                                     data-auth-username
                                     required
@@ -75,12 +75,12 @@
                         </div>
 
                         <label class="auth-field" for="registerEmail">
-                            <span>Email</span>
+                            <span>Thư điện tử (Email)</span>
                             <input
                                 id="registerEmail"
                                 name="email"
                                 type="email"
-                                placeholder="member@brosgem.com"
+                                placeholder="thanhvien@brosgem.com"
                                 autocomplete="email"
                                 data-auth-email
                                 required
@@ -90,7 +90,7 @@
 
                         <div class="auth-grid-2">
                             <label class="auth-field" for="registerPassword">
-                                <span>Password</span>
+                                <span>Mật khẩu</span>
 
                                 <div class="auth-password-shell">
                                     <input
@@ -108,9 +108,9 @@
                                         class="auth-password-toggle"
                                         data-password-toggle
                                         data-password-target="registerPassword"
-                                        aria-label="Show password"
+                                        aria-label="Hiển thị mật khẩu"
                                     >
-                                        SHOW
+                                        HIỆN
                                     </button>
                                 </div>
 
@@ -118,7 +118,7 @@
                             </label>
 
                             <label class="auth-field" for="registerConfirmPassword">
-                                <span>Confirm Password</span>
+                                <span>Xác nhận Mật khẩu</span>
 
                                 <div class="auth-password-shell">
                                     <input
@@ -136,9 +136,9 @@
                                         class="auth-password-toggle"
                                         data-password-toggle
                                         data-password-target="registerConfirmPassword"
-                                        aria-label="Show confirm password"
+                                        aria-label="Hiển thị mật khẩu xác nhận"
                                     >
-                                        SHOW
+                                        HIỆN
                                     </button>
                                 </div>
 
@@ -150,24 +150,24 @@
                             <span></span>
                             <span></span>
                             <span></span>
-                            <small>Password strength</small>
+                            <small>Độ mạnh mật khẩu</small>
                         </div>
 
                         <label class="auth-check auth-terms">
                             <input type="checkbox" name="terms" data-auth-terms required />
                             <span></span>
-                            I agree to the platform terms, verification policy, and auction rules.
+                            Tôi đồng ý với các điều khoản nền tảng, chính sách xác minh và quy định đấu giá.
                         </label>
                         <small class="auth-terms-error" data-terms-error></small>
 
                         <button type="submit" class="button button-primary auth-submit-button">
-                            Create Account
+                            Tạo Tài Khoản
                         </button>
                     </form>
 
                     <p class="auth-switch-copy">
-                        Already registered?
-                        <a href="./login.html">Sign in to your portfolio</a>
+                        Đã có tài khoản?
+                        <a href="./login.html">Đăng nhập vào danh mục của bạn</a>
                     </p>
                 </article>
             </section>
@@ -178,9 +178,7 @@
         <div data-site-footer data-base-path=".."></div>
     </div>
 
-    <!-- CỐ ĐỊNH: Nhúng Core API Client trước để tránh lỗi undefined[cite: 3, 5] -->
     <script src="../js/core/api-client.js"></script>
-
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>
     <script type="module" src="../js/modules/auth.js"></script>

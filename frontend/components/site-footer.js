@@ -1,3 +1,4 @@
+// frontend/components/site-footer.js
 const FOOTER_CONFIG = {
     brandName: "BrosGem",
     year: "2026"
@@ -18,17 +19,17 @@ function createFooterTemplate({ basePath = "." }) {
     return `
         <footer class="site-footer">
             <div>
-                <a href="${homeHref}" class="footer-brand" aria-label="${FOOTER_CONFIG.brandName} Home">
+                <a href="${homeHref}" class="footer-brand" aria-label="Trang chủ ${FOOTER_CONFIG.brandName}">
                     ${FOOTER_CONFIG.brandName}
                 </a>
-                <p>© ${FOOTER_CONFIG.year} ${FOOTER_CONFIG.brandName}. All rights reserved.</p>
+                <p>© ${FOOTER_CONFIG.year} ${FOOTER_CONFIG.brandName}. Đã đăng ký bản quyền.</p>
             </div>
 
-            <nav class="footer-links" aria-label="Footer navigation">
-                <a href="#">Terms of Service</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Shipping & Returns</a>
-                <a href="#">Contact Us</a>
+            <nav class="footer-links" aria-label="Điều hướng chân trang">
+                <a href="#">Điều khoản Dịch vụ</a>
+                <a href="#">Chính sách Bảo mật</a>
+                <a href="#">Giao hàng & Hoàn trả</a>
+                <a href="#">Liên hệ</a>
             </nav>
         </footer>
     `;

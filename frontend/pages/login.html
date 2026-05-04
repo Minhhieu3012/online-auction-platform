@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign In | BrosGem</title>
+    <title>Đăng Nhập | BrosGem</title>
 
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/components.css" />
@@ -11,49 +11,45 @@
 </head>
 <body>
     <div class="app-shell">
-        <!-- Header điều hướng -->
         <div data-site-header data-base-path=".." data-active-page="" data-header-action="register"></div>
 
         <main class="auth-page auth-page-login">
             <section class="auth-shell auth-shell-login">
-                <!-- Brand Panel: Chứa thông tin giới thiệu và Preview Card -->
                 <article class="auth-brand-panel auth-brand-panel-login">
                     <div class="auth-brand-inner auth-brand-inner-compact">
-                        <p class="eyebrow">Private Access</p>
+                        <p class="eyebrow">Truy Cập Cá Nhân</p>
 
-                        <h1>Return to your portfolio.</h1>
+                        <h1>Trở lại với danh mục của bạn.</h1>
 
                         <p class="auth-brand-copy">
-                            Monitor active bids, saved lots, selling requests, notifications, and settlement status from one refined member dashboard.
+                            Theo dõi các lượt giá đang diễn ra, lô hàng đã lưu, yêu cầu bán, thông báo và trạng thái thanh toán từ một bảng điều khiển thành viên duy nhất.
                         </p>
 
                         <div class="auth-preview-card auth-preview-card-unified">
-                            <span>Unified Member Portal</span>
-                            <strong>Bid + Sell Ready</strong>
+                            <span>Cổng Thành Viên Tích Hợp</span>
+                            <strong>Sẵn Sàng Mua & Bán</strong>
                             <p>
-                                One secure account can follow auctions, place bids, submit selling requests, and track payments.
+                                Một tài khoản bảo mật duy nhất có thể theo dõi các phiên đấu giá, đặt giá thầu, gửi yêu cầu bán hàng và theo dõi thanh toán.
                             </p>
                         </div>
                     </div>
                 </article>
 
-                <!-- Auth Card: Chứa Form đăng nhập chính -->
                 <article class="auth-card auth-card-login-compact">
                     <div class="auth-card-heading auth-card-heading-compact">
-                        <p class="eyebrow">Welcome back</p>
-                        <h2>Sign In</h2>
-                        <p>Access your BrosGem member dashboard.</p>
+                        <p class="eyebrow">Chào mừng trở lại</p>
+                        <h2>Đăng Nhập</h2>
+                        <p>Truy cập vào bảng điều khiển thành viên BrosGem của bạn.</p>
                     </div>
 
-                    <!-- TRẠM KIỂM SOÁT LOGIC: data-auth-form và data-auth-mode="login" là bắt buộc -->
                     <form class="auth-form auth-form-compact" data-auth-form data-auth-mode="login" novalidate>
                         <label class="auth-field" for="loginEmail">
-                            <span>Email</span>
+                            <span>Thư điện tử (Email)</span>
                             <input
                                 id="loginEmail"
                                 name="email"
                                 type="email"
-                                placeholder="member@brosgem.com"
+                                placeholder="thanhvien@brosgem.com"
                                 autocomplete="email"
                                 data-auth-email
                                 required
@@ -62,7 +58,7 @@
                         </label>
 
                         <label class="auth-field" for="loginPassword">
-                            <span>Password</span>
+                            <span>Mật khẩu</span>
 
                             <div class="auth-password-shell">
                                 <input
@@ -80,9 +76,9 @@
                                     class="auth-password-toggle"
                                     data-password-toggle
                                     data-password-target="loginPassword"
-                                    aria-label="Show password"
+                                    aria-label="Hiển thị mật khẩu"
                                 >
-                                    SHOW
+                                    HIỆN
                                 </button>
                             </div>
 
@@ -93,18 +89,18 @@
                             <label class="auth-check">
                                 <input type="checkbox" name="remember" />
                                 <span></span>
-                                Remember me
+                                Ghi nhớ đăng nhập
                             </label>
 
-                            <a href="./forgot-password.html" class="auth-mini-link">Forgot password?</a>
+                            <a href="./forgot-password.html" class="auth-mini-link">Quên mật khẩu?</a>
                         </div>
 
                         <button type="submit" class="button button-primary auth-submit-button">
-                            Sign In
+                            Đăng Nhập
                         </button>
 
                         <div class="auth-demo-box auth-demo-box-compact auth-demo-box-unified">
-                            <span>Demo</span>
+                            <span>Demo (Dùng thử)</span>
 
                             <button
                                 type="button"
@@ -112,26 +108,24 @@
                                 data-email="member@brosgem.com"
                                 data-password="Member@123"
                             >
-                                Unified Member
+                                Điền Tài Khoản Mẫu
                             </button>
                         </div>
                     </form>
 
                     <p class="auth-switch-copy">
-                        New to BrosGem?
-                        <a href="./register.html">Create a member account</a>
+                        Lần đầu đến với BrosGem?
+                        <a href="./register.html">Tạo tài khoản thành viên</a>
                     </p>
                 </article>
             </section>
         </main>
 
-        <!-- Toast Stack: Nơi hiển thị thông báo "Signed in" hoặc "Sign-in failed"[cite: 8] -->
         <div class="toast-stack" data-toast-stack aria-live="polite"></div>
 
         <div data-site-footer data-base-path=".."></div>
     </div>
 
-    <!-- THỨ TỰ SCRIPT: api-client.js PHẢI nạp trước auth.js để định nghĩa window.apiClient -->
     <script src="../js/core/api-client.js"></script>
 
     <script type="module" src="../components/site-header.js"></script>

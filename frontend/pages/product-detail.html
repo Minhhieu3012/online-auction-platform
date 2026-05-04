@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Auction Detail | BrosGem</title>
+    <title>Chi Tiết Đấu Giá | BrosGem</title>
 
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/components.css" />
@@ -17,77 +17,78 @@
             <section class="detail-grid">
                 <article class="product-column">
                     <div class="gallery-shell">
+                        <!-- FIX BUG ZOOM: Đảm bảo thuộc tính role="button" và data-gallery-frame nguyên vẹn để JS bắt được sự kiện click -->
                         <div
                             class="main-gallery-frame"
                             data-gallery-frame
                             role="button"
                             tabindex="0"
-                            aria-label="Open enlarged product image"
+                            aria-label="Mở ảnh kích thước lớn"
+                            style="cursor: zoom-in;"
                         >
-                            <img src="../assets/images/mockdata/1.png" alt="Auction product preview" data-main-image />
-                            <span class="gallery-status-badge" data-status-label data-i18n="detail.liveNow">Live Now</span>
-                            <span class="gallery-zoom-hint" data-i18n="detail.clickToEnlarge">Click to enlarge • Hover to inspect</span>
+                            <img src="../assets/images/mockdata/1.png" alt="Ảnh xem trước vật phẩm" data-main-image />
+                            <span class="gallery-status-badge" data-status-label>ĐANG DIỄN RA</span>
+                            <span class="gallery-zoom-hint">NHẤP ĐỂ PHÓNG TO • DI CHUỘT ĐỂ XEM CHI TIẾT</span>
                         </div>
 
                         <div class="thumbnail-grid" data-thumbnail-grid>
                             <button type="button" class="thumbnail-button is-active" data-thumbnail="../assets/images/mockdata/1.png">
-                                <img src="../assets/images/mockdata/1.png" alt="Product thumbnail 1" />
+                                <img src="../assets/images/mockdata/1.png" alt="Ảnh thu nhỏ 1" />
                             </button>
 
                             <button type="button" class="thumbnail-button" data-thumbnail="../assets/images/mockdata/2.png">
-                                <img src="../assets/images/mockdata/2.png" alt="Product thumbnail 2" />
+                                <img src="../assets/images/mockdata/2.png" alt="Ảnh thu nhỏ 2" />
                             </button>
 
                             <button type="button" class="thumbnail-button" data-thumbnail="../assets/images/mockdata/3.png">
-                                <img src="../assets/images/mockdata/3.png" alt="Product thumbnail 3" />
+                                <img src="../assets/images/mockdata/3.png" alt="Ảnh thu nhỏ 3" />
                             </button>
 
                             <button type="button" class="thumbnail-button thumbnail-more">
-                                +12 More
+                                +12 Ảnh
                             </button>
                         </div>
                     </div>
 
                     <section class="product-copy">
-                        <p class="eyebrow" data-lot-label>Lot #842 • Private Collection</p>
+                        <p class="eyebrow" data-lot-label>Lô #842 • Bộ Sưu Tập Cá Nhân</p>
                         <h1 data-product-title>The Midnight Chronograph</h1>
 
                         <p class="product-description" data-product-description>
-                            A singular masterpiece of horological engineering, this private-collection chronograph
-                            represents the pinnacle of modern artisanal watchmaking. Commissioned as a one-off
-                            prototype, the timepiece features a hand-skeletonized movement housed in brushed titanium
-                            with warm gold inlay.
+                            Một kiệt tác độc bản của kỹ thuật chế tác đồng hồ, chiếc đồng hồ bấm giờ thuộc bộ sưu tập tư nhân này
+                            đại diện cho đỉnh cao của nghệ thuật đồng hồ thủ công hiện đại. Được đặt làm riêng như một bản thử nghiệm (prototype) duy nhất,
+                            tuyệt tác này sở hữu bộ máy chạm trổ tinh xảo bằng tay, bọc trong lớp vỏ titanium xước mờ kết hợp với các đường nét vàng nguyên khối ấm áp.
                         </p>
 
                         <div class="product-facts">
                             <div>
-                                <span class="field-label" data-i18n="detail.provenance">Provenance</span>
-                                <p data-provenance>Acquired from a private Swiss estate. First time appearing at public auction.</p>
+                                <span class="field-label">Nguồn Gốc (Provenance)</span>
+                                <p data-provenance>Được mua lại từ một khu bất động sản tư nhân ở Thụy Sĩ. Lần đầu tiên xuất hiện tại phiên đấu giá công khai.</p>
                             </div>
 
                             <div>
-                                <span class="field-label" data-i18n="detail.condition">Condition</span>
-                                <p data-condition>Mint condition, original documentation and presentation case included.</p>
+                                <span class="field-label">Tình Trạng (Condition)</span>
+                                <p data-condition>Tình trạng hoàn hảo (Mint condition), đi kèm đầy đủ tài liệu gốc và hộp trưng bày nguyên bản.</p>
                             </div>
                         </div>
 
                         <div class="auction-protocol-box">
-                            <h2 data-i18n="detail.auctionProtocol">Auction Protocol</h2>
+                            <h2>Giao Thức Đấu Giá</h2>
 
                             <div class="protocol-stats">
                                 <div>
-                                    <span class="field-label" data-i18n="detail.startingPrice">Starting Price</span>
+                                    <span class="field-label">Giá Khởi Điểm</span>
                                     <strong data-starting-price>$145,000</strong>
                                 </div>
 
                                 <div>
-                                    <span class="field-label" data-i18n="detail.bidIncrement">Bid Increment</span>
+                                    <span class="field-label">Bước Giá Tối Thiểu</span>
                                     <strong data-increment>$5,000</strong>
                                 </div>
 
                                 <div>
-                                    <span class="field-label" data-i18n="detail.auctionType">Auction Type</span>
-                                    <strong data-i18n="detail.english">English</strong>
+                                    <span class="field-label">Mô Hình Đấu Giá</span>
+                                    <strong>Kiểu Anh (Tăng Dần)</strong>
                                 </div>
                             </div>
                         </div>
@@ -97,36 +98,36 @@
                 <aside class="bidding-column">
                     <section class="bid-panel">
                         <div class="bid-panel-top">
-                            <span class="field-label" data-i18n="detail.currentBid">Current Bid</span>
-                            <span class="live-chip" data-live-chip data-i18n="detail.liveNow">Live Now</span>
+                            <span class="field-label">GIÁ HIỆN TẠI</span>
+                            <span class="live-chip" data-live-chip>ĐANG DIỄN RA</span>
                         </div>
 
                         <strong class="current-bid" data-current-bid>$285,000</strong>
 
                         <div class="countdown-panel">
                             <div class="countdown-panel-header">
-                                <span data-i18n="detail.closingIn">Closing In</span>
-                                <span data-i18n="detail.estimatedFinish">Estimated Finish</span>
+                                <span>KẾT THÚC TRONG</span>
+                                <span>THỜI GIAN DỰ KIẾN</span>
                             </div>
 
                             <div class="countdown-grid">
                                 <div>
                                     <strong data-countdown-hours>04</strong>
-                                    <span data-i18n="detail.hours">Hours</span>
+                                    <span>GIỜ</span>
                                 </div>
 
                                 <div class="countdown-divider">:</div>
 
                                 <div>
                                     <strong data-countdown-minutes>12</strong>
-                                    <span data-i18n="detail.minutes">Minutes</span>
+                                    <span>PHÚT</span>
                                 </div>
 
                                 <div class="countdown-divider">:</div>
 
                                 <div>
                                     <strong data-countdown-seconds>48</strong>
-                                    <span data-i18n="detail.seconds">Seconds</span>
+                                    <span>GIÂY</span>
                                 </div>
                             </div>
                         </div>
@@ -142,19 +143,19 @@
                                     placeholder="290,000"
                                     data-bid-input
                                 />
-                                <small data-minimum-bid>Min bid: $290,000</small>
+                                <small data-minimum-bid>Giá Tối Thiểu: $290,000</small>
                             </label>
 
                             <label class="proxy-row">
                                 <input type="checkbox" data-proxy-toggle />
                                 <span class="custom-checkbox"></span>
-                                <span data-i18n="detail.enableProxy">Enable Proxy Bidding</span>
+                                <span>Bật Trả Giá Tự Động (Proxy)</span>
 
                                 <button
                                     type="button"
                                     class="proxy-info-button"
-                                    aria-label="Proxy bidding information"
-                                    data-tooltip="Proxy bidding lets you set your maximum price. The system will automatically raise your bid by the minimum increment only when needed, helping you stay leading without manually bidding every time."
+                                    aria-label="Thông tin trả giá proxy"
+                                    data-tooltip="Trả giá proxy cho phép bạn thiết lập một hạn mức giá tối đa. Hệ thống sẽ tự động nâng giá của bạn theo từng bước giá tối thiểu chỉ khi có người khác trả cao hơn, giúp bạn luôn giữ vị thế dẫn đầu mà không cần phải canh chừng liên tục."
                                 >
                                     i
                                 </button>
@@ -162,7 +163,7 @@
 
                             <div class="proxy-settings" data-proxy-settings hidden>
                                 <label class="proxy-max-field" for="proxyMaxInput">
-                                    <span data-i18n="detail.maxBidLimit">Maximum bid limit</span>
+                                    <span>Hạn Mức Giá Tối Đa Của Bạn</span>
                                     <input
                                         id="proxyMaxInput"
                                         type="number"
@@ -172,45 +173,45 @@
                                 </label>
                             </div>
 
-                            <button type="submit" class="button button-primary place-bid-button" data-i18n="detail.placeBid">
-                                Place Bid Now
+                            <button type="submit" class="button button-primary place-bid-button">
+                                ĐẶT GIÁ NGAY
                             </button>
                         </form>
                     </section>
 
                     <section class="bid-history-panel">
                         <div class="bid-history-header">
-                            <h2 data-i18n="detail.bidHistory">Bid History</h2>
-                            <span data-active-bids>24 Active Bids</span>
+                            <h2>LỊCH SỬ TRẢ GIÁ</h2>
+                            <span data-active-bids>24 LƯỢT GIÁ</span>
                         </div>
 
                         <div class="bid-history-table">
                             <div class="bid-history-row bid-history-head">
-                                <span data-i18n="detail.bidder">Bidder</span>
-                                <span data-i18n="detail.amount">Amount</span>
-                                <span data-i18n="detail.time">Time</span>
+                                <span>Thành Viên</span>
+                                <span>Mức Giá</span>
+                                <span>Thời Gian</span>
                             </div>
 
                             <div data-bid-history></div>
                         </div>
 
-                        <button type="button" class="download-history-button" data-i18n="detail.downloadHistory">
-                            Download Full History
+                        <button type="button" class="download-history-button">
+                            Tải Xuống Lịch Sử Chi Tiết
                         </button>
                     </section>
 
                     <section class="simulation-panel">
-                        <h2 data-i18n="detail.uiSimulation">UI Simulation</h2>
-                        <p data-i18n="detail.uiSimulationDesc">
-                            Use these buttons to test states before connecting backend and Socket.io.
+                        <h2>Giao Diện Trải Nghiệm (Demo)</h2>
+                        <p>
+                            Sử dụng các nút bên dưới để kiểm tra hiệu ứng giao diện trước khi kết nối với máy chủ Backend và Socket.io.
                         </p>
 
                         <div class="simulation-actions">
-                            <button type="button" class="button button-outline" data-simulate-bid data-i18n="detail.simulateBid">
-                                Simulate New Bid
+                            <button type="button" class="button button-outline" data-simulate-bid>
+                                Giả Lập Có Người Đặt Giá
                             </button>
-                            <button type="button" class="button button-outline" data-simulate-soft-close data-i18n="detail.simulateSoftClose">
-                                Simulate Soft Close
+                            <button type="button" class="button button-outline" data-simulate-soft-close>
+                                Giả Lập Cộng Giờ (+30s)
                             </button>
                         </div>
                     </section>
@@ -219,25 +220,25 @@
         </main>
 
         <div class="image-lightbox" data-image-lightbox hidden>
-            <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close image preview">
+            <button type="button" class="lightbox-close" data-lightbox-close aria-label="Đóng ảnh">
                 ×
             </button>
 
-            <button type="button" class="lightbox-nav lightbox-prev" data-lightbox-prev aria-label="Previous image">
+            <button type="button" class="lightbox-nav lightbox-prev" data-lightbox-prev aria-label="Ảnh trước">
                 ‹
             </button>
 
             <figure class="lightbox-figure">
                 <div class="lightbox-image-frame" data-lightbox-frame>
-                    <img src="../assets/images/mockdata/1.png" alt="Large product preview" data-lightbox-image />
+                    <img src="../assets/images/mockdata/1.png" alt="Ảnh chi tiết cỡ lớn" data-lightbox-image />
                 </div>
 
-                <figcaption data-lightbox-caption data-i18n="detail.lightboxCaption">
-                    Move your cursor across the image to inspect details.
+                <figcaption data-lightbox-caption>
+                    Di chuyển con trỏ chuột qua hình ảnh để soi chi tiết bề mặt.
                 </figcaption>
             </figure>
 
-            <button type="button" class="lightbox-nav lightbox-next" data-lightbox-next aria-label="Next image">
+            <button type="button" class="lightbox-nav lightbox-next" data-lightbox-next aria-label="Ảnh tiếp">
                 ›
             </button>
         </div>
@@ -252,10 +253,7 @@
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>
     
-    <!-- 1. Nạp bộ khung API Client trước (để tạo ra window.apiClient) -->
     <script src="../js/core/api-client.js"></script>
-
-    <!-- 2. Sau đó mới nạp logic đấu giá (để sử dụng window.apiClient ở trên) -->
     <script type="module" src="../js/modules/auction-detail.js"></script>
 </body>
 </html>

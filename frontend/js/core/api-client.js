@@ -1,9 +1,10 @@
+// frontend/js/core/api-client.js
 import CONFIG from "./config.js";
 import storage from "./storage.js";
 
 /**
  * Frontend Core: API Client
- * Đã hợp nhất: Cấu trúc request mạnh mẽ từ nhánh frontend & tự động xử lý 401 Auth từ dev.
+ * Cầu nối giao tiếp trực tiếp với Backend Node.js
  */
 
 class ApiError extends Error {
@@ -34,7 +35,6 @@ function generateRequestId() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
         const random = Math.random() * 16 | 0;
         const value = char === "x" ? random : (random & 0x3 | 0x8);
-
         return value.toString(16);
     });
 }
@@ -43,29 +43,25 @@ function normalizeEndpoint(endpoint) {
     if (!endpoint) {
         return "/";
     }
-
     return endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 }
 
 function buildUrl(endpoint, query = null) {
-    const baseUrl = CONFIG.API.BASE_URL.replace(/\/$/, "");
+    // Ép cứng fallback port 3000 để chạy local chuẩn xác với Backend
+    const baseUrl = (CONFIG?.API?.BASE_URL || 'http://localhost:3000/api').replace(/\/$/, "");
     const normalizedEndpoint = normalizeEndpoint(endpoint);
     const url = new URL(`${baseUrl}${normalizedEndpoint}`);
 
     if (query && typeof query === "object") {
         Object.entries(query).forEach(([key, value]) => {
-            if (value === undefined || value === null || value === "") {
-                return;
-            }
+            if (value === undefined || value === null || value === "") return;
 
             if (Array.isArray(value)) {
                 value.forEach((item) => {
                     url.searchParams.append(key, item);
                 });
-
                 return;
             }
-
             url.searchParams.set(key, value);
         });
     }
@@ -74,7 +70,7 @@ function buildUrl(endpoint, query = null) {
 }
 
 function getAuthToken() {
-    return storage.getRaw(CONFIG.AUTH_TOKEN_KEY)
+    return storage.getRaw("auth_token")
         || storage.get("jwt_token")
         || window.localStorage.getItem("jwt_token")
         || null;
@@ -82,45 +78,39 @@ function getAuthToken() {
 
 function setAuthToken(token) {
     if (!token) {
-        storage.remove(CONFIG.AUTH_TOKEN_KEY);
+        storage.remove("auth_token");
         window.localStorage.removeItem("jwt_token");
         return;
     }
-
-    storage.setRaw(CONFIG.AUTH_TOKEN_KEY, token);
+    storage.setRaw("auth_token", token);
     window.localStorage.setItem("jwt_token", token);
 }
 
 function getAuthUser() {
-    return storage.get(CONFIG.AUTH_USER_KEY, null);
+    return storage.get("auth_user", null);
 }
 
 function setAuthUser(user) {
     if (!user) {
-        storage.remove(CONFIG.AUTH_USER_KEY);
+        storage.remove("auth_user");
         return;
     }
-
-    storage.set(CONFIG.AUTH_USER_KEY, user);
+    storage.set("auth_user", user);
 }
 
 function clearAuth() {
-    storage.remove(CONFIG.AUTH_TOKEN_KEY);
-    storage.remove(CONFIG.AUTH_USER_KEY);
+    storage.remove("auth_token");
+    storage.remove("auth_user");
     window.localStorage.removeItem("jwt_token");
 }
 
 function createTimeoutController(timeoutMs) {
     const controller = new AbortController();
-
     const timeoutId = window.setTimeout(() => {
         controller.abort();
     }, timeoutMs);
 
-    return {
-        controller,
-        timeoutId
-    };
+    return { controller, timeoutId };
 }
 
 async function parseResponseBody(response) {
@@ -135,7 +125,6 @@ async function parseResponseBody(response) {
     }
 
     const text = await response.text();
-
     return {
         success: response.ok,
         message: text
@@ -150,7 +139,7 @@ const apiClient = {
             query = null,
             headers = {},
             auth = true,
-            timeoutMs = CONFIG.API.TIMEOUT_MS,
+            timeoutMs = CONFIG?.API?.TIMEOUT_MS || 10000,
             idempotency = true
         } = options;
 
@@ -196,8 +185,7 @@ const apiClient = {
             const payload = await parseResponseBody(response);
 
             if (!response.ok || payload?.success === false) {
-                
-                // Tích hợp logic xử lý 401 từ nhánh dev
+                // Tích hợp logic xử lý 401 Auth
                 if (response.status === 401 && !endpoint.includes('/login') && !endpoint.includes('/auth')) {
                     console.warn('[API Client] Phiên làm việc hết hạn hoặc không hợp lệ.');
                     clearAuth();
@@ -219,7 +207,7 @@ const apiClient = {
                 throw new ApiError({
                     status: 408,
                     errorCode: "REQUEST_TIMEOUT",
-                    message: "Request quá thời gian chờ. Vui lòng thử lại.",
+                    message: "Yêu cầu vượt quá thời gian chờ. Vui lòng thử lại.",
                     endpoint,
                     method: upperMethod
                 });
@@ -232,7 +220,7 @@ const apiClient = {
             throw new ApiError({
                 status: 0,
                 errorCode: "NETWORK_ERROR",
-                message: "Không thể kết nối đến backend. Kiểm tra server hoặc CORS.",
+                message: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng hoặc CORS.",
                 data: error,
                 endpoint,
                 method: upperMethod
@@ -243,49 +231,23 @@ const apiClient = {
     },
 
     get(endpoint, query = null, options = {}) {
-        return this.request(endpoint, {
-            ...options,
-            method: "GET",
-            query
-        });
+        return this.request(endpoint, { ...options, method: "GET", query });
     },
-
     post(endpoint, body = null, options = {}) {
-        return this.request(endpoint, {
-            ...options,
-            method: "POST",
-            body
-        });
+        return this.request(endpoint, { ...options, method: "POST", body });
     },
-
     put(endpoint, body = null, options = {}) {
-        return this.request(endpoint, {
-            ...options,
-            method: "PUT",
-            body
-        });
+        return this.request(endpoint, { ...options, method: "PUT", body });
     },
-
     patch(endpoint, body = null, options = {}) {
-        return this.request(endpoint, {
-            ...options,
-            method: "PATCH",
-            body
-        });
+        return this.request(endpoint, { ...options, method: "PATCH", body });
     },
-
     delete(endpoint, options = {}) {
-        return this.request(endpoint, {
-            ...options,
-            method: "DELETE"
-        });
+        return this.request(endpoint, { ...options, method: "DELETE" });
     },
 
     async health() {
-        return this.get("/health", null, {
-            auth: false,
-            idempotency: false
-        });
+        return this.get("/health", null, { auth: false, idempotency: false });
     },
 
     getAuthToken,
@@ -297,9 +259,5 @@ const apiClient = {
 
 window.apiClient = apiClient;
 
-export {
-    ApiError,
-    apiClient
-};
-
+export { ApiError, apiClient };
 export default apiClient;

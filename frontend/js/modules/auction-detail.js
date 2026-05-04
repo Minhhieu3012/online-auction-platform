@@ -1,9 +1,9 @@
+// frontend/js/modules/auction-detail.js
 /**
  * Auction Detail Module
- * Đã kết hợp: Giao diện đầy đủ (Countdown, History, Images, i18n) + Logic API thật + Real-time Socket.io
+ * Đã kết hợp: Giao diện đầy đủ + Logic API Backend thật + Real-time Socket.io + Dịch TV
  */
 import { initTheme } from "../core/theme.js";
-import { initI18n, t, onLanguageChange } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
 import apiClient from "../core/api-client.js";
 
@@ -16,11 +16,9 @@ const FALLBACK_IMAGES = [
 let auction = null;
 let activeImageIndex = 0;
 let countdownInterval = null;
-
 const elements = {};
 
 // --- HÀM TRỢ GIÚP (UI HELPERS) ---
-
 function cacheElements() {
   elements.mainImage = document.querySelector("[data-main-image]");
   elements.thumbnailGrid = document.querySelector("[data-thumbnail-grid]");
@@ -35,14 +33,12 @@ function cacheElements() {
   elements.seconds = document.querySelector("[data-countdown-seconds]");
   elements.toastStack = document.querySelector("[data-toast-stack]");
 
-  // Nút giả lập & Proxy
   elements.simulateBid = document.querySelector("[data-simulate-bid]");
   elements.simulateSoftClose = document.querySelector("[data-simulate-soft-close]");
   elements.proxyToggle = document.querySelector("[data-proxy-toggle]");
   elements.proxyMax = document.querySelector("[data-proxy-max]");
   elements.proxySettings = document.querySelector("[data-proxy-settings]");
 
-  // UI & Detail info
   elements.statusLabel = document.querySelector("[data-status-label]");
   elements.lotLabel = document.querySelector("[data-lot-label]");
   elements.productTitle = document.querySelector("[data-product-title]");
@@ -52,7 +48,6 @@ function cacheElements() {
   elements.startingPrice = document.querySelector("[data-starting-price]");
   elements.increment = document.querySelector("[data-increment]");
 
-  // Lightbox
   elements.lightbox = document.querySelector("[data-image-lightbox]");
   elements.lightboxImage = document.querySelector("[data-lightbox-image]");
   elements.lightboxFrame = document.querySelector("[data-lightbox-frame]");
@@ -73,16 +68,13 @@ function requireLoginForBid() {
   const user = apiClient.getAuthUser();
 
   if (!token || !user) {
-    showToast("Login Required", "Please sign in before placing a bid.", "warning");
-
+    showToast("Yêu Cầu Đăng Nhập", "Vui lòng đăng nhập trước khi đặt giá.", "warning");
     window.setTimeout(() => {
       const currentUrl = `${window.location.pathname}${window.location.search}`;
       window.location.href = `./login.html?redirect=${encodeURIComponent(currentUrl)}`;
     }, 1500);
-
     return false;
   }
-
   return true;
 }
 
@@ -94,17 +86,14 @@ function setBidFormBusy(isBusy) {
     control.disabled = isBusy;
   });
 
-  if (!submitButton) {
-    return;
-  }
+  if (!submitButton) return;
 
   if (isBusy) {
     submitButton.dataset.originalText = submitButton.textContent.trim();
-    submitButton.textContent = "Placing Bid...";
+    submitButton.textContent = "Đang xử lý...";
     return;
   }
-
-  submitButton.textContent = submitButton.dataset.originalText || "Place Bid Now";
+  submitButton.textContent = submitButton.dataset.originalText || "ĐẶT GIÁ NGAY";
 }
 
 function formatMoney(value) {
@@ -125,31 +114,36 @@ function getFallbackImage(id) {
 }
 
 function normalizeStatus(status) {
-  return String(status || "Active").trim();
+  const statusMap = {
+      active: "ĐANG DIỄN RA",
+      scheduled: "ĐÃ LÊN LỊCH",
+      closing: "SẮP ĐÓNG",
+      ended: "ĐÃ KẾT THÚC",
+      payment_pending: "CHỜ THANH TOÁN"
+  };
+  return statusMap[String(status).toLowerCase()] || "ĐANG DIỄN RA";
 }
 
 function formatBidTime(value) {
-  if (!value) return "Just now";
-
+  if (!value) return "Vừa xong";
   const time = new Date(value).getTime();
   if (!time) return String(value);
 
   const diffMs = Math.max(0, Date.now() - time);
   const diffMinutes = Math.floor(diffMs / 60000);
 
-  if (diffMinutes < 1) return "Just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
   const diffDays = Math.floor(diffHours / 24);
-
-  return `${diffDays}d ago`;
+  return `${diffDays} ngày trước`;
 }
 
 function normalizeAuction(rawAuction) {
   const id = rawAuction.id;
   const image = rawAuction.imageUrl || rawAuction.image_url || getFallbackImage(id);
-  const title = rawAuction.title || rawAuction.productName || rawAuction.product_name || "Untitled Auction Lot";
+  const title = rawAuction.title || rawAuction.productName || rawAuction.product_name || "Vật phẩm chưa đặt tên";
   const currentPrice = Number(rawAuction.currentPrice || rawAuction.current_price || 0);
   const stepPrice = Number(rawAuction.stepPrice || rawAuction.step_price || 0);
 
@@ -164,17 +158,17 @@ function normalizeAuction(rawAuction) {
 
   return {
     id,
-    lot: rawAuction.lot || `Lot #${String(id).padStart(3, "0")} • ${rawAuction.category || "Private Collection"}`,
+    lot: rawAuction.lot || `Lô #${String(id).padStart(3, "0")} • ${rawAuction.category || "Bộ Sưu Tập Tư Nhân"}`,
     title,
-    description: rawAuction.description || "Auction detail is being prepared by the specialist team.",
+    description: rawAuction.description || "Thông tin chi tiết đang được chuẩn bị bởi đội ngũ chuyên gia.",
     provenance: rawAuction.sellerUsername
-      ? `Submitted by ${rawAuction.sellerUsername}. Additional provenance documents pending backend expansion.`
-      : "Provenance information will be updated after specialist verification.",
-    condition: "Condition report will be connected in a later backend scope.",
+      ? `Người đăng: ${rawAuction.sellerUsername}. Các tài liệu chứng thực đang được kiểm duyệt.`
+      : "Thông tin nguồn gốc sẽ được cập nhật sau khi chuyên gia xác minh.",
+    condition: "Báo cáo tình trạng sẽ được đồng bộ trong bản cập nhật sau.",
     status: normalizeStatus(rawAuction.status),
     currentBid: currentPrice,
     startingPrice: currentPrice,
-    increment: stepPrice || 100,
+    increment: stepPrice || 1000,
     endTime: new Date(rawAuction.endTime || rawAuction.end_time || Date.now()).getTime(),
     activeBids: Number(rawAuction.bidCount || rawAuction.bid_count || bidHistory.length || 0),
     has360: false,
@@ -198,19 +192,14 @@ function showToast(title, message, type = "info") {
     `;
 
   elements.toastStack.appendChild(toast);
-
   window.setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(-6px)";
   }, 3200);
-
-  window.setTimeout(() => {
-    toast.remove();
-  }, 3800);
+  window.setTimeout(() => toast.remove(), 3800);
 }
 
 // --- LOGIC HÌNH ẢNH (GALLERY & LIGHTBOX) ---
-
 function getActiveImage() {
   return auction.images[activeImageIndex] || auction.images[0];
 }
@@ -232,7 +221,6 @@ function setActiveImage(index) {
 
 function renderGallery() {
   if (!elements.thumbnailGrid) return;
-
   elements.thumbnailGrid.innerHTML = auction.images
     .map(
       (img, index) => `
@@ -242,16 +230,14 @@ function renderGallery() {
             data-thumbnail="${img}"
             data-thumbnail-index="${index}"
         >
-            <img src="${img}" alt="${auction.title} thumbnail ${index + 1}" />
+            <img src="${img}" alt="Ảnh thu nhỏ ${index + 1}" />
         </button>
     `,
-    )
-    .join("");
+    ).join("");
 
   elements.thumbnailGrid.querySelectorAll(".thumbnail-button").forEach((btn) => {
     btn.addEventListener("click", () => setActiveImage(Number(btn.dataset.thumbnailIndex)));
   });
-
   setActiveImage(0);
 }
 
@@ -260,20 +246,12 @@ function openLightbox() {
   elements.lightbox.hidden = false;
   document.body.classList.add("is-menu-open");
   elements.lightboxImage.src = getActiveImage();
-  elements.lightboxImage.alt = `${auction.title} enlarged preview`;
-  if (elements.lightboxCaption) {
-    elements.lightboxCaption.textContent = auction.has360
-      ? t("detail.lightboxCaption360")
-      : t("detail.lightboxCaption");
-  }
 }
 
 function closeLightbox() {
   if (!elements.lightbox) return;
   elements.lightbox.hidden = true;
   document.body.classList.remove("is-menu-open");
-  if (elements.lightboxFrame) elements.lightboxFrame.classList.remove("is-zooming");
-  if (elements.lightboxImage) elements.lightboxImage.style.transformOrigin = "center";
 }
 
 function showPreviousImage() {
@@ -287,40 +265,33 @@ function showNextImage() {
 }
 
 // --- LOGIC ĐẶT GIÁ THỜI GIAN THỰC (API & SOCKET.IO) ---
-
 function updateUIWithNewBid(data) {
-  // 1. Cập nhật dữ liệu Auction cục bộ
   auction.currentBid = Number(data.bidAmount || data.price || data.amount);
   auction.activeBids += 1;
 
-  // 2. Cập nhật thời gian nếu có Anti-sniping
   if (data.newEndTime) {
     const parsedEndTime = /^\d+$/.test(String(data.newEndTime))
-      ? Number(data.newEndTime)
-      : new Date(data.newEndTime).getTime();
+      ? Number(data.newEndTime) : new Date(data.newEndTime).getTime();
 
     if (parsedEndTime > auction.endTime) {
       auction.endTime = parsedEndTime;
       updateCountdown();
-      showToast("Phiên gia hạn", "Có người đặt giá phút chót, phiên đấu giá được cộng thêm thời gian!", "info");
+      showToast("Gia hạn thời gian", "Có lượt trả giá phút chót! Hệ thống tự động kích hoạt tính năng Anti-Sniping.", "info");
     }
   }
 
-  // 3. Thêm vào lịch sử hiển thị
   auction.bidHistory.forEach((b) => (b.highlight = false));
   auction.bidHistory.unshift({
-    bidder: data.bidder || data.user_id || data.userId || "Anonymous",
+    bidder: data.bidder || data.user_id || data.userId || "Ẩn danh",
     amount: auction.currentBid,
-    time: "Just now",
+    time: "Vừa xong",
     highlight: true,
   });
   auction.bidHistory = auction.bidHistory.slice(0, 10);
 
-  // 4. Render lại UI
   renderBidPanel();
   renderBidHistory();
 
-  // 5. Hiệu ứng visual (từ nhánh dev)
   if (elements.currentBid) {
     elements.currentBid.classList.add("highlight-pulse");
     setTimeout(() => elements.currentBid.classList.remove("highlight-pulse"), 1000);
@@ -329,55 +300,46 @@ function updateUIWithNewBid(data) {
 
 function bindSocketEvents() {
   if (!window.socketClient) {
-    console.warn("[Socket] socketClient chưa được khởi tạo.");
+    console.warn("[Socket] Thư viện socketClient chưa được tải.");
     return;
   }
 
-  // 1. Kết nối vào đúng Room của phiên đấu giá
   window.socketClient.connect(auction.id);
 
-  // 2. Lắng nghe có người đặt giá mới
   window.socketClient.on("new_bid", (data) => {
     updateUIWithNewBid(data);
   });
 
-  // 3. Lắng nghe gia hạn thời gian (AI)
   window.socketClient.on("auction_extended", (data) => {
     const parsedEndTime = new Date(data.newEndTime || data.end_time).getTime();
     if (parsedEndTime > auction.endTime) {
       auction.endTime = parsedEndTime;
       updateCountdown();
-      showToast("Phiên gia hạn", `Hệ thống AI vừa cộng thêm ${data.extend_by || 30}s!`, "info");
+      showToast("Cộng giờ tự động", `Hệ thống AI vừa cộng thêm thời gian để đảm bảo công bằng!`, "info");
     }
   });
 
-  // 4. Lắng nghe cảnh báo gian lận
-  window.socketClient.on("fraud_detected", (data) => {
-    showToast("Cảnh báo an ninh", "Hệ thống AI phát hiện dấu hiệu mồi giá!", "warning");
+  window.socketClient.on("fraud_detected", () => {
+    showToast("Cảnh báo an ninh", "Phát hiện thao túng giá, hệ thống đã ghi nhận.", "warning");
   });
 
-  // 5. TRÙM CUỐI: Lắng nghe thông báo kết thúc & Thanh toán
   window.socketClient.on("auction_winner", (data) => {
     const currentUser = window.apiClient.getAuthUser();
 
-    // Nếu mình chính là người chiến thắng
     if (currentUser && String(currentUser.id) === String(data.userId)) {
-      showToast("🎉 BẠN ĐÃ CHIẾN THẮNG!", "Vui lòng thanh toán để nhận hàng.", "success");
-
-      // Xóa form đặt giá và thay bằng nút Stripe Checkout
+      showToast("🎉 BẠN ĐÃ THẮNG!", "Hãy tiến hành thanh toán để nhận tài sản.", "success");
       if (elements.bidForm) {
         elements.bidForm.innerHTML = `
                     <div style="text-align: center; margin-top: 15px;">
                         <h3 style="color: #4CAF50; margin-bottom: 10px;">Bạn đã thắng với giá $${data.amount}</h3>
-                        <a href="${data.paymentUrl}" class="button is-primary is-large" style="width: 100%; background-color: #635bff; color: white;">
-                            💳 Thanh toán qua Stripe Ngay
+                        <a href="${data.paymentUrl || './checkout.html'}" class="button is-primary is-large" style="width: 100%; background-color: #635bff; color: white;">
+                            💳 Thanh Toán Stripe
                         </a>
                     </div>
                 `;
       }
     } else {
-      // Nếu người khác thắng
-      showToast("Phiên đã kết thúc", `Người dùng ${data.userId} đã chiến thắng.`, "info");
+      showToast("Đã Kết Thúc", "Phiên đấu giá đã khép lại.", "info");
       if (elements.bidForm) {
         elements.bidForm.innerHTML = `<p style="text-align: center; color: red;">Phiên đấu giá đã khép lại.</p>`;
       }
@@ -389,19 +351,18 @@ async function handleManualBid(event) {
   event.preventDefault();
 
   if (!auction) {
-    showToast("Auction Loading", "Please wait until auction detail is loaded.");
+    showToast("Đang Tải", "Vui lòng chờ dữ liệu tải xong.");
     return;
   }
 
   if (!requireLoginForBid()) return;
 
-  // LÀM SẠCH DỮ LIỆU: Loại bỏ ký tự lạ
   const rawValue = elements.bidInput.value.replace(/[^0-9.]/g, "");
   const bidValue = Number(rawValue);
   const minimumBid = getMinimumBid();
 
   if (!bidValue || bidValue < minimumBid) {
-    showToast(t("toast.bidRejected"), t("toast.bidRejectedDesc", { amount: formatMoney(minimumBid) }), "warning");
+    showToast("Từ Chối Lượt Giá", `Giá trị phải lớn hơn hoặc bằng ${formatMoney(minimumBid)}`, "warning");
     return;
   }
 
@@ -409,7 +370,7 @@ async function handleManualBid(event) {
   const proxyMax = Number(elements.proxyMax?.value);
 
   if (proxyEnabled && (!proxyMax || proxyMax < bidValue)) {
-    showToast(t("toast.proxyInvalid"), t("toast.proxyInvalidDesc"), "warning");
+    showToast("Lỗi Proxy", "Hạn mức Proxy phải cao hơn mức giá bạn nhập.", "warning");
     return;
   }
 
@@ -418,32 +379,25 @@ async function handleManualBid(event) {
   try {
     if (proxyEnabled) {
       await apiClient.post(`/auctions/${auction.id}/autobid`, { maxAmount: proxyMax });
-      showToast("Proxy Enabled", `Proxy bidding limit set to ${formatMoney(proxyMax)}.`);
+      showToast("Đã bật Proxy", `Hệ thống sẽ thay bạn trả giá đến ngưỡng ${formatMoney(proxyMax)}.`);
     }
 
-    // GỌI API ĐẶT GIÁ
     const response = await apiClient.post(`/auctions/${auction.id}/bids`, {
       bidAmount: bidValue,
     });
 
     if (response.success) {
-      showToast("Thành công", "Giá thầu đã được gửi. Đang chờ hệ thống đồng bộ...", "success");
+      showToast("Thành công", "Lệnh đã gửi vào Kafka. Đang chờ đồng bộ...", "success");
       elements.bidInput.value = "";
-
-      // CHÚ Ý TỪ DEV: Ở môi trường thật, chúng ta không tự ý cập nhật UI (Optimistic Update)
-      // mà sẽ nhường quyền đó lại cho Socket.io thông qua hàm updateUIWithNewBid() ở trên
-      // để đảm bảo tính nhất quán dữ liệu của Kafka phân tán.
     }
   } catch (error) {
-    console.error("[Place Bid] Failed:", error);
-    showToast("Bid Failed", error.message || "Cannot place bid right now.", "error");
+    showToast("Lỗi Hệ Thống", error.message || "Không thể đặt giá lúc này.", "error");
   } finally {
     setBidFormBusy(false);
   }
 }
 
 // --- RENDER COMPONENT ---
-
 function renderProductCopy() {
   if (elements.statusLabel) elements.statusLabel.textContent = auction.status;
   if (elements.lotLabel) elements.lotLabel.textContent = auction.lot;
@@ -457,14 +411,14 @@ function renderProductCopy() {
 
 function renderBidPanel() {
   if (elements.currentBid) elements.currentBid.textContent = formatMoney(auction.currentBid);
-  if (elements.minimumBid)
-    elements.minimumBid.textContent = t("detail.minBid", { amount: formatMoney(getMinimumBid()) });
+  if (elements.minimumBid) elements.minimumBid.textContent = `Giá Tối Thiểu: ${formatMoney(getMinimumBid())}`;
+  
   if (elements.bidInput) {
     elements.bidInput.placeholder = String(getMinimumBid());
     elements.bidInput.min = String(getMinimumBid());
     elements.bidInput.step = String(auction.increment);
   }
-  if (elements.activeBids) elements.activeBids.textContent = t("detail.activeBids", { count: auction.activeBids });
+  if (elements.activeBids) elements.activeBids.textContent = `${auction.activeBids} LƯỢT GIÁ`;
 }
 
 function renderBidHistory() {
@@ -473,7 +427,7 @@ function renderBidHistory() {
   if (auction.bidHistory.length === 0) {
     elements.bidHistory.innerHTML = `
             <div class="bid-history-row">
-                <span class="bidder-mask">No bids yet</span>
+                <span class="bidder-mask">Chưa có lượt giá</span>
                 <span>-</span>
                 <span>-</span>
             </div>
@@ -490,8 +444,7 @@ function renderBidHistory() {
             <span>${bid.time}</span>
         </div>
     `,
-    )
-    .join("");
+    ).join("");
 }
 
 function renderAuction() {
@@ -499,11 +452,6 @@ function renderAuction() {
   renderProductCopy();
   renderBidPanel();
   renderBidHistory();
-
-  const proxyInfoButton = document.querySelector(".proxy-info-button");
-  if (proxyInfoButton) {
-    proxyInfoButton.dataset.tooltip = t("detail.proxyTooltip");
-  }
 }
 
 function updateCountdown() {
@@ -522,30 +470,22 @@ function updateCountdown() {
 }
 
 // --- SỰ KIỆN KHÁC ---
-
 function handleProxyToggle() {
   if (elements.proxySettings && elements.proxyToggle) {
     elements.proxySettings.hidden = !elements.proxyToggle.checked;
-    if (elements.proxyToggle.checked) {
-      showToast(t("toast.proxyEnabled"), t("toast.proxyEnabledDesc"));
-    }
   }
 }
 
 function simulateExternalBid() {
   if (!auction) return;
-  showToast(
-    "Simulation Disabled",
-    "External bids should now be tested through another logged-in account (Real API is connected).",
-  );
+  showToast("Giả lập bị vô hiệu", "API Thật đã được kết nối. Hãy dùng tài khoản thứ 2 để test Real-time.");
 }
 
 function simulateSoftClose() {
   if (!auction) return;
-  // Chỉ hoạt động giả lập cho môi trường dev
   auction.endTime += 30 * 1000;
   updateCountdown();
-  showToast(t("toast.auctionExtended"), t("toast.auctionExtendedDesc"));
+  showToast("Cộng 30s", "Giả lập cộng giờ thành công.");
 }
 
 function bindEvents() {
@@ -573,71 +513,32 @@ async function loadAuctionDetail() {
   const auctionId = getAuctionIdFromUrl();
 
   if (!auctionId) {
-    showToast("Missing Auction", "No auction ID was provided in the URL.");
+    showToast("Lỗi ID", "Không tìm thấy ID của phiên đấu giá trên URL.");
     return;
   }
 
   try {
-    const response = await apiClient.get(`/auctions/${auctionId}`, null, {
-      auth: false,
-    });
-
+    const response = await apiClient.get(`/auctions/${auctionId}`, null, { auth: false });
     auction = normalizeAuction(response.data?.auction);
 
     renderAuction();
     updateCountdown();
 
-    if (countdownInterval) {
-      window.clearInterval(countdownInterval);
-    }
-
+    if (countdownInterval) window.clearInterval(countdownInterval);
     countdownInterval = window.setInterval(updateCountdown, 1000);
 
-    // Bật Socket sau khi đã lấy xong chi tiết sản phẩm
     bindSocketEvents();
   } catch (error) {
-    console.error("[Auction Detail] Cannot load auction:", error);
-    showToast("Auction Load Failed", error.message || "Cannot load auction detail from backend.", "error");
-  }
-}
-
-// --- XỬ LÝ TRẠNG THÁI SAU THANH TOÁN STRIPE ---
-function checkPaymentStatus() {
-  const params = new URLSearchParams(window.location.search);
-  const paymentStatus = params.get("payment");
-  const auctionId = params.get("id");
-
-  if (paymentStatus === "success") {
-    showToast("Thanh toán thành công!", "Đơn hàng của bạn đã được ghi nhận hệ thống.", "success");
-  } else if (paymentStatus === "failed") {
-    showToast("Thanh toán bị hủy", "Bạn đã hủy giao dịch hoặc thẻ bị lỗi.", "error");
-  }
-
-  // Dọn dẹp thanh URL (xóa chữ payment=success đi cho đẹp) để F5 không bị hiện lại thông báo
-  if (paymentStatus && auctionId) {
-    const cleanUrl = window.location.pathname + "?id=" + auctionId;
-    window.history.replaceState({}, document.title, cleanUrl);
+    showToast("Lỗi Truy Xuất", error.message || "Không thể lấy thông tin từ Backend.", "error");
   }
 }
 
 function initAuctionDetailPage() {
   initTheme();
-  initI18n();
   initSiteHeader({ hideAfter: 120, topRevealOffset: 12 });
   cacheElements();
   bindEvents();
-
-  // Kiểm tra xem có phải vừa từ Stripe quay về không
-  checkPaymentStatus();
-
-  // Khởi chạy lấy dữ liệu từ Backend thật
   loadAuctionDetail();
-
-  onLanguageChange(() => {
-    if (auction) {
-      renderAuction();
-    }
-  });
 }
 
 document.addEventListener("DOMContentLoaded", initAuctionDetailPage);

@@ -1,5 +1,5 @@
+// frontend/js/modules/auction-list.js
 import { initTheme } from "../core/theme.js";
-import { initI18n, t, onLanguageChange } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
 import apiClient from "../core/api-client.js";
 
@@ -14,12 +14,12 @@ const FALLBACK_IMAGES = [
 ];
 
 const STATUS_LABELS = {
-    active: "Active",
-    closing: "Closing Soon",
-    scheduled: "Scheduled",
-    ended: "Ended",
-    payment_pending: "Payment Pending",
-    completed: "Completed"
+    active: "Đang Mở",
+    closing: "Sắp Đóng",
+    scheduled: "Đã Lên Lịch",
+    ended: "Đã Kết Thúc",
+    payment_pending: "Chờ Thanh Toán",
+    completed: "Đã Hoàn Tất"
 };
 
 const VALID_STATUS_FILTERS = ["all", "active", "scheduled", "closing", "ended"];
@@ -43,24 +43,16 @@ const state = {
 
 function normalizeStatus(status) {
     const value = String(status || "").trim().toLowerCase();
-
-    if (value === "payment pending") {
-        return "payment_pending";
-    }
-
+    if (value === "payment pending") return "payment_pending";
     return value || "active";
 }
 
 function normalizeCategory(category) {
-    return String(category || "collectibles")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "-");
+    return String(category || "collectibles").trim().toLowerCase().replace(/\s+/g, "-");
 }
 
 function formatMoney(value) {
     const numberValue = Number(value || 0);
-
     return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
@@ -70,7 +62,6 @@ function formatMoney(value) {
 
 function getFallbackImage(id) {
     const index = Math.abs(Number(id || 0)) % FALLBACK_IMAGES.length;
-
     return FALLBACK_IMAGES[index];
 }
 
@@ -83,13 +74,13 @@ function normalizeAuction(rawAuction) {
 
     return {
         id,
-        lot: rawAuction.lot || `Lot ${String(id).padStart(3, "0")}`,
-        title: rawAuction.title || rawAuction.productName || rawAuction.product_name || "Untitled Auction Lot",
+        lot: rawAuction.lot || `Lô #${String(id).padStart(3, "0")}`,
+        title: rawAuction.title || rawAuction.productName || rawAuction.product_name || "Vật phẩm chưa đặt tên",
         description: rawAuction.description || "",
         category,
         status,
         image: rawAuction.imageUrl || rawAuction.image_url || getFallbackImage(id),
-        estimate: rawAuction.estimate || "Estimate available on request",
+        estimate: rawAuction.estimate || "Ước tính cung cấp theo yêu cầu",
         currentBid: currentPrice ? formatMoney(currentPrice) : "",
         startingBid: formatMoney(currentPrice || stepPrice || 0),
         bidCount: Number(rawAuction.bidCount || rawAuction.bid_count || 0),
@@ -99,16 +90,12 @@ function normalizeAuction(rawAuction) {
 }
 
 function getNumberFromMoney(value) {
-    if (!value) {
-        return 0;
-    }
-
+    if (!value) return 0;
     return Number(String(value).replace(/[^0-9.]/g, "")) || 0;
 }
 
 function getInitialStateFromUrl() {
     const params = new URLSearchParams(window.location.search);
-
     const statusParam = params.get("status");
     const categoryParam = params.get("category");
     const sortParam = params.get("sort");
@@ -122,33 +109,18 @@ function getInitialStateFromUrl() {
 
 function updateUrl() {
     const params = new URLSearchParams();
+    if (state.status && state.status !== DEFAULT_STATUS) params.set("status", state.status);
+    if (state.category && state.category !== DEFAULT_CATEGORY) params.set("category", state.category);
+    if (state.sort && state.sort !== DEFAULT_SORT) params.set("sort", state.sort);
+    if (state.search.trim()) params.set("q", state.search.trim());
 
-    if (state.status && state.status !== DEFAULT_STATUS) {
-        params.set("status", state.status);
-    }
-
-    if (state.category && state.category !== DEFAULT_CATEGORY) {
-        params.set("category", state.category);
-    }
-
-    if (state.sort && state.sort !== DEFAULT_SORT) {
-        params.set("sort", state.sort);
-    }
-
-    if (state.search.trim()) {
-        params.set("q", state.search.trim());
-    }
-
-    const nextUrl = params.toString()
-        ? `${window.location.pathname}?${params.toString()}`
-        : window.location.pathname;
-
+    const nextUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
     window.history.replaceState({}, "", nextUrl);
 }
 
 function getCountdownLabel(lot) {
     if (lot.status === "ended" || lot.status === "completed") {
-        return t("collections.auctionEnded");
+        return "Đã kết thúc";
     }
 
     const now = Date.now();
@@ -162,14 +134,14 @@ function getCountdownLabel(lot) {
     const seconds = totalSeconds % 60;
 
     const timeText = days > 0
-        ? `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`
-        : `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+        ? `${days} ngày ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}p`
+        : `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
     if (lot.status === "scheduled") {
-        return `${t("collections.startsIn")} ${timeText}`;
+        return `Bắt đầu trong: ${timeText}`;
     }
 
-    return `${t("collections.endsIn")} ${timeText}`;
+    return timeText;
 }
 
 function getFilteredLots() {
@@ -187,46 +159,24 @@ function getFilteredLots() {
             return matchesStatus && matchesCategory && matchesSearch;
         })
         .sort((a, b) => {
-            if (state.sort === "highest-bid") {
-                return getNumberFromMoney(b.currentBid || b.startingBid) - getNumberFromMoney(a.currentBid || a.startingBid);
-            }
-
-            if (state.sort === "newest") {
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            }
-
-            if (state.sort === "most-bids") {
-                return b.bidCount - a.bidCount;
-            }
-
+            if (state.sort === "highest-bid") return getNumberFromMoney(b.currentBid || b.startingBid) - getNumberFromMoney(a.currentBid || a.startingBid);
+            if (state.sort === "newest") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            if (state.sort === "most-bids") return b.bidCount - a.bidCount;
             return new Date(a.endingAt).getTime() - new Date(b.endingAt).getTime();
         });
 }
 
 function getStatusClass(status) {
-    if (status === "active") {
-        return "status-active";
-    }
-
-    if (status === "closing") {
-        return "status-closing";
-    }
-
-    if (status === "ended" || status === "completed") {
-        return "status-ended";
-    }
-
+    if (status === "active") return "status-active";
+    if (status === "closing") return "status-closing";
+    if (status === "ended" || status === "completed") return "status-ended";
     return "status-scheduled";
 }
 
 function createAuctionCard(lot) {
-    const priceLabel = lot.status === "scheduled"
-        ? t("collections.startingBid")
-        : t("collections.currentBid");
-
-    const priceValue = lot.status === "scheduled"
-        ? lot.startingBid
-        : lot.currentBid || lot.startingBid;
+    const priceLabel = lot.status === "scheduled" ? "Giá Khởi Điểm" : "Giá Hiện Tại";
+    const priceValue = lot.status === "scheduled" ? lot.startingBid : lot.currentBid || lot.startingBid;
+    const timeLabel = lot.status === "scheduled" ? "Chưa mở" : "Kết Thúc Trong";
 
     return `
         <article class="auction-card" data-lot-id="${lot.id}">
@@ -238,7 +188,7 @@ function createAuctionCard(lot) {
             <div class="auction-card-body">
                 <div class="auction-card-meta">
                     <span>${lot.lot}</span>
-                    <span>${t("collections.bids", { count: lot.bidCount })}</span>
+                    <span>${lot.bidCount} lượt giá</span>
                 </div>
 
                 <h3>${lot.title}</h3>
@@ -253,13 +203,13 @@ function createAuctionCard(lot) {
                     </div>
 
                     <div>
-                        <span class="field-label">${lot.status === "scheduled" ? t("collections.notOpen") : "Time"}</span>
+                        <span class="field-label">${timeLabel}</span>
                         <strong>${getCountdownLabel(lot)}</strong>
                     </div>
                 </div>
 
                 <a href="./product-detail.html?id=${lot.id}" class="button button-outline" style="margin-top: 22px;">
-                    ${t("collections.viewDetails")}
+                    Xem Chi Tiết
                 </a>
             </div>
         </article>
@@ -274,38 +224,27 @@ function updateStatusTabs() {
 
 function updateCategorySelect() {
     const categorySelect = document.querySelector("[data-category-filter]");
-
-    if (categorySelect) {
-        categorySelect.value = state.category;
-    }
+    if (categorySelect) categorySelect.value = state.category;
 }
 
 function updateSortSelect() {
     const sortSelect = document.querySelector("[data-sort-select]");
-
-    if (sortSelect) {
-        sortSelect.value = state.sort;
-    }
+    if (sortSelect) sortSelect.value = state.sort;
 }
 
 function updateSearchInput() {
     const searchInput = document.querySelector("[data-search-input]");
-
-    if (searchInput) {
-        searchInput.value = state.search;
-    }
+    if (searchInput) searchInput.value = state.search;
 }
 
 function updateCurrentSortLabel() {
     const currentSortElement = document.querySelector("[data-current-sort]");
     const sortSelect = document.querySelector("[data-sort-select]");
 
-    if (!currentSortElement || !sortSelect) {
-        return;
-    }
+    if (!currentSortElement || !sortSelect) return;
 
     const selectedOption = sortSelect.querySelector(`option[value="${state.sort}"]`);
-    currentSortElement.textContent = selectedOption?.textContent || "Ending Soonest";
+    currentSortElement.textContent = selectedOption?.textContent || "Sắp Kết Thúc";
 }
 
 function renderLots() {
@@ -315,17 +254,15 @@ function renderLots() {
     const showingLabel = document.querySelector("[data-showing-label]");
     const loadMoreButton = document.querySelector("[data-load-more]");
 
-    if (!grid) {
-        return;
-    }
+    if (!grid) return;
 
     if (state.isLoading) {
         grid.innerHTML = `
             <article class="auction-card">
                 <div class="auction-card-body">
-                    <p class="eyebrow">Loading</p>
-                    <h3>Fetching auction lots...</h3>
-                    <p>Connecting to backend inventory.</p>
+                    <p class="eyebrow">Đang tải</p>
+                    <h3>Đang truy xuất dữ liệu...</h3>
+                    <p>Đang kết nối với máy chủ Backend.</p>
                 </div>
             </article>
         `;
@@ -337,24 +274,10 @@ function renderLots() {
 
     grid.innerHTML = visibleLots.map(createAuctionCard).join("");
 
-    if (emptyState) {
-        emptyState.hidden = filteredLots.length > 0;
-    }
-
-    if (resultCount) {
-        resultCount.textContent = t("collections.lotsFound", { count: filteredLots.length });
-    }
-
-    if (showingLabel) {
-        showingLabel.textContent = t("collections.showing", {
-            visible: visibleLots.length,
-            total: filteredLots.length
-        });
-    }
-
-    if (loadMoreButton) {
-        loadMoreButton.hidden = visibleLots.length >= filteredLots.length;
-    }
+    if (emptyState) emptyState.hidden = filteredLots.length > 0;
+    if (resultCount) resultCount.textContent = `Tìm thấy ${filteredLots.length} lô`;
+    if (showingLabel) showingLabel.textContent = `Đang hiển thị ${visibleLots.length} / ${filteredLots.length} lô`;
+    if (loadMoreButton) loadMoreButton.hidden = visibleLots.length >= filteredLots.length;
 
     updateCurrentSortLabel();
 }
@@ -372,15 +295,11 @@ async function fetchAuctions() {
     renderLots();
 
     try {
-        const response = await apiClient.get("/auctions", null, {
-            auth: false
-        });
-
+        const response = await apiClient.get("/auctions", null, { auth: false });
         const auctions = response.data?.auctions || [];
-
         AUCTION_LOTS = auctions.map(normalizeAuction);
     } catch (error) {
-        console.error("[Auction List] Cannot load auctions:", error);
+        console.error("[Auction List] Lỗi kết nối lấy danh sách:", error);
         AUCTION_LOTS = [];
     } finally {
         state.isLoading = false;
@@ -399,7 +318,6 @@ function bindFilterEvents() {
     });
 
     const categorySelect = document.querySelector("[data-category-filter]");
-
     if (categorySelect) {
         categorySelect.addEventListener("change", () => {
             state.category = categorySelect.value || DEFAULT_CATEGORY;
@@ -410,7 +328,6 @@ function bindFilterEvents() {
     }
 
     const sortSelect = document.querySelector("[data-sort-select]");
-
     if (sortSelect) {
         sortSelect.addEventListener("change", () => {
             state.sort = sortSelect.value || DEFAULT_SORT;
@@ -420,7 +337,6 @@ function bindFilterEvents() {
     }
 
     const searchInput = document.querySelector("[data-search-input]");
-
     if (searchInput) {
         searchInput.addEventListener("input", () => {
             state.search = searchInput.value;
@@ -431,7 +347,6 @@ function bindFilterEvents() {
     }
 
     const loadMoreButton = document.querySelector("[data-load-more]");
-
     if (loadMoreButton) {
         loadMoreButton.addEventListener("click", () => {
             state.visibleCount += 4;
@@ -440,7 +355,6 @@ function bindFilterEvents() {
     }
 
     const resetButton = document.querySelector("[data-reset-filters]");
-
     if (resetButton) {
         resetButton.addEventListener("click", () => {
             state.status = DEFAULT_STATUS;
@@ -448,7 +362,6 @@ function bindFilterEvents() {
             state.search = "";
             state.sort = DEFAULT_SORT;
             state.visibleCount = DEFAULT_VISIBLE_COUNT;
-
             updateUrl();
             renderAuctionList();
         });
@@ -457,23 +370,16 @@ function bindFilterEvents() {
 
 function initAuctionListPage() {
     initTheme();
-    initI18n();
-
-    initSiteHeader({
-        hideAfter: 120,
-        topRevealOffset: 12
-    });
+    initSiteHeader({ hideAfter: 120, topRevealOffset: 12 });
 
     getInitialStateFromUrl();
     bindFilterEvents();
     renderAuctionList();
+    
+    // Nạp dữ liệu từ CSDL
     fetchAuctions();
 
     window.setInterval(renderLots, 1000);
-
-    onLanguageChange(() => {
-        renderAuctionList();
-    });
 }
 
 document.addEventListener("DOMContentLoaded", initAuctionListPage);

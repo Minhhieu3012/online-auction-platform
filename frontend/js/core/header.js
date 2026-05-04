@@ -1,7 +1,12 @@
+// frontend/js/core/header.js
 function initSettingsMenu() {
     const toggleButtons = Array.from(document.querySelectorAll("[data-home-settings-toggle]"));
 
     toggleButtons.forEach((toggleButton) => {
+        // CHỐNG DOUBLE BINDING: Đảm bảo nút không bị gắn 2 sự kiện click cùng lúc
+        if (toggleButton.dataset.menuInitialized === "true") return;
+        toggleButton.dataset.menuInitialized = "true";
+
         const settingsRoot = toggleButton.closest(".home-settings");
         const settingsMenu = settingsRoot?.querySelector("[data-home-settings-menu]");
 
@@ -14,43 +19,33 @@ function initSettingsMenu() {
             toggleButton.setAttribute("aria-expanded", "false");
         };
 
-        const openMenu = () => {
-            settingsMenu.hidden = false;
-            toggleButton.setAttribute("aria-expanded", "true");
+        const toggleMenu = (e) => {
+            e.stopPropagation(); 
+            // Đã sửa lỗi gọi sai tên biến menu -> settingsMenu
+            const isHidden = settingsMenu.hidden;
+            settingsMenu.hidden = !isHidden;
+            toggleButton.setAttribute('aria-expanded', String(!isHidden));
         };
 
-        toggleButton.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (settingsMenu.hidden) {
-                openMenu();
-                return;
-            }
-
-            closeMenu();
-        });
+        toggleButton.addEventListener("click", toggleMenu);
 
         settingsMenu.addEventListener("click", (event) => {
             event.stopPropagation();
         });
 
         document.addEventListener("click", closeMenu);
-
-        window.addEventListener("keydown", (event) => {
-            if (event.key === "Escape") {
-                closeMenu();
-            }
-        });
+        document.addEventListener("scroll", closeMenu, { passive: true });
     });
 }
 
 function initDiorStyleHeader(options = {}) {
     const header = document.querySelector("[data-header]");
 
-    if (!header) {
+    // CHỐNG DOUBLE BINDING: Ngăn scroll event bị nhân bản
+    if (!header || header.dataset.scrollInitialized === "true") {
         return;
     }
+    header.dataset.scrollInitialized = "true";
 
     const config = {
         hideAfter: options.hideAfter ?? 120,

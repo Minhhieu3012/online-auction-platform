@@ -1,9 +1,11 @@
+// frontend/components/site-header.js
 import { initCommandPalette } from "../js/modules/command-palette.js";
-import apiClient from "../js/core/api-client.js";
+import { initSiteHeader } from "../js/core/header.js"; 
+import storage from "../js/core/storage.js";
 
 const HEADER_CONFIG = {
     brandName: "BrosGem",
-    brandAriaLabel: "BrosGem Home"
+    brandAriaLabel: "Trang chủ BrosGem"
 };
 
 function normalizeBasePath(basePath) {
@@ -14,7 +16,8 @@ function normalizeBasePath(basePath) {
 }
 
 function isAuthenticated() {
-    return Boolean(apiClient.getAuthToken() && apiClient.getAuthUser());
+    const token = storage.get('jwt_token') || storage.get('token') || localStorage.getItem('jwt_token');
+    return Boolean(token && token !== 'undefined' && token !== 'null' && token !== '');
 }
 
 function injectCommandPaletteStyles(basePath) {
@@ -32,7 +35,7 @@ function injectCommandPaletteStyles(basePath) {
     document.head.appendChild(link);
 }
 
-function createHeaderTemplate({ basePath = ".", activePage = "", action = "login" }) {
+function createHeaderTemplate({ basePath = ".", activePage = "" }) {
     const normalizedBasePath = normalizeBasePath(basePath);
     const isRoot = normalizedBasePath === ".";
     const authenticated = isAuthenticated();
@@ -44,21 +47,21 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "login
     const accountHref = isRoot ? "./pages/account.html" : "./account.html";
     const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
-    // ==========================================
-    // GIẢI QUYẾT CONFLICT: Hợp nhất logic Dev & Frontend
-    // ==========================================
     let actionHref = loginHref;
-    let actionText = "LOGIN";
-    let actionI18n = 'data-i18n="nav.login"';
+    let actionText = "ĐĂNG NHẬP"; 
+    let logoutMenuHtml = "";
 
-    if (action === "account") {
-        actionHref = accountHref;
-        actionText = "MY ACCOUNT";
-        actionI18n = 'data-i18n="nav.account"';
-    } else if (action === "logout" || authenticated) {
-        actionHref = "#"; // Đặt # vì đã có Event Listener JS lo việc xóa localStorage
-        actionText = "LOGOUT";
-        actionI18n = 'data-i18n="nav.logout"';
+    // ĐÃ ĐỔI LOGIC: Trỏ vào trang Tài Khoản thay vì đổi thành nút Đăng xuất
+    if (authenticated) {
+        actionHref = accountHref; 
+        actionText = "TÀI KHOẢN";
+
+        // Bổ sung nút đăng xuất vào menu Hamburger (Menu góc phải)
+        logoutMenuHtml = `
+            <button class="home-settings-item" type="button" data-logout-btn style="color: #ef4444;">
+                <span data-theme-icon style="margin-right: 8px;">⎋</span> Đăng xuất
+            </button>
+        `;
     }
 
     return `
@@ -69,16 +72,16 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "login
 
             <nav class="desktop-nav home-luxury-nav" aria-label="Primary navigation">
                 <a href="${homeHref}" class="nav-link ${activePage === "home" ? "is-active" : ""}">
-                    Home
+                    Trang Chủ
                 </a>
                 <a href="${collectionsHref}" class="nav-link ${activePage === "collections" ? "is-active" : ""}">
-                    Collections
+                    Bộ Sưu Tập
                 </a>
                 <a href="${liveAuctionsHref}" class="nav-link ${activePage === "live-auctions" ? "is-active" : ""}">
-                    Live Auctions
+                    Đấu Giá Trực Tiếp
                 </a>
                 <a href="${protocolHref}" class="nav-link">
-                    Trust Protocol
+                    Giao Thức Tin Cậy
                 </a>
             </nav>
 
@@ -87,7 +90,7 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "login
                     class="home-search-trigger"
                     type="button"
                     data-command-palette-open
-                    aria-label="Search"
+                    aria-label="Tìm kiếm"
                 >
                     <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
                         <circle cx="10.5" cy="10.5" r="5.5" stroke="currentColor" stroke-width="2" fill="none"></circle>
@@ -95,21 +98,19 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "login
                     </svg>
                 </button>
 
-                <a href="${actionHref}" class="button button-primary button-compact home-register-button" data-auth-btn ${actionI18n}>
+                <a href="${actionHref}" class="button button-primary button-compact home-register-button" data-auth-btn>
                     ${actionText}
                 </a>
 
                 <div class="home-settings">
-                    <button class="icon-button home-settings-trigger" type="button" data-home-settings-toggle>
+                    <button class="icon-button home-settings-trigger" type="button" data-home-settings-toggle aria-expanded="false">
                         <span></span><span></span><span></span>
                     </button>
                     <div class="home-settings-menu home-settings-menu-minimal" data-home-settings-menu hidden>
-                        <button class="home-settings-item" type="button" data-theme-toggle>
-                            <span data-theme-icon>☾</span>
+                        <button class="home-settings-item" type="button" data-theme-toggle title="Đổi giao diện">
+                            <span data-theme-icon>☾</span> Giao diện
                         </button>
-                        <button class="home-settings-item" type="button" data-language-toggle>
-                            <span>VI</span>
-                        </button>
+                        ${logoutMenuHtml}
                     </div>
                 </div>
             </div>
@@ -118,43 +119,51 @@ function createHeaderTemplate({ basePath = ".", activePage = "", action = "login
 }
 
 function renderSiteHeaders() {
-    const isLoggedIn = !!localStorage.getItem('jwt_token');
-
     document.querySelectorAll("[data-site-header]").forEach((mountPoint) => {
         const basePath = mountPoint.dataset.basePath || ".";
         const activePage = mountPoint.dataset.activePage || "";
         
-        // Nếu trang có chỉ định action (như register ép hiện login), dùng nó. Nếu không, tự động theo trạng thái.
-        let action = mountPoint.dataset.headerAction;
-        if (!action) {
-            action = isLoggedIn ? "logout" : "login";
-        }
-
         injectCommandPaletteStyles(basePath);
 
         mountPoint.outerHTML = createHeaderTemplate({
             basePath,
-            activePage,
-            action
+            activePage
         });
     });
 
-    // Gắn sự kiện Logout
-    const authBtn = document.querySelector('[data-auth-btn]');
-    if (authBtn && authBtn.textContent.trim().toUpperCase() === 'LOGOUT') {
-        authBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('jwt_token');
-            localStorage.removeItem('user_info');
-            window.location.reload();
-        });
-    }
+    initSiteHeader();
 
-    // Khởi tạo Command Palette nếu hàm tồn tại
     if (typeof initCommandPalette === 'function') {
         initCommandPalette();
     }
 }
+
+// =========================================================================
+// SỬA LỖI KIẾN TRÚC: ĐƯA LOGIC ĐĂNG XUẤT RA GLOBAL (EVENT DELEGATION)
+// Đảm bảo bắt được MỌI nút đăng xuất trên toàn bộ trang web (Header + Sidebar)
+// =========================================================================
+document.addEventListener("click", (e) => {
+    // Tìm phần tử bị click xem có phải là nút Đăng xuất không (kể cả icon bên trong nút)
+    const logoutBtn = e.target.closest('[data-logout-btn]') || 
+                      e.target.closest('.dashboard-logout-button') ||
+                      (e.target.closest('[data-auth-btn]') && e.target.closest('[data-auth-btn]').textContent.trim().toUpperCase() === 'ĐĂNG XUẤT');
+
+    if (logoutBtn) {
+        e.preventDefault();
+        
+        // Dọn dẹp LocalStorage
+        storage.remove('jwt_token');
+        storage.remove('user_info');
+        storage.remove('token'); 
+        storage.remove('user');
+        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_info');
+        
+        // Điều hướng an toàn về trang chủ
+        const basePath = document.querySelector('[data-header]')?.querySelector('.brand-mark')?.getAttribute('href') || '/index.html';
+        window.location.replace(basePath);
+    }
+});
 
 document.addEventListener("DOMContentLoaded", renderSiteHeaders);
 
