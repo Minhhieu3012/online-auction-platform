@@ -1,6 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi" data-theme="dark">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vận Hành Quản Trị | BrosGem</title>
@@ -8,532 +8,473 @@
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/admin.css" />
-</head>
-<body>
+  </head>
+  <body>
     <div class="app-shell">
-        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+      <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
 
-        <main class="admin-page">
-            <aside class="admin-sidebar">
-                <div class="admin-sidebar-heading">
-                    <p class="eyebrow">Bảng Điều Khiển Quản Trị</p>
-                    <h1>Vận Hành</h1>
+      <main class="admin-page">
+        <aside class="admin-sidebar">
+          <div class="admin-sidebar-heading">
+            <p class="eyebrow">Bảng Điều Khiển Quản Trị</p>
+            <h1>Vận Hành</h1>
+          </div>
+
+          <nav class="admin-nav" aria-label="Điều hướng quản trị">
+            <button class="admin-nav-item is-active" type="button" data-admin-tab="overview">
+              <span>◇</span>
+              Tổng Quan
+            </button>
+
+            <button class="admin-nav-item" type="button" data-admin-tab="auctions">
+              <span>◷</span>
+              Phiên Đấu Giá
+            </button>
+
+            <button class="admin-nav-item" type="button" data-admin-tab="verification">
+              <span>▣</span>
+              Hàng Đợi Xác Minh
+            </button>
+
+            <button class="admin-nav-item" type="button" data-admin-tab="fraud">
+              <span>△</span>
+              Cảnh Báo Gian Lận
+            </button>
+
+            <button class="admin-nav-item" type="button" data-admin-tab="settlements">
+              <span>▤</span>
+              Đối Soát Tài Chính
+            </button>
+
+            <button class="admin-nav-item" type="button" data-admin-tab="users">
+              <span>◎</span>
+              Người Dùng
+            </button>
+          </nav>
+
+          <a href="./publish-lot.html" class="button button-primary admin-sidebar-cta"> Xuất Bản Lô Mới </a>
+
+          <a href="./account.html" class="button button-outline admin-sidebar-secondary-cta">
+            Bảng Điều Khiển Thành Viên
+          </a>
+        </aside>
+
+        <section class="admin-content">
+          <div class="admin-topbar">
+            <div>
+              <p class="eyebrow">Trí Tuệ Hệ Thống</p>
+              <h2 data-admin-title>Tổng Quan</h2>
+              <p data-admin-subtitle>
+                Giám sát hoạt động đấu giá, yêu cầu xác minh, tín hiệu gian lận, thanh toán và quyền truy cập người dùng
+                từ một lớp kiểm soát tập trung.
+              </p>
+            </div>
+
+            <div class="admin-engine-card">
+              <span class="engine-dot"></span>
+              <div>
+                <strong>Engine Trực Tiếp</strong>
+                <span data-admin-engine-label>Đã kết nối API đấu giá backend</span>
+              </div>
+
+              <a href="./notifications.html" class="admin-notification-link" aria-label="Mở thông báo">
+                <span>4</span>
+                ◇
+              </a>
+            </div>
+          </div>
+
+          <section class="admin-panel is-active" data-admin-panel="overview">
+            <div class="admin-stat-grid">
+              <article class="admin-stat-card">
+                <span>Tổng Số Phiên Đấu Giá</span>
+                <strong data-total-auctions>00</strong>
+                <p>Tất cả lô được nạp từ máy chủ</p>
+              </article>
+
+              <article class="admin-stat-card">
+                <span>Phiên Đang Mở</span>
+                <strong data-active-auctions>00</strong>
+                <p>Hiện đang mở để trả giá</p>
+              </article>
+
+              <article class="admin-stat-card admin-stat-card-gold">
+                <span>Tổng Khối Lượng Trả Giá</span>
+                <strong data-total-volume>$0</strong>
+                <p>Tổng giá trị hiện tại của các lô</p>
+              </article>
+
+              <article class="admin-stat-card">
+                <span>Tổng Lượt Giá</span>
+                <strong data-total-bids>00</strong>
+                <p>Số lượng lượt giá được tổng hợp</p>
+              </article>
+            </div>
+
+            <div class="admin-grid-2">
+              <article class="admin-section-card">
+                <div class="admin-section-heading">
+                  <h3>Ảnh Chụp Đấu Giá Trực Tiếp</h3>
+                  <button type="button" data-admin-jump="auctions">Mở danh sách</button>
                 </div>
 
-                <nav class="admin-nav" aria-label="Điều hướng quản trị">
-                    <button class="admin-nav-item is-active" type="button" data-admin-tab="overview">
-                        <span>◇</span>
-                        Tổng Quan
-                    </button>
+                <div class="admin-request-list" data-overview-auction-list>
+                  <div class="admin-empty-mini">
+                    <span>◇</span>
+                    <p>Đang tải các lô từ máy chủ backend...</p>
+                  </div>
+                </div>
+              </article>
 
-                    <button class="admin-nav-item" type="button" data-admin-tab="auctions">
-                        <span>◷</span>
-                        Phiên Đấu Giá
-                    </button>
-
-                    <button class="admin-nav-item" type="button" data-admin-tab="verification">
-                        <span>▣</span>
-                        Hàng Đợi Xác Minh
-                    </button>
-
-                    <button class="admin-nav-item" type="button" data-admin-tab="fraud">
-                        <span>△</span>
-                        Cảnh Báo Gian Lận
-                    </button>
-
-                    <button class="admin-nav-item" type="button" data-admin-tab="settlements">
-                        <span>▤</span>
-                        Đối Soát Tài Chính
-                    </button>
-
-                    <button class="admin-nav-item" type="button" data-admin-tab="users">
-                        <span>◎</span>
-                        Người Dùng
-                    </button>
-                </nav>
-
-                <a href="./publish-lot.html" class="button button-primary admin-sidebar-cta">
-                    Xuất Bản Lô Mới
-                </a>
-
-                <a href="./account.html" class="button button-outline admin-sidebar-secondary-cta">
-                    Bảng Điều Khiển Thành Viên
-                </a>
-            </aside>
-
-            <section class="admin-content">
-                <div class="admin-topbar">
-                    <div>
-                        <p class="eyebrow">Trí Tuệ Hệ Thống</p>
-                        <h2 data-admin-title>Tổng Quan</h2>
-                        <p data-admin-subtitle>
-                            Giám sát hoạt động đấu giá, yêu cầu xác minh, tín hiệu gian lận, thanh toán và quyền truy cập người dùng từ một lớp kiểm soát tập trung.
-                        </p>
-                    </div>
-
-                    <div class="admin-engine-card">
-                        <span class="engine-dot"></span>
-                        <div>
-                            <strong>Engine Trực Tiếp</strong>
-                            <span data-admin-engine-label>Đã kết nối API đấu giá backend</span>
-                        </div>
-
-                        <a href="./notifications.html" class="admin-notification-link" aria-label="Mở thông báo">
-                            <span>4</span>
-                            ◇
-                        </a>
-                    </div>
+              <article class="admin-section-card">
+                <div class="admin-section-heading">
+                  <h3>Nhịp Độ Vận Hành</h3>
+                  <button type="button" data-refresh-auctions>Làm Mới API</button>
                 </div>
 
-                <section class="admin-panel is-active" data-admin-panel="overview">
-                    <div class="admin-stat-grid">
-                        <article class="admin-stat-card">
-                            <span>Tổng Số Phiên Đấu Giá</span>
-                            <strong data-total-auctions>00</strong>
-                            <p>Tất cả lô được nạp từ máy chủ</p>
-                        </article>
+                <div class="risk-stack">
+                  <article class="risk-card risk-critical">
+                    <span>Máy chủ</span>
+                    <strong data-backend-status>...</strong>
+                    <p data-backend-status-copy>Đang kiểm tra tính khả dụng của API đấu giá.</p>
+                  </article>
 
-                        <article class="admin-stat-card">
-                            <span>Phiên Đang Mở</span>
-                            <strong data-active-auctions>00</strong>
-                            <p>Hiện đang mở để trả giá</p>
-                        </article>
+                  <article class="risk-card risk-medium">
+                    <span>Đã Lên Lịch</span>
+                    <strong data-scheduled-auctions>00</strong>
+                    <p>Các lô đã cấu hình nhưng chưa hoạt động.</p>
+                  </article>
 
-                        <article class="admin-stat-card admin-stat-card-gold">
-                            <span>Tổng Khối Lượng Trả Giá</span>
-                            <strong data-total-volume>$0</strong>
-                            <p>Tổng giá trị hiện tại của các lô</p>
-                        </article>
+                  <article class="risk-card risk-low">
+                    <span>Đã Kết Thúc</span>
+                    <strong data-ended-auctions>00</strong>
+                    <p>Các lô không còn tiếp nhận trả giá.</p>
+                  </article>
+                </div>
+              </article>
+            </div>
+          </section>
 
-                        <article class="admin-stat-card">
-                            <span>Tổng Lượt Giá</span>
-                            <strong data-total-bids>00</strong>
-                            <p>Số lượng lượt giá được tổng hợp</p>
-                        </article>
+          <section class="admin-panel" data-admin-panel="auctions">
+            <article class="admin-section-card">
+              <div class="admin-section-heading admin-auction-heading">
+                <div>
+                  <h3>Quản Lý Đấu Giá</h3>
+                  <p>Kiểm soát các lô đấu giá, trạng thái, và can thiệp trực tiếp để quản lý minh bạch.</p>
+                </div>
+
+                <div class="admin-heading-actions">
+                  <button type="button" data-refresh-auctions>Làm Mới</button>
+                  <a href="./publish-lot.html">Xuất Bản Lô</a>
+                </div>
+              </div>
+
+              <section class="admin-auction-toolbar" aria-label="Bộ lọc quản lý đấu giá">
+                <label class="admin-search-field" for="adminAuctionSearch">
+                  <span>Tìm Kiếm</span>
+                  <input
+                    id="adminAuctionSearch"
+                    type="search"
+                    placeholder="Tìm tiêu đề, người bán, danh mục, lô..."
+                    data-admin-auction-search
+                  />
+                </label>
+
+                <label class="admin-filter-field" for="adminStatusFilter">
+                  <span>Trạng Thái</span>
+                  <select id="adminStatusFilter" data-admin-status-filter>
+                    <option value="all">Tất cả</option>
+                    <option value="active">Đang Mở</option>
+                    <option value="scheduled">Đã Lên Lịch</option>
+                    <option value="closing">Sắp Đóng</option>
+                    <option value="ended">Đã Kết Thúc</option>
+                    <option value="completed">Đã Hoàn Tất</option>
+                  </select>
+                </label>
+
+                <label class="admin-filter-field" for="adminCategoryFilter">
+                  <span>Danh Mục</span>
+                  <select id="adminCategoryFilter" data-admin-category-filter>
+                    <option value="all">Tất Cả Danh Mục</option>
+                    <option value="jewelry">Trang sức</option>
+                    <option value="horology">Đồng hồ</option>
+                    <option value="fine-art">Nghệ thuật</option>
+                    <option value="automotive">Ô tô</option>
+                    <option value="collectibles">Đồ sưu tầm</option>
+                  </select>
+                </label>
+
+                <label class="admin-filter-field" for="adminSortFilter">
+                  <span>Sắp Xếp</span>
+                  <select id="adminSortFilter" data-admin-sort-filter>
+                    <option value="ending-soon">Sắp Kết Thúc</option>
+                    <option value="highest-bid">Giá Cao Nhất</option>
+                    <option value="newest">Mới Nhất</option>
+                    <option value="most-bids">Nhiều Lượt Giá Nhất</option>
+                  </select>
+                </label>
+              </section>
+
+              <div class="admin-auction-summary-row">
+                <p data-admin-auction-count>Đã tải 0 phiên đấu giá</p>
+                <p data-admin-auction-showing>Đang hiển thị 0 bản ghi</p>
+              </div>
+
+              <div class="admin-table-shell admin-auction-table-shell">
+                <table class="admin-table admin-auction-table">
+                  <thead>
+                    <tr>
+                      <th>Lô</th>
+                      <th>Tài Sản</th>
+                      <th>Danh Mục</th>
+                      <th>Người Bán</th>
+                      <th>Trạng Thái</th>
+                      <th>Giá Hiện Tại</th>
+                      <th>Lượt Giá</th>
+                      <th>Kết Thúc</th>
+                      <th>Hành Động</th>
+                    </tr>
+                  </thead>
+
+                  <tbody data-admin-auction-table>
+                    <tr>
+                      <td colspan="9">
+                        <div class="admin-table-state">
+                          <span>◇</span>
+                          <p>Đang tải dữ liệu đấu giá từ máy chủ...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="admin-empty-state" data-admin-auction-empty hidden>
+                <span>◇</span>
+                <h4>Không có phiên đấu giá nào khớp</h4>
+                <p>Hãy thử bộ lọc danh mục, trạng thái hoặc từ khóa khác.</p>
+                <button type="button" class="button button-outline" data-reset-admin-auction-filters>
+                  Đặt Lại Bộ Lọc
+                </button>
+              </div>
+            </article>
+          </section>
+
+          <section class="admin-panel" data-admin-panel="verification">
+            <article class="admin-section-card">
+              <div class="admin-section-heading">
+                <h3>Hàng Đợi Xác Minh Tài Sản</h3>
+                <span data-verification-count>4 yêu cầu đang chờ</span>
+              </div>
+
+              <div class="verification-grid" data-verification-grid>
+                <article class="verification-card" data-review-card>
+                  <div class="verification-media">
+                    <img src="../assets/images/mockdata/4.png" alt="Vòng tay kim cương" />
+                    <span data-review-status>Đang Chờ</span>
+                  </div>
+
+                  <div class="verification-body">
+                    <p>Yêu Cầu #BG-RQ-1024</p>
+                    <h4>Vòng tay kim cương Diamond tennis</h4>
+
+                    <dl>
+                      <div>
+                        <dt>Danh Mục</dt>
+                        <dd>Trang sức</dd>
+                      </div>
+                      <div>
+                        <dt>Ước Tính</dt>
+                        <dd>$68,000 - $92,000</dd>
+                      </div>
+                      <div>
+                        <dt>Giá Sàn</dt>
+                        <dd>$60,000</dd>
+                      </div>
+                      <div>
+                        <dt>Thời Gian Dự Kiến</dt>
+                        <dd>Trong vòng 1 tháng</dd>
+                      </div>
+                    </dl>
+
+                    <p class="verification-note">
+                      Đã đính kèm hình ảnh chứng chỉ. Cần chuyên gia xác nhận trước khi cấu hình lên sàn.
+                    </p>
+
+                    <div class="verification-actions">
+                      <button type="button" class="button button-primary" data-review-action="approve">
+                        Phê Duyệt
+                      </button>
+                      <button type="button" class="button button-outline" data-review-action="decline">Từ Chối</button>
                     </div>
+                  </div>
+                </article>
 
-                    <div class="admin-grid-2">
-                        <article class="admin-section-card">
-                            <div class="admin-section-heading">
-                                <h3>Ảnh Chụp Đấu Giá Trực Tiếp</h3>
-                                <button type="button" data-admin-jump="auctions">Mở danh sách</button>
-                            </div>
+                <article class="verification-card" data-review-card>
+                  <div class="verification-media">
+                    <img src="../assets/images/mockdata/2.png" alt="Bức tranh trừu tượng" />
+                    <span data-review-status>Đang Chờ</span>
+                  </div>
 
-                            <div class="admin-request-list" data-overview-auction-list>
-                                <div class="admin-empty-mini">
-                                    <span>◇</span>
-                                    <p>Đang tải các lô từ máy chủ backend...</p>
-                                </div>
-                            </div>
-                        </article>
+                  <div class="verification-body">
+                    <p>Yêu Cầu #BG-RQ-1025</p>
+                    <h4>Abstract Composition No. 4</h4>
 
-                        <article class="admin-section-card">
-                            <div class="admin-section-heading">
-                                <h3>Nhịp Độ Vận Hành</h3>
-                                <button type="button" data-refresh-auctions>Làm Mới API</button>
-                            </div>
+                    <dl>
+                      <div>
+                        <dt>Danh Mục</dt>
+                        <dd>Nghệ thuật</dd>
+                      </div>
+                      <div>
+                        <dt>Ước Tính</dt>
+                        <dd>$38,000 - $48,000</dd>
+                      </div>
+                      <div>
+                        <dt>Giá Sàn</dt>
+                        <dd>$32,000</dd>
+                      </div>
+                      <div>
+                        <dt>Thời Gian Dự Kiến</dt>
+                        <dd>Sự kiện Premium tiếp theo</dd>
+                      </div>
+                    </dl>
 
-                            <div class="risk-stack">
-                                <article class="risk-card risk-critical">
-                                    <span>Máy chủ</span>
-                                    <strong data-backend-status>...</strong>
-                                    <p data-backend-status-copy>Đang kiểm tra tính khả dụng của API đấu giá.</p>
-                                </article>
+                    <p class="verification-note">
+                      Đã có ghi chú nguồn gốc, nhưng hồ sơ phòng tranh đang chờ thẩm định thủ công.
+                    </p>
 
-                                <article class="risk-card risk-medium">
-                                    <span>Đã Lên Lịch</span>
-                                    <strong data-scheduled-auctions>00</strong>
-                                    <p>Các lô đã cấu hình nhưng chưa hoạt động.</p>
-                                </article>
-
-                                <article class="risk-card risk-low">
-                                    <span>Đã Kết Thúc</span>
-                                    <strong data-ended-auctions>00</strong>
-                                    <p>Các lô không còn tiếp nhận trả giá.</p>
-                                </article>
-                            </div>
-                        </article>
+                    <div class="verification-actions">
+                      <button type="button" class="button button-primary" data-review-action="approve">
+                        Phê Duyệt
+                      </button>
+                      <button type="button" class="button button-outline" data-review-action="decline">Từ Chối</button>
                     </div>
-                </section>
+                  </div>
+                </article>
+              </div>
+            </article>
+          </section>
 
-                <section class="admin-panel" data-admin-panel="auctions">
-                    <article class="admin-section-card">
-                        <div class="admin-section-heading admin-auction-heading">
-                            <div>
-                                <h3>Quản Lý Đấu Giá</h3>
-                                <p>
-                                    Kiểm soát các lô đấu giá, trạng thái, và can thiệp trực tiếp để quản lý minh bạch.
-                                </p>
-                            </div>
+          <section class="admin-panel" data-admin-panel="fraud">
+            <article class="admin-section-card">
+              <div class="admin-section-heading">
+                <h3>Giám Sát Gian Lận Bằng AI</h3>
+                <button type="button" id="fraud-summary-btn">Đang phân tích...</button>
+              </div>
 
-                            <div class="admin-heading-actions">
-                                <button type="button" data-refresh-auctions>Làm Mới</button>
-                                <a href="./publish-lot.html">Xuất Bản Lô</a>
-                            </div>
-                        </div>
+              <div class="fraud-list" id="ai-fraud-list">
+                <div class="admin-empty-mini" style="text-align: center; padding: 40px">
+                  <span>◇</span>
+                  <p>Đang kết nối tới AI Engine (Cổng 8000)...</p>
+                </div>
+              </div>
+            </article>
+          </section>
 
-                        <section class="admin-auction-toolbar" aria-label="Bộ lọc quản lý đấu giá">
-                            <label class="admin-search-field" for="adminAuctionSearch">
-                                <span>Tìm Kiếm</span>
-                                <input
-                                    id="adminAuctionSearch"
-                                    type="search"
-                                    placeholder="Tìm tiêu đề, người bán, danh mục, lô..."
-                                    data-admin-auction-search
-                                />
-                            </label>
+          <section class="admin-panel" data-admin-panel="settlements">
+            <article class="admin-section-card">
+              <div class="admin-section-heading">
+                <h3>Đối Soát Tài Chính</h3>
+                <button type="button" data-admin-toast="Báo cáo thanh toán đã được tải xuống (bản mô phỏng).">
+                  Xuất Dữ Liệu
+                </button>
+              </div>
 
-                            <label class="admin-filter-field" for="adminStatusFilter">
-                                <span>Trạng Thái</span>
-                                <select id="adminStatusFilter" data-admin-status-filter>
-                                    <option value="all">Tất cả</option>
-                                    <option value="active">Đang Mở</option>
-                                    <option value="scheduled">Đã Lên Lịch</option>
-                                    <option value="closing">Sắp Đóng</option>
-                                    <option value="ended">Đã Kết Thúc</option>
-                                    <option value="completed">Đã Hoàn Tất</option>
-                                </select>
-                            </label>
+              <div class="admin-table-shell">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Tài Sản</th>
+                      <th>Người Mua</th>
+                      <th>Số Tiền</th>
+                      <th>Trạng Thái</th>
+                      <th>Hành Động</th>
+                    </tr>
+                  </thead>
 
-                            <label class="admin-filter-field" for="adminCategoryFilter">
-                                <span>Danh Mục</span>
-                                <select id="adminCategoryFilter" data-admin-category-filter>
-                                    <option value="all">Tất Cả Danh Mục</option>
-                                    <option value="jewelry">Trang sức</option>
-                                    <option value="horology">Đồng hồ</option>
-                                    <option value="fine-art">Nghệ thuật</option>
-                                    <option value="automotive">Ô tô</option>
-                                    <option value="collectibles">Đồ sưu tầm</option>
-                                </select>
-                            </label>
+                  <tbody>
+                    <tr>
+                      <td>#BG-8821</td>
+                      <td>Art Deco Vase</td>
+                      <td>Alexander V.</td>
+                      <td>$42,500</td>
+                      <td><span class="admin-status is-settled">Đã Thanh Toán</span></td>
+                      <td><button type="button" data-admin-toast="Biên lai đối soát đã mở.">Biên Lai</button></td>
+                    </tr>
 
-                            <label class="admin-filter-field" for="adminSortFilter">
-                                <span>Sắp Xếp</span>
-                                <select id="adminSortFilter" data-admin-sort-filter>
-                                    <option value="ending-soon">Sắp Kết Thúc</option>
-                                    <option value="highest-bid">Giá Cao Nhất</option>
-                                    <option value="newest">Mới Nhất</option>
-                                    <option value="most-bids">Nhiều Lượt Giá Nhất</option>
-                                </select>
-                            </label>
-                        </section>
+                    <tr>
+                      <td>#BG-8822</td>
+                      <td>Private Sale - Patek 5711</td>
+                      <td>Seraphina R.</td>
+                      <td>$185,000</td>
+                      <td><span class="admin-status is-pending">Đang Chờ</span></td>
+                      <td><button type="button" data-admin-toast="Đã gửi nhắc nhở thanh toán.">Nhắc Nhở</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
 
-                        <div class="admin-auction-summary-row">
-                            <p data-admin-auction-count>Đã tải 0 phiên đấu giá</p>
-                            <p data-admin-auction-showing>Đang hiển thị 0 bản ghi</p>
-                        </div>
+          <section class="admin-panel" data-admin-panel="users">
+            <article class="admin-section-card">
+              <div class="admin-section-heading">
+                <h3>Truy Cập Người Dùng</h3>
+                <button type="button" data-admin-toast="Danh sách sẽ kết nối API khi máy chủ sẵn sàng.">Làm Mới</button>
+              </div>
 
-                        <div class="admin-table-shell admin-auction-table-shell">
-                            <table class="admin-table admin-auction-table">
-                                <thead>
-                                    <tr>
-                                        <th>Lô</th>
-                                        <th>Tài Sản</th>
-                                        <th>Danh Mục</th>
-                                        <th>Người Bán</th>
-                                        <th>Trạng Thái</th>
-                                        <th>Giá Hiện Tại</th>
-                                        <th>Lượt Giá</th>
-                                        <th>Kết Thúc</th>
-                                        <th>Hành Động</th>
-                                    </tr>
-                                </thead>
+              <div class="admin-table-shell">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Người Dùng</th>
+                      <th>Thư Điện Tử (Email)</th>
+                      <th>Quyền Hạn</th>
+                      <th>Trạng Thái</th>
+                      <th>Rủi Ro</th>
+                    </tr>
+                  </thead>
 
-                                <tbody data-admin-auction-table>
-                                    <tr>
-                                        <td colspan="9">
-                                            <div class="admin-table-state">
-                                                <span>◇</span>
-                                                <p>Đang tải dữ liệu đấu giá từ máy chủ...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                  <tbody>
+                    <tr>
+                      <td data-current-admin-name>Người Dùng Của Phiên</td>
+                      <td data-current-admin-email>session@brosgem.com</td>
+                      <td>Đấu Giá + Bán + Giao Diện Quản Trị</td>
+                      <td><span class="admin-status is-settled">Phiên Đang Hoạt Động</span></td>
+                      <td>Chế Độ Phát Triển</td>
+                    </tr>
 
-                        <div class="admin-empty-state" data-admin-auction-empty hidden>
-                            <span>◇</span>
-                            <h4>Không có phiên đấu giá nào khớp</h4>
-                            <p>Hãy thử bộ lọc danh mục, trạng thái hoặc từ khóa khác.</p>
-                            <button type="button" class="button button-outline" data-reset-admin-auction-filters>
-                                Đặt Lại Bộ Lọc
-                            </button>
-                        </div>
-                    </article>
-                </section>
+                    <tr>
+                      <td>Alexander Vaughn</td>
+                      <td>alexander@brosgem.com</td>
+                      <td>Đấu Giá + Bán</td>
+                      <td><span class="admin-status is-settled">Đã Xác Thực</span></td>
+                      <td>Thấp</td>
+                    </tr>
 
-                <section class="admin-panel" data-admin-panel="verification">
-                    <article class="admin-section-card">
-                        <div class="admin-section-heading">
-                            <h3>Hàng Đợi Xác Minh Tài Sản</h3>
-                            <span data-verification-count>4 yêu cầu đang chờ</span>
-                        </div>
+                    <tr>
+                      <td>Người dùng #8291</td>
+                      <td>risk-user@brosgem.com</td>
+                      <td>Chỉ Đấu Giá</td>
+                      <td><span class="admin-status is-pending">Bị Hạn Chế</span></td>
+                      <td>Nghiêm Trọng</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </section>
+      </main>
 
-                        <div class="verification-grid" data-verification-grid>
-                            <article class="verification-card" data-review-card>
-                                <div class="verification-media">
-                                    <img src="../assets/images/mockdata/4.png" alt="Vòng tay kim cương" />
-                                    <span data-review-status>Đang Chờ</span>
-                                </div>
+      <div class="toast-stack" data-toast-stack aria-live="polite"></div>
 
-                                <div class="verification-body">
-                                    <p>Yêu Cầu #BG-RQ-1024</p>
-                                    <h4>Vòng tay kim cương Diamond tennis</h4>
-
-                                    <dl>
-                                        <div>
-                                            <dt>Danh Mục</dt>
-                                            <dd>Trang sức</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Ước Tính</dt>
-                                            <dd>$68,000 - $92,000</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Giá Sàn</dt>
-                                            <dd>$60,000</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Thời Gian Dự Kiến</dt>
-                                            <dd>Trong vòng 1 tháng</dd>
-                                        </div>
-                                    </dl>
-
-                                    <p class="verification-note">
-                                        Đã đính kèm hình ảnh chứng chỉ. Cần chuyên gia xác nhận trước khi cấu hình lên sàn.
-                                    </p>
-
-                                    <div class="verification-actions">
-                                        <button type="button" class="button button-primary" data-review-action="approve">
-                                            Phê Duyệt
-                                        </button>
-                                        <button type="button" class="button button-outline" data-review-action="decline">
-                                            Từ Chối
-                                        </button>
-                                    </div>
-                                </div>
-                            </article>
-
-                            <article class="verification-card" data-review-card>
-                                <div class="verification-media">
-                                    <img src="../assets/images/mockdata/2.png" alt="Bức tranh trừu tượng" />
-                                    <span data-review-status>Đang Chờ</span>
-                                </div>
-
-                                <div class="verification-body">
-                                    <p>Yêu Cầu #BG-RQ-1025</p>
-                                    <h4>Abstract Composition No. 4</h4>
-
-                                    <dl>
-                                        <div>
-                                            <dt>Danh Mục</dt>
-                                            <dd>Nghệ thuật</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Ước Tính</dt>
-                                            <dd>$38,000 - $48,000</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Giá Sàn</dt>
-                                            <dd>$32,000</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Thời Gian Dự Kiến</dt>
-                                            <dd>Sự kiện Premium tiếp theo</dd>
-                                        </div>
-                                    </dl>
-
-                                    <p class="verification-note">
-                                        Đã có ghi chú nguồn gốc, nhưng hồ sơ phòng tranh đang chờ thẩm định thủ công.
-                                    </p>
-
-                                    <div class="verification-actions">
-                                        <button type="button" class="button button-primary" data-review-action="approve">
-                                            Phê Duyệt
-                                        </button>
-                                        <button type="button" class="button button-outline" data-review-action="decline">
-                                            Từ Chối
-                                        </button>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-                    </article>
-                </section>
-
-                <section class="admin-panel" data-admin-panel="fraud">
-                    <article class="admin-section-card">
-                        <div class="admin-section-heading">
-                            <h3>Giám Sát Gian Lận Bằng AI</h3>
-                            <button type="button" data-admin-toast="Bộ lọc Chỉ Rủi Ro Cao đã được áp dụng dưới dạng giao diện giả lập.">Chỉ Rủi Ro Cao</button>
-                        </div>
-
-                        <div class="fraud-list">
-                            <article class="fraud-row fraud-critical">
-                                <div>
-                                    <span>Rủi Ro Nghiêm Trọng</span>
-                                    <strong>98.2</strong>
-                                    <small>Xác suất thao túng (Shill)</small>
-                                </div>
-
-                                <div>
-                                    <h4>Người dùng #8291 → “Vintage Rolex 1954”</h4>
-                                    <p>Lý do: tần suất trả giá cao / trùng khớp IP / đối thủ lặp lại liên tục.</p>
-                                </div>
-
-                                <time>14:22:01</time>
-
-                                <div class="fraud-actions">
-                                    <button type="button" data-admin-toast="Đã đánh dấu cảnh báo để điều tra thủ công.">Kiểm Tra</button>
-                                    <button type="button" data-admin-toast="Người dùng tạm thời bị hạn chế (giả lập UI).">Hạn Chế</button>
-                                </div>
-                            </article>
-
-                            <article class="fraud-row fraud-medium">
-                                <div>
-                                    <span>Rủi Ro Trung Bình</span>
-                                    <strong>64.5</strong>
-                                    <small>Điểm hành vi</small>
-                                </div>
-
-                                <div>
-                                    <h4>Người dùng #1104 → “Bespoke Yacht Charter”</h4>
-                                    <p>Lý do: bước giá bất thường gần ngưỡng giá sàn (Reserve).</p>
-                                </div>
-
-                                <time>14:18:55</time>
-
-                                <div class="fraud-actions">
-                                    <button type="button" data-admin-toast="Đã đánh dấu cảnh báo để điều tra thủ công.">Kiểm Tra</button>
-                                    <button type="button" data-admin-toast="Đã thêm người dùng vào danh sách theo dõi đặc biệt.">Theo Dõi</button>
-                                </div>
-                            </article>
-
-                            <article class="fraud-row fraud-low">
-                                <div>
-                                    <span>Rủi Ro Thấp</span>
-                                    <strong>22.1</strong>
-                                    <small>Tín hiệu tài khoản</small>
-                                </div>
-
-                                <div>
-                                    <h4>Người dùng #9932 → “Diamond Collection B”</h4>
-                                    <p>Lý do: tuổi tài khoản mới / lượt giá đầu tiên / chưa có lịch sử thanh toán.</p>
-                                </div>
-
-                                <time>14:05:12</time>
-
-                                <div class="fraud-actions">
-                                    <button type="button" data-admin-toast="Cảnh báo đã được duyệt qua.">Đánh Dấu Đã Đọc</button>
-                                </div>
-                            </article>
-                        </div>
-                    </article>
-                </section>
-
-                <section class="admin-panel" data-admin-panel="settlements">
-                    <article class="admin-section-card">
-                        <div class="admin-section-heading">
-                            <h3>Đối Soát Tài Chính</h3>
-                            <button type="button" data-admin-toast="Báo cáo thanh toán đã được tải xuống (bản mô phỏng).">Xuất Dữ Liệu</button>
-                        </div>
-
-                        <div class="admin-table-shell">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Tài Sản</th>
-                                        <th>Người Mua</th>
-                                        <th>Số Tiền</th>
-                                        <th>Trạng Thái</th>
-                                        <th>Hành Động</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    <tr>
-                                        <td>#BG-8821</td>
-                                        <td>Art Deco Vase</td>
-                                        <td>Alexander V.</td>
-                                        <td>$42,500</td>
-                                        <td><span class="admin-status is-settled">Đã Thanh Toán</span></td>
-                                        <td><button type="button" data-admin-toast="Biên lai đối soát đã mở.">Biên Lai</button></td>
-                                    </tr>
-
-                                    <tr>
-                                        <td>#BG-8822</td>
-                                        <td>Private Sale - Patek 5711</td>
-                                        <td>Seraphina R.</td>
-                                        <td>$185,000</td>
-                                        <td><span class="admin-status is-pending">Đang Chờ</span></td>
-                                        <td><button type="button" data-admin-toast="Đã gửi nhắc nhở thanh toán.">Nhắc Nhở</button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </article>
-                </section>
-
-                <section class="admin-panel" data-admin-panel="users">
-                    <article class="admin-section-card">
-                        <div class="admin-section-heading">
-                            <h3>Truy Cập Người Dùng</h3>
-                            <button type="button" data-admin-toast="Danh sách sẽ kết nối API khi máy chủ sẵn sàng.">Làm Mới</button>
-                        </div>
-
-                        <div class="admin-table-shell">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Người Dùng</th>
-                                        <th>Thư Điện Tử (Email)</th>
-                                        <th>Quyền Hạn</th>
-                                        <th>Trạng Thái</th>
-                                        <th>Rủi Ro</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    <tr>
-                                        <td data-current-admin-name>Người Dùng Của Phiên</td>
-                                        <td data-current-admin-email>session@brosgem.com</td>
-                                        <td>Đấu Giá + Bán + Giao Diện Quản Trị</td>
-                                        <td><span class="admin-status is-settled">Phiên Đang Hoạt Động</span></td>
-                                        <td>Chế Độ Phát Triển</td>
-                                    </tr>
-
-                                    <tr>
-                                        <td>Alexander Vaughn</td>
-                                        <td>alexander@brosgem.com</td>
-                                        <td>Đấu Giá + Bán</td>
-                                        <td><span class="admin-status is-settled">Đã Xác Thực</span></td>
-                                        <td>Thấp</td>
-                                    </tr>
-
-                                    <tr>
-                                        <td>Người dùng #8291</td>
-                                        <td>risk-user@brosgem.com</td>
-                                        <td>Chỉ Đấu Giá</td>
-                                        <td><span class="admin-status is-pending">Bị Hạn Chế</span></td>
-                                        <td>Nghiêm Trọng</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </article>
-                </section>
-            </section>
-        </main>
-
-        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
-
-        <div data-site-footer data-base-path=".."></div>
+      <div data-site-footer data-base-path=".."></div>
     </div>
 
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>
     <script type="module" src="../js/modules/admin.js"></script>
-</body>
+  </body>
 </html>
