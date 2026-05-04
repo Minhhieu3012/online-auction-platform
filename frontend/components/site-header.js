@@ -13,7 +13,7 @@ function normalizeBasePath(basePath) {
 }
 
 function isAuthenticated() {
-  const token = storage.get("jwt_token") || storage.get("token") || localStorage.getItem("jwt_token");
+  const token = storage.getRaw("jwt_token") || storage.getRaw("token") || localStorage.getItem("jwt_token");
   return Boolean(token && token !== "undefined" && token !== "null" && token !== "");
 }
 
@@ -45,12 +45,10 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   let actionText = "ĐĂNG NHẬP";
   let logoutMenuHtml = "";
 
-  // Lấy logic của đồng đội: Trỏ vào trang Tài Khoản thay vì đổi thành nút Đăng xuất
   if (authenticated) {
     actionHref = accountHref;
     actionText = "TÀI KHOẢN";
 
-    // Bổ sung nút đăng xuất vào menu Hamburger (Menu góc phải)
     logoutMenuHtml = `
             <button class="home-settings-item" type="button" data-logout-btn style="color: #ef4444;">
                 <span data-theme-icon style="margin-right: 8px;">⎋</span> Đăng xuất
@@ -130,7 +128,6 @@ function renderSiteHeaders() {
     initCommandPalette();
   }
 
-  // KHÔI PHỤC LOGIC CỦA BẠN: Bật hiệu ứng chuông khi có thông báo từ Socket
   if (window.socketClient) {
     window.socketClient.connect("global");
     window.socketClient.on("user_notification", (data) => {
@@ -145,12 +142,7 @@ function renderSiteHeaders() {
   }
 }
 
-// =========================================================================
-// SỬA LỖI KIẾN TRÚC: ĐƯA LOGIC ĐĂNG XUẤT RA GLOBAL (EVENT DELEGATION)
-// Đảm bảo bắt được MỌI nút đăng xuất trên toàn bộ trang web (Header + Sidebar)
-// =========================================================================
 document.addEventListener("click", (e) => {
-  // Tìm phần tử bị click xem có phải là nút Đăng xuất không (kể cả icon bên trong nút)
   const logoutBtn =
     e.target.closest("[data-logout-btn]") ||
     e.target.closest(".dashboard-logout-button") ||
@@ -160,7 +152,6 @@ document.addEventListener("click", (e) => {
   if (logoutBtn) {
     e.preventDefault();
 
-    // Dọn dẹp LocalStorage
     storage.remove("jwt_token");
     storage.remove("user_info");
     storage.remove("token");
@@ -168,7 +159,6 @@ document.addEventListener("click", (e) => {
     localStorage.removeItem("jwt_token");
     localStorage.removeItem("user_info");
 
-    // Điều hướng an toàn về trang chủ
     const basePath =
       document.querySelector("[data-header]")?.querySelector(".brand-mark")?.getAttribute("href") || "/index.html";
     window.location.replace(basePath);

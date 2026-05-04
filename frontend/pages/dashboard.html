@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bidder Dashboard - BrosGem</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/main.css">
+    <style>
+        body { background-color: #121212; color: #ffffff; }
+        .nav-tabs { border-bottom: 1px solid #333; }
+        .nav-tabs .nav-link { color: #888; border: none; font-weight: 500; padding: 12px 20px; }
+        .nav-tabs .nav-link:hover { color: #fff; }
+        .nav-tabs .nav-link.active { color: #f39c12; background-color: transparent; border-bottom: 2px solid #f39c12; }
+        
+        .auction-card { 
+            background: #1e1e1e; padding: 15px; margin-bottom: 15px; 
+            border-radius: 8px; border-left: 4px solid #444;
+            transition: all 0.3s ease;
+        }
+        .auction-card:hover { transform: translateX(5px); }
+        .status-leading { border-color: #2ecc71; }
+        .status-outbid { border-color: #e74c3c; }
+        .status-payment { border-color: #f39c12; }
+        
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+        .badge-status { font-size: 0.85rem; padding: 4px 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <header data-header class="site-header">
+        <div class="container d-flex justify-content-between align-items-center py-3">
+            <h1 class="m-0 h4 text-warning">BrosGem Dashboard</h1>
+            <a href="./live-auctions.html" class="btn btn-outline-light btn-sm">Vào Sàn Đấu Giá</a>
+        </div>
+    </header>
+
+    <div class="container mt-5">
+        <h2 class="mb-4">Tài sản đang đấu giá</h2>
+        
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="bidderTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#leading" type="button">
+                    Đang Dẫn Đầu <span class="badge bg-success ms-1" id="count-leading">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#outbid" type="button">
+                    Đã Thua <span class="badge bg-danger ms-1" id="count-outbid">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#payment" type="button">
+                    Chờ Thanh Toán <span class="badge bg-warning text-dark ms-1" id="count-payment">0</span>
+                </button>
+            </li>
+        </ul>
+
+        <!-- Content Area -->
+        <div class="tab-content" id="bidderTabsContent">
+            <div class="tab-pane fade show active" id="leading">
+                <div id="list-leading">Khởi tạo dữ liệu...</div>
+            </div>
+            <div class="tab-pane fade" id="outbid">
+                <div id="list-outbid">Khởi tạo dữ liệu...</div>
+            </div>
+            <div class="tab-pane fade" id="payment">
+                <div id="list-payment">Khởi tạo dữ liệu...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <script type="module">
+        import apiClient from "../js/core/api-client.js";
+
+        let myAuctions = [
+            { id: 101, title: "Rolex Submariner 2024", myBid: 50000, currentBid: 50000, status: "leading", endTime: Date.now() + 300000 },
+            { id: 102, title: "Patek Philippe Nautilus", myBid: 120000, currentBid: 125000, status: "outbid", endTime: Date.now() + 86400000 },
+            { id: 103, title: "Audemars Piguet Royal Oak", myBid: 85000, currentBid: 85000, status: "payment", paymentUrl: "#" }
+        ];
+
+        const currentUser = apiClient.getAuthUser() || { id: 99, username: "test_user" };
+
+        function formatMoney(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+        }
+
+        function renderCard(item) {
+            if (item.status === "leading") {
+                return `
+                <div class="auction-card status-leading" id="card-${item.id}">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-title">${item.title}</div>
+                        <span class="badge-status bg-success">Đang dẫn đầu: ${formatMoney(item.currentBid)}</span>
+                    </div>
+                    <small class="text-muted">Mã: #${item.id} | Kết thúc lúc: ${new Date(item.endTime).toLocaleTimeString()}</small>
+                    <div class="mt-2"><a href="./product-detail.html?id=${item.id}" class="btn btn-sm btn-outline-light">Xem diễn biến</a></div>
+                </div>`;
+            } 
+            else if (item.status === "outbid") {
+                return `
+                <div class="auction-card status-outbid" id="card-${item.id}">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-title">${item.title}</div>
+                        <span class="badge-status bg-danger">Bị vượt giá: ${formatMoney(item.currentBid)}</span>
+                    </div>
+                    <small class="text-muted">Giá của bạn: ${formatMoney(item.myBid)}</small>
+                    <div class="mt-2"><a href="./product-detail.html?id=${item.id}" class="btn btn-sm btn-outline-warning">Nâng Giá Ngay</a></div>
+                </div>`;
+            } 
+            else if (item.status === "payment") {
+                return `
+                <div class="auction-card status-payment" id="card-${item.id}">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-title">${item.title}</div>
+                        <span class="badge-status bg-warning text-dark">Chờ thanh toán: ${formatMoney(item.currentBid)}</span>
+                    </div>
+                    <small class="text-muted">Bạn đã thắng phiên này!</small>
+                    <div class="mt-2"><a href="${item.paymentUrl}" class="btn btn-sm btn-success">Thanh Toán Stripe</a></div>
+                </div>`;
+            }
+        }
+
+        function updateUI() {
+            const leading = myAuctions.filter(a => a.status === "leading");
+            const outbid = myAuctions.filter(a => a.status === "outbid");
+            const payment = myAuctions.filter(a => a.status === "payment");
+
+            document.getElementById("count-leading").innerText = leading.length;
+            document.getElementById("count-outbid").innerText = outbid.length;
+            document.getElementById("count-payment").innerText = payment.length;
+
+            document.getElementById("list-leading").innerHTML = leading.length ? leading.map(renderCard).join('') : "<p class='text-muted'>Không có dữ liệu.</p>";
+            document.getElementById("list-outbid").innerHTML = outbid.length ? outbid.map(renderCard).join('') : "<p class='text-muted'>Không có dữ liệu.</p>";
+            document.getElementById("list-payment").innerHTML = payment.length ? payment.map(renderCard).join('') : "<p class='text-muted'>Không có dữ liệu.</p>";
+        }
+
+        updateUI();
+
+        // FIX BUG: Đưa biến socket ra global window scope để có thể test thẳng từ F12 Console
+        window.socket = io("http://localhost:3000", { transports: ["websocket"] });
+
+        window.socket.on("new_bid", (data) => {
+            const auctionIndex = myAuctions.findIndex(a => String(a.id) === String(data.auctionId));
+            if (auctionIndex > -1) {
+                myAuctions[auctionIndex].currentBid = data.bidAmount;
+                
+                if (String(data.bidder) !== String(currentUser.id)) {
+                    myAuctions[auctionIndex].status = "outbid";
+                } else {
+                    myAuctions[auctionIndex].status = "leading";
+                    myAuctions[auctionIndex].myBid = data.bidAmount;
+                }
+                updateUI();
+            }
+        });
+
+        window.socket.on("auction_winner", (data) => {
+            const auctionIndex = myAuctions.findIndex(a => String(a.id) === String(data.auctionId));
+            if (auctionIndex > -1 && String(data.userId) === String(currentUser.id)) {
+                myAuctions[auctionIndex].status = "payment";
+                myAuctions[auctionIndex].paymentUrl = data.paymentUrl;
+                updateUI();
+            }
+        });
+    </script>
+</body>
+</html>

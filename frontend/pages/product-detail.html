@@ -17,7 +17,6 @@
             <section class="detail-grid">
                 <article class="product-column">
                     <div class="gallery-shell">
-                        <!-- FIX BUG ZOOM: Đảm bảo thuộc tính role="button" và data-gallery-frame nguyên vẹn để JS bắt được sự kiện click -->
                         <div
                             class="main-gallery-frame"
                             data-gallery-frame
@@ -248,12 +247,14 @@
         <div data-site-footer data-base-path=".."></div>
     </div>
 
-    <!-- Nhúng thư viện Socket.io Client -->
+    <script src="../js/core/socket-client.js"></script>
+
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>
     
-    <script src="../js/core/api-client.js"></script>
+    <!-- FIX BUG: Đổi thành type="module" để giải quyết lỗi import -->
+    <script type="module" src="../js/core/api-client.js"></script>
     <script type="module" src="../js/modules/auction-detail.js"></script>
 </body>
 </html>
