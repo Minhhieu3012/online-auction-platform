@@ -17,6 +17,8 @@ const WINDOW_DURATION_MINUTES = {
   Flexible: 7 * 24 * 60,
 };
 
+let selectedImageDataUrl = "";
+
 function showToast(title, message, type = "info") {
   const toastStack = document.querySelector("[data-toast-stack]");
   if (!toastStack) return;
@@ -112,7 +114,6 @@ function requireLogin() {
 
 function validateRequired(selector, message) {
   const input = getInput(selector);
-
   if (!input) return true;
 
   if (!input.value.trim()) {
@@ -140,7 +141,7 @@ function validateNumber(selector, message) {
 function validateForm() {
   let isValid = true;
 
-  const requiredFields = [
+  [
     ["[data-consign-title]", "Vui lòng nhập tên tài sản."],
     ["[data-consign-category]", "Vui lòng chọn danh mục."],
     ["[data-consign-origin]", "Vui lòng nhập nguồn gốc tài sản."],
@@ -148,19 +149,15 @@ function validateForm() {
     ["[data-consign-description]", "Vui lòng nhập mô tả tài sản."],
     ["[data-consign-window]", "Vui lòng chọn thời gian đấu giá dự kiến."],
     ["[data-consign-contact]", "Vui lòng chọn cách liên hệ."],
-  ];
-
-  requiredFields.forEach(([selector, message]) => {
+  ].forEach(([selector, message]) => {
     if (!validateRequired(selector, message)) isValid = false;
   });
 
-  const numberFields = [
+  [
     ["[data-consign-estimate-low]", "Ước tính thấp phải lớn hơn 0."],
     ["[data-consign-estimate-high]", "Ước tính cao phải lớn hơn 0."],
     ["[data-consign-reserve]", "Giá khởi điểm phải lớn hơn 0."],
-  ];
-
-  numberFields.forEach(([selector, message]) => {
+  ].forEach(([selector, message]) => {
     if (!validateNumber(selector, message)) isValid = false;
   });
 
@@ -182,10 +179,7 @@ function validateForm() {
   const confirmError = document.querySelector("[data-confirm-error]");
 
   if (confirmInput && !confirmInput.checked) {
-    if (confirmError) {
-      confirmError.textContent = "Bạn cần xác nhận thông tin trước khi gửi duyệt.";
-    }
-
+    if (confirmError) confirmError.textContent = "Bạn cần xác nhận thông tin trước khi gửi duyệt.";
     isValid = false;
   } else if (confirmError) {
     confirmError.textContent = "";
@@ -194,17 +188,54 @@ function validateForm() {
   return isValid;
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Không thể đọc ảnh đã chọn."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleImageSelection(files) {
+  const file = Array.from(files || [])[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showToast("Ảnh không hợp lệ", "Vui lòng chọn file ảnh.", "error");
+    return;
+  }
+
+  if (file.size > 2.5 * 1024 * 1024) {
+    showToast("Ảnh quá lớn", "Ảnh nên nhỏ hơn 2.5MB để lưu vào database.", "warning");
+    return;
+  }
+
+  try {
+    selectedImageDataUrl = await readFileAsDataUrl(file);
+    renderUploadPreview(file.name);
+    updatePreview();
+  } catch (error) {
+    showToast("Không thể đọc ảnh", error.message || "Vui lòng thử ảnh khác.", "error");
+  }
+}
+
+function renderUploadPreview(filename) {
+  const previewGrid = document.querySelector("[data-upload-preview]");
+  if (!previewGrid) return;
+
+  previewGrid.innerHTML = `
+    <article class="upload-preview-item">
+      <img src="${selectedImageDataUrl}" alt="${filename}" />
+      <span>${filename}</span>
+    </article>
+  `;
+}
+
 function getPreviewImage() {
-  const previewImage = document.querySelector("[data-preview-image]");
-  const uploadedPreview = document.querySelector("[data-upload-preview] img");
-
-  if (uploadedPreview?.src) {
-    return uploadedPreview.src;
-  }
-
-  if (previewImage?.src && !previewImage.src.includes("mockdata")) {
-    return previewImage.src;
-  }
+  if (selectedImageDataUrl) return selectedImageDataUrl;
 
   const category = getValue("[data-consign-category]") || "Collectibles";
   return FALLBACK_CATEGORY_IMAGES[category] || FALLBACK_CATEGORY_IMAGES.Collectibles;
@@ -213,9 +244,7 @@ function getPreviewImage() {
 function getStepPrice(estimateLow, estimateHigh) {
   const diff = estimateHigh - estimateLow;
 
-  if (!Number.isFinite(diff) || diff <= 0) {
-    return 100;
-  }
+  if (!Number.isFinite(diff) || diff <= 0) return 100;
 
   return Math.max(100, Math.round(diff / 20));
 }
@@ -262,54 +291,6 @@ function buildAuctionPayload() {
   };
 }
 
-function saveDraftLocally() {
-  const draft = {
-    title: getValue("[data-consign-title]"),
-    category: getValue("[data-consign-category]"),
-    origin: getValue("[data-consign-origin]"),
-    condition: getValue("[data-consign-condition]"),
-    description: getValue("[data-consign-description]"),
-    estimateLow: getValue("[data-consign-estimate-low]"),
-    estimateHigh: getValue("[data-consign-estimate-high]"),
-    reservePrice: getValue("[data-consign-reserve]"),
-    window: getValue("[data-consign-window]"),
-    contact: getValue("[data-consign-contact]"),
-    updatedAt: new Date().toISOString(),
-  };
-
-  window.localStorage.setItem("brosgem_consign_draft", JSON.stringify(draft));
-  showToast("Đã lưu bản nháp", "Bản nháp đã được lưu trên trình duyệt hiện tại.", "success");
-}
-
-function restoreDraft() {
-  try {
-    const rawDraft = window.localStorage.getItem("brosgem_consign_draft");
-    if (!rawDraft) return;
-
-    const draft = JSON.parse(rawDraft);
-
-    const mapping = [
-      ["[data-consign-title]", draft.title],
-      ["[data-consign-category]", draft.category],
-      ["[data-consign-origin]", draft.origin],
-      ["[data-consign-condition]", draft.condition],
-      ["[data-consign-description]", draft.description],
-      ["[data-consign-estimate-low]", draft.estimateLow],
-      ["[data-consign-estimate-high]", draft.estimateHigh],
-      ["[data-consign-reserve]", draft.reservePrice],
-      ["[data-consign-window]", draft.window],
-      ["[data-consign-contact]", draft.contact],
-    ];
-
-    mapping.forEach(([selector, value]) => {
-      const input = getInput(selector);
-      if (input && value) input.value = value;
-    });
-  } catch (error) {
-    console.warn("[Consign] Không thể khôi phục bản nháp:", error);
-  }
-}
-
 function updatePreview() {
   const title = getValue("[data-consign-title]") || "Tài sản chưa đặt tên";
   const category = getValue("[data-consign-category]") || "Chưa chọn danh mục";
@@ -333,31 +314,6 @@ function updatePreview() {
   if (previewImage) {
     previewImage.src = getPreviewImage();
   }
-}
-
-function renderUploadPreviews(files) {
-  const previewGrid = document.querySelector("[data-upload-preview]");
-
-  if (!previewGrid) return;
-
-  previewGrid.innerHTML = "";
-
-  Array.from(files || [])
-    .slice(0, 4)
-    .forEach((file) => {
-      const imageUrl = URL.createObjectURL(file);
-      const item = document.createElement("article");
-
-      item.className = "upload-preview-item";
-      item.innerHTML = `
-        <img src="${imageUrl}" alt="${file.name}" />
-        <span>${file.name}</span>
-      `;
-
-      previewGrid.appendChild(item);
-    });
-
-  updatePreview();
 }
 
 async function handleSubmit(event) {
@@ -385,13 +341,12 @@ async function handleSubmit(event) {
       "success",
     );
 
-    window.localStorage.removeItem("brosgem_consign_draft");
+    localStorage.removeItem("brosgem_consign_draft");
 
     window.setTimeout(() => {
       window.location.href = "./account.html#selling";
     }, 900);
   } catch (error) {
-    console.error("[Consign Submit Error]:", error);
     showToast("Gửi duyệt thất bại", error.message || "Không thể gửi tài sản lên backend.", "error");
   } finally {
     setFormBusy(form, false);
@@ -400,20 +355,13 @@ async function handleSubmit(event) {
 
 function bindEvents() {
   const form = document.querySelector("[data-consign-form]");
-  const saveDraftButton = document.querySelector("[data-save-draft]");
   const fileInput = document.querySelector("[data-consign-images]");
 
-  if (form) {
-    form.addEventListener("submit", handleSubmit);
-  }
-
-  if (saveDraftButton) {
-    saveDraftButton.addEventListener("click", saveDraftLocally);
-  }
+  if (form) form.addEventListener("submit", handleSubmit);
 
   if (fileInput) {
     fileInput.addEventListener("change", () => {
-      renderUploadPreviews(fileInput.files);
+      handleImageSelection(fileInput.files);
     });
   }
 
@@ -447,7 +395,6 @@ function initConsignPage() {
   });
 
   requireLogin();
-  restoreDraft();
   bindEvents();
   updatePreview();
 }

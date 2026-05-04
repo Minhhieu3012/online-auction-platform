@@ -1,5 +1,4 @@
 import { initTheme } from "../core/theme.js";
-import { initSiteHeader } from "../core/header.js";
 import apiClient from "../core/api-client.js";
 
 const FALLBACK_IMAGE = "../assets/images/mockdata/1.png";
@@ -15,7 +14,7 @@ const TAB_COPY = {
   },
   verification: {
     title: "Phiên Chờ Duyệt",
-    subtitle: "User tạo phiên đấu giá, admin xem và chốt thông qua hoặc không thông qua.",
+    subtitle: "User tạo phiên đấu giá, admin xem chi tiết rồi chốt thông qua hoặc không thông qua.",
   },
   settlements: {
     title: "Đối Soát Thanh Toán",
@@ -38,26 +37,78 @@ const TAB_COPY = {
 const state = {
   currentUser: null,
   dashboard: null,
-
   auctions: [],
+  users: [],
+  settlements: [],
+  alerts: [],
+  logs: [],
+  selectedAuction: null,
+
   auctionSearch: "",
   auctionStatus: "all",
-  auctionCategory: "all",
   auctionSort: "pending-first",
-
-  users: [],
-  userSearch: "",
-  userRole: "all",
-  userStatus: "all",
-
-  alerts: [],
-  settlements: [],
-  logs: [],
-
-  isLoadingAuctions: false,
-  isLoadingDashboard: false,
-  isLoadingUsers: false,
 };
+
+function injectAdminRuntimeStyles() {
+  if (document.querySelector('style[data-admin-runtime-style="true"]')) return;
+
+  const style = document.createElement("style");
+  style.dataset.adminRuntimeStyle = "true";
+  style.textContent = `
+    [data-review-open-public] {
+      display: none !important;
+    }
+
+    .admin-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .admin-row-actions button,
+    .admin-row-actions a {
+      min-width: 92px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      cursor: pointer;
+      transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .admin-row-actions button:hover,
+    .admin-row-actions a:hover {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    .admin-auction-table tbody tr {
+      cursor: default;
+    }
+
+    .admin-detail-actions {
+      position: sticky;
+      bottom: 0;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0), var(--surface) 28%),
+        var(--surface);
+      z-index: 2;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
 
 function showToast(title, message, type = "info") {
   const stack = document.querySelector("[data-toast-stack]");
@@ -66,8 +117,8 @@ function showToast(title, message, type = "info") {
   const toast = document.createElement("article");
   toast.className = `toast toast-${type}`;
   toast.innerHTML = `
-    <p class="toast-title">${title}</p>
-    <p class="toast-message">${message}</p>
+    <p class="toast-title">${escapeHtml(title)}</p>
+    <p class="toast-message">${escapeHtml(message)}</p>
   `;
 
   stack.appendChild(toast);
@@ -92,6 +143,17 @@ function escapeHtml(value) {
 function setText(selector, value) {
   const el = document.querySelector(selector);
   if (el) el.textContent = value;
+}
+
+function setImage(selector, value) {
+  const img = document.querySelector(selector);
+  if (!img) return;
+
+  img.src = value || FALLBACK_IMAGE;
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = FALLBACK_IMAGE;
+  };
 }
 
 function formatMoney(value) {
@@ -149,12 +211,10 @@ function getStatusClass(status) {
 
   if (value === "active") return "is-active-status";
   if (value === "scheduled") return "is-scheduled-status";
-  if (value === "closing") return "is-closing-status";
   if (value === "completed") return "is-settled";
   if (["pending", "payment_pending"].includes(value)) return "is-pending";
-  if (["ended", "rejected", "cancelled"].includes(value)) return "is-ended-status";
 
-  return "is-pending";
+  return "is-ended-status";
 }
 
 function requireAdmin() {
@@ -167,11 +227,9 @@ function requireAdmin() {
     return null;
   }
 
-  if (user.role !== "admin") {
+  if (String(user.role || "").toLowerCase() !== "admin") {
     showToast("Không có quyền truy cập", "Trang này chỉ dành cho tài khoản admin.", "error");
-    window.setTimeout(() => {
-      window.location.replace("./account.html");
-    }, 900);
+    window.setTimeout(() => window.location.replace("./account.html"), 900);
     return null;
   }
 
@@ -205,6 +263,7 @@ async function apiGet(endpoint, query = null) {
   return apiClient.get(endpoint, query, {
     auth: true,
     idempotency: false,
+    redirectOnUnauthorized: false,
   });
 }
 
@@ -261,22 +320,18 @@ function renderDashboard() {
 }
 
 async function fetchDashboard() {
-  state.isLoadingDashboard = true;
-
   try {
     const response = await apiGet("/admin/dashboard");
     state.dashboard = response.data;
-    setText("[data-admin-engine-label]", "Admin API đã kết nối");
+
     setText("[data-backend-status]", "OK");
     setText("[data-backend-status-copy]", "Backend admin đang hoạt động tốt.");
+
     renderDashboard();
   } catch (error) {
-    setText("[data-admin-engine-label]", "Admin API lỗi");
     setText("[data-backend-status]", "OFF");
     setText("[data-backend-status-copy]", error.message || "Không thể kết nối API admin.");
     showToast("Không thể tải admin dashboard", error.message || "Kiểm tra backend route /api/admin/dashboard.", "error");
-  } finally {
-    state.isLoadingDashboard = false;
   }
 }
 
@@ -284,58 +339,14 @@ function buildAuctionQuery() {
   return {
     q: state.auctionSearch,
     status: state.auctionStatus === "all" ? "" : state.auctionStatus,
-    category: state.auctionCategory === "all" ? "" : state.auctionCategory,
     sort: state.auctionSort,
   };
 }
 
 async function fetchAuctions() {
-  state.isLoadingAuctions = true;
-  renderAuctionTable();
-
-  try {
-    const response = await apiGet("/admin/auctions", buildAuctionQuery());
-    state.auctions = response.data?.auctions || [];
-  } catch (error) {
-    state.auctions = [];
-    showToast("Không thể tải phiên đấu giá", error.message || "Backend admin auctions chưa sẵn sàng.", "error");
-  } finally {
-    state.isLoadingAuctions = false;
-    renderAuctionTable();
-    renderVerificationQueue();
-  }
-}
-
-function getAuctionActions(auction) {
-  const id = escapeHtml(auction.id);
-  const status = normalizeStatus(auction.status);
-  const view = `<a href="./product-detail.html?id=${id}">Xem</a>`;
-
-  if (status === "pending" || status === "rejected") {
-    return `
-      ${view}
-      <button type="button" data-approve-auction="${id}">Duyệt</button>
-      <button type="button" class="is-danger" data-reject-auction="${id}">Từ chối</button>
-    `;
-  }
-
-  if (["scheduled", "active", "closing", "payment_pending"].includes(status)) {
-    return `
-      ${view}
-      <button type="button" class="is-danger" data-cancel-auction="${id}">Hủy</button>
-    `;
-  }
-
-  return view;
-}
-
-function renderAuctionTable() {
   const table = document.querySelector("[data-admin-auction-table]");
-  const empty = document.querySelector("[data-admin-auction-empty]");
 
-  if (!table) return;
-
-  if (state.isLoadingAuctions) {
+  if (table) {
     table.innerHTML = `
       <tr>
         <td colspan="9">
@@ -346,20 +357,48 @@ function renderAuctionTable() {
         </td>
       </tr>
     `;
-    if (empty) empty.hidden = true;
-    return;
   }
+
+  try {
+    const response = await apiGet("/admin/auctions", buildAuctionQuery());
+    state.auctions = response.data?.auctions || [];
+  } catch (error) {
+    state.auctions = [];
+    showToast("Không thể tải phiên đấu giá", error.message || "Backend admin auctions chưa sẵn sàng.", "error");
+  }
+
+  renderAuctionTable();
+  renderVerificationQueue();
+}
+
+function getAuctionActions(auction) {
+  return `
+    <button type="button" data-view-auction="${escapeHtml(auction.id)}">
+      Xem Chi Tiết
+    </button>
+  `;
+}
+
+function renderAuctionTable() {
+  const table = document.querySelector("[data-admin-auction-table]");
+  if (!table) return;
 
   setText("[data-admin-auction-count]", `Đã tải ${state.auctions.length} phiên`);
   setText("[data-admin-auction-showing]", `Đang hiển thị ${state.auctions.length} bản ghi`);
 
   if (state.auctions.length === 0) {
-    table.innerHTML = "";
-    if (empty) empty.hidden = false;
+    table.innerHTML = `
+      <tr>
+        <td colspan="9">
+          <div class="admin-table-state">
+            <span>◇</span>
+            <p>Không có phiên đấu giá nào khớp bộ lọc.</p>
+          </div>
+        </td>
+      </tr>
+    `;
     return;
   }
-
-  if (empty) empty.hidden = true;
 
   table.innerHTML = state.auctions
     .map(
@@ -375,7 +414,7 @@ function renderAuctionTable() {
               <img src="${escapeHtml(auction.imageUrl || FALLBACK_IMAGE)}" alt="${escapeHtml(auction.title)}" />
               <div>
                 <strong>${escapeHtml(auction.title)}</strong>
-                <span>${escapeHtml((auction.category || "collectibles").replace("-", " "))}</span>
+                <span>${escapeHtml(auction.category || "collectibles")}</span>
               </div>
             </div>
           </td>
@@ -391,7 +430,7 @@ function renderAuctionTable() {
 
           <td>
             <strong>${auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu"}</strong>
-            <span class="admin-table-muted">${formatNumber(auction.depositCount)} đã cọc</span>
+            <span class="admin-table-muted">${formatNumber(auction.depositCount || 0)} đã cọc</span>
           </td>
 
           <td>${formatMoney(auction.currentPrice)}</td>
@@ -407,8 +446,6 @@ function renderAuctionTable() {
       `,
     )
     .join("");
-
-  bindAuctionActionButtons();
 }
 
 function renderVerificationQueue() {
@@ -465,11 +502,8 @@ function renderVerificationQueue() {
             <p class="verification-note">${escapeHtml(auction.description || "Không có mô tả.")}</p>
 
             <div class="verification-actions">
-              <button type="button" class="button button-primary" data-approve-auction="${escapeHtml(auction.id)}">
-                Thông Qua
-              </button>
-              <button type="button" class="button button-outline" data-reject-auction="${escapeHtml(auction.id)}">
-                Không Thông Qua
+              <button type="button" class="button button-primary" data-view-auction="${escapeHtml(auction.id)}">
+                Xem Chi Tiết
               </button>
             </div>
           </div>
@@ -477,104 +511,98 @@ function renderVerificationQueue() {
       `,
     )
     .join("");
-
-  bindAuctionActionButtons();
 }
 
-async function approveAuction(auctionId) {
-  const ok = window.confirm("Duyệt phiên đấu giá này và cho phép hiển thị công khai?");
+function openReviewModal(auctionId) {
+  const auction = state.auctions.find((item) => String(item.id) === String(auctionId));
+
+  if (!auction) {
+    showToast("Không tìm thấy phiên", "Dữ liệu phiên chưa được tải.", "error");
+    return;
+  }
+
+  state.selectedAuction = auction;
+
+  setText("[data-review-modal-lot]", auction.lot || `Lô #${auction.id}`);
+  setText("[data-review-modal-title]", auction.title || "Chi tiết phiên");
+  setText("[data-review-modal-description]", auction.description || "Không có mô tả.");
+  setText("[data-review-modal-seller]", `${auction.sellerUsername || "Không rõ"} • ${auction.sellerEmail || ""}`);
+  setText("[data-review-modal-category]", auction.category || "collectibles");
+  setText("[data-review-modal-price]", formatMoney(auction.currentPrice));
+  setText("[data-review-modal-step]", formatMoney(auction.stepPrice));
+  setText("[data-review-modal-deposit]", auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu");
+  setText("[data-review-modal-status]", getStatusLabel(auction.status));
+  setText("[data-review-modal-created]", formatDateTime(auction.createdAt));
+  setText("[data-review-modal-end]", formatDateTime(auction.endTime));
+  setImage("[data-review-modal-image]", auction.imageUrl || FALLBACK_IMAGE);
+
+  const modal = document.querySelector("[data-review-modal]");
+  if (modal) modal.hidden = false;
+}
+
+function closeReviewModal() {
+  const modal = document.querySelector("[data-review-modal]");
+  if (modal) modal.hidden = true;
+
+  state.selectedAuction = null;
+}
+
+async function approveSelectedAuction() {
+  const auction = state.selectedAuction;
+  if (!auction) return;
+
+  const ok = window.confirm("Thông qua phiên đấu giá này và hiển thị công khai?");
   if (!ok) return;
 
   try {
-    await apiPatch(`/admin/auctions/${auctionId}/approve`);
-    showToast("Đã duyệt phiên", "Phiên đấu giá đã được thông qua.", "success");
+    await apiPatch(`/admin/auctions/${auction.id}/approve`);
+
+    showToast("Đã duyệt phiên", "Phiên đấu giá đã được thông qua và sẽ mở ở tab riêng.", "success");
+
+    closeReviewModal();
+
     await Promise.all([fetchDashboard(), fetchAuctions()]);
+
+    window.open(`./product-detail.html?id=${auction.id}`, "_blank", "noopener,noreferrer");
   } catch (error) {
     showToast("Duyệt thất bại", error.message || "Không thể duyệt phiên đấu giá.", "error");
   }
 }
 
-async function rejectAuction(auctionId) {
-  const reason = window.prompt("Nhập lý do từ chối phiên đấu giá:", "Thông tin phiên chưa đạt yêu cầu duyệt.");
+async function rejectSelectedAuction() {
+  const auction = state.selectedAuction;
+  if (!auction) return;
+
+  const reason = window.prompt("Nhập lý do không thông qua:", "Thông tin phiên chưa đạt yêu cầu duyệt.");
   if (reason === null) return;
 
   try {
-    await apiPatch(`/admin/auctions/${auctionId}/reject`, { reason });
+    await apiPatch(`/admin/auctions/${auction.id}/reject`, { reason });
+
     showToast("Đã từ chối phiên", "Phiên đấu giá đã được chuyển sang trạng thái Rejected.", "success");
+
+    closeReviewModal();
+
     await Promise.all([fetchDashboard(), fetchAuctions()]);
   } catch (error) {
     showToast("Từ chối thất bại", error.message || "Không thể từ chối phiên đấu giá.", "error");
   }
 }
 
-async function cancelAuction(auctionId) {
-  const reason = window.prompt("Nhập lý do hủy phiên đấu giá:", "Admin hủy phiên đấu giá.");
-  if (reason === null) return;
-
-  try {
-    await apiPatch(`/admin/auctions/${auctionId}/cancel`, { reason });
-    showToast("Đã hủy phiên", "Phiên đấu giá đã được hủy.", "success");
-    await Promise.all([fetchDashboard(), fetchAuctions()]);
-  } catch (error) {
-    showToast("Hủy thất bại", error.message || "Không thể hủy phiên đấu giá.", "error");
-  }
-}
-
-function bindAuctionActionButtons() {
-  document.querySelectorAll("[data-approve-auction]").forEach((button) => {
-    button.addEventListener("click", () => approveAuction(button.dataset.approveAuction), { once: true });
-  });
-
-  document.querySelectorAll("[data-reject-auction]").forEach((button) => {
-    button.addEventListener("click", () => rejectAuction(button.dataset.rejectAuction), { once: true });
-  });
-
-  document.querySelectorAll("[data-cancel-auction]").forEach((button) => {
-    button.addEventListener("click", () => cancelAuction(button.dataset.cancelAuction), { once: true });
-  });
-}
-
-function buildUserQuery() {
-  return {
-    q: state.userSearch,
-    role: state.userRole === "all" ? "" : state.userRole,
-    status: state.userStatus === "all" ? "" : state.userStatus,
-  };
-}
-
 async function fetchUsers() {
-  state.isLoadingUsers = true;
-  renderUsers();
-
   try {
-    const response = await apiGet("/admin/users", buildUserQuery());
+    const response = await apiGet("/admin/users");
     state.users = response.data?.users || [];
-  } catch (error) {
+  } catch {
     state.users = [];
-    showToast("Không thể tải người dùng", error.message || "Kiểm tra API /api/admin/users.", "error");
-  } finally {
-    state.isLoadingUsers = false;
-    renderUsers();
   }
+
+  renderUsers();
 }
 
 function renderUsers() {
   const table = document.querySelector("[data-user-table]");
   if (!table) return;
-
-  if (state.isLoadingUsers) {
-    table.innerHTML = `
-      <tr>
-        <td colspan="9">
-          <div class="admin-table-state">
-            <span>◇</span>
-            <p>Đang tải người dùng...</p>
-          </div>
-        </td>
-      </tr>
-    `;
-    return;
-  }
 
   if (state.users.length === 0) {
     table.innerHTML = `
@@ -582,7 +610,7 @@ function renderUsers() {
         <td colspan="9">
           <div class="admin-table-state">
             <span>◇</span>
-            <p>Không có người dùng nào khớp bộ lọc.</p>
+            <p>Không có dữ liệu người dùng.</p>
           </div>
         </td>
       </tr>
@@ -624,24 +652,9 @@ function renderUsers() {
       `,
     )
     .join("");
-
-  bindUserActions();
-}
-
-function bindUserActions() {
-  document.querySelectorAll("[data-lock-user]").forEach((button) => {
-    button.addEventListener("click", () => updateUserStatus(button.dataset.lockUser, "lock"), { once: true });
-  });
-
-  document.querySelectorAll("[data-unlock-user]").forEach((button) => {
-    button.addEventListener("click", () => updateUserStatus(button.dataset.unlockUser, "unlock"), { once: true });
-  });
 }
 
 async function updateUserStatus(userId, action) {
-  const ok = window.confirm(action === "lock" ? "Khóa tài khoản người dùng này?" : "Mở khóa tài khoản người dùng này?");
-  if (!ok) return;
-
   try {
     await apiPatch(`/admin/users/${userId}/${action}`);
     showToast("Cập nhật thành công", action === "lock" ? "Đã khóa tài khoản." : "Đã mở khóa tài khoản.", "success");
@@ -652,25 +665,14 @@ async function updateUserStatus(userId, action) {
 }
 
 async function fetchFraudAlerts() {
-  const list = document.getElementById("ai-fraud-list");
-  if (list) {
-    list.innerHTML = `
-      <div class="admin-empty-mini" style="text-align: center; padding: 40px">
-        <span>◇</span>
-        <p>Đang tải cảnh báo...</p>
-      </div>
-    `;
-  }
-
   try {
     const response = await apiGet("/admin/fraud-alerts");
     state.alerts = response.data?.alerts || [];
-  } catch (error) {
+  } catch {
     state.alerts = [];
-    showToast("Không thể tải cảnh báo", error.message || "Kiểm tra API /api/admin/fraud-alerts.", "error");
-  } finally {
-    renderFraudAlerts();
   }
+
+  renderFraudAlerts();
 }
 
 function renderFraudAlerts() {
@@ -695,13 +697,12 @@ function renderFraudAlerts() {
     .map((alert) => {
       const score = Number(alert.riskScore || 0);
       const riskClass = score >= 0.6 ? "fraud-critical" : score >= 0.4 ? "fraud-medium" : "fraud-low";
-      const riskLabel = score >= 0.6 ? "Rủi ro cao" : score >= 0.4 ? "Rủi ro trung bình" : "Rủi ro thấp";
       const reasons = Array.isArray(alert.reasons) ? alert.reasons.join(" / ") : String(alert.reasons || "Không rõ");
 
       return `
         <article class="fraud-row ${riskClass}">
           <div>
-            <span>${riskLabel}</span>
+            <span>Risk</span>
             <strong>${(score * 100).toFixed(1)}</strong>
             <small>Điểm rủi ro</small>
           </div>
@@ -710,48 +711,21 @@ function renderFraudAlerts() {
             <p>${escapeHtml(reasons)}</p>
           </div>
           <time>${formatDateTime(alert.createdAt)}</time>
-          <div class="fraud-actions">
-            <button type="button" data-review-alert="${escapeHtml(alert.id)}">Review</button>
-            <button type="button" data-dismiss-alert="${escapeHtml(alert.id)}">Dismiss</button>
-          </div>
         </article>
       `;
     })
     .join("");
-
-  bindFraudActions();
-}
-
-function bindFraudActions() {
-  document.querySelectorAll("[data-review-alert]").forEach((button) => {
-    button.addEventListener("click", () => updateFraudAlert(button.dataset.reviewAlert, "REVIEWING"), { once: true });
-  });
-
-  document.querySelectorAll("[data-dismiss-alert]").forEach((button) => {
-    button.addEventListener("click", () => updateFraudAlert(button.dataset.dismissAlert, "DISMISSED"), { once: true });
-  });
-}
-
-async function updateFraudAlert(alertId, status) {
-  try {
-    await apiPatch(`/admin/fraud-alerts/${alertId}`, { status });
-    showToast("Đã cập nhật cảnh báo", "Trạng thái cảnh báo đã được lưu.", "success");
-    await fetchFraudAlerts();
-  } catch (error) {
-    showToast("Cập nhật thất bại", error.message || "Không thể cập nhật cảnh báo.", "error");
-  }
 }
 
 async function fetchSettlements() {
   try {
     const response = await apiGet("/admin/settlements");
     state.settlements = response.data?.settlements || [];
-  } catch (error) {
+  } catch {
     state.settlements = [];
-    showToast("Không thể tải đối soát", error.message || "Kiểm tra API /api/admin/settlements.", "error");
-  } finally {
-    renderSettlements();
   }
+
+  renderSettlements();
 }
 
 function renderSettlements() {
@@ -776,9 +750,7 @@ function renderSettlements() {
     .map(
       (item) => `
         <tr>
-          <td>
-            <strong>#${escapeHtml(item.auctionId)} ${escapeHtml(item.auctionTitle)}</strong>
-          </td>
+          <td>#${escapeHtml(item.auctionId)} ${escapeHtml(item.auctionTitle)}</td>
           <td>${escapeHtml(item.winnerUsername)}</td>
           <td>${formatMoney(item.finalPrice)}</td>
           <td>${formatMoney(item.depositAppliedAmount)}</td>
@@ -795,12 +767,11 @@ async function fetchLogs() {
   try {
     const response = await apiGet("/admin/logs");
     state.logs = response.data?.logs || [];
-  } catch (error) {
+  } catch {
     state.logs = [];
-    showToast("Không thể tải nhật ký", error.message || "Kiểm tra API /api/admin/logs.", "error");
-  } finally {
-    renderLogs();
   }
+
+  renderLogs();
 }
 
 function renderLogs() {
@@ -850,61 +821,28 @@ function bindTabs() {
 }
 
 function bindFilters() {
-  const auctionSearch = document.querySelector("[data-admin-auction-search]");
-  const auctionStatus = document.querySelector("[data-admin-status-filter]");
-  const auctionCategory = document.querySelector("[data-admin-category-filter]");
-  const auctionSort = document.querySelector("[data-admin-sort-filter]");
+  const search = document.querySelector("[data-admin-auction-search]");
+  const status = document.querySelector("[data-admin-status-filter]");
+  const sort = document.querySelector("[data-admin-sort-filter]");
 
-  if (auctionSearch) {
-    auctionSearch.addEventListener("input", () => {
-      state.auctionSearch = auctionSearch.value;
+  if (search) {
+    search.addEventListener("input", () => {
+      state.auctionSearch = search.value;
       fetchAuctions();
     });
   }
 
-  if (auctionStatus) {
-    auctionStatus.addEventListener("change", () => {
-      state.auctionStatus = auctionStatus.value;
+  if (status) {
+    status.addEventListener("change", () => {
+      state.auctionStatus = status.value;
       fetchAuctions();
     });
   }
 
-  if (auctionCategory) {
-    auctionCategory.addEventListener("change", () => {
-      state.auctionCategory = auctionCategory.value;
+  if (sort) {
+    sort.addEventListener("change", () => {
+      state.auctionSort = sort.value;
       fetchAuctions();
-    });
-  }
-
-  if (auctionSort) {
-    auctionSort.addEventListener("change", () => {
-      state.auctionSort = auctionSort.value;
-      fetchAuctions();
-    });
-  }
-
-  const userSearch = document.querySelector("[data-admin-user-search]");
-  const userRole = document.querySelector("[data-admin-user-role]");
-  const userStatus = document.querySelector("[data-admin-user-status]");
-
-  if (userSearch) {
-    userSearch.addEventListener("input", () => {
-      state.userSearch = userSearch.value;
-      fetchUsers();
-    });
-  }
-
-  if (userRole) {
-    userRole.addEventListener("change", () => {
-      state.userRole = userRole.value;
-      fetchUsers();
-    });
-  }
-
-  if (userStatus) {
-    userStatus.addEventListener("change", () => {
-      state.userStatus = userStatus.value;
-      fetchUsers();
     });
   }
 }
@@ -935,6 +873,53 @@ function bindRefreshButtons() {
   });
 }
 
+function bindDelegatedActions() {
+  document.addEventListener("click", (event) => {
+    const viewButton = event.target.closest("[data-view-auction]");
+    if (viewButton) {
+      event.preventDefault();
+      openReviewModal(viewButton.dataset.viewAuction);
+      return;
+    }
+
+    const lockButton = event.target.closest("[data-lock-user]");
+    if (lockButton) {
+      event.preventDefault();
+      updateUserStatus(lockButton.dataset.lockUser, "lock");
+      return;
+    }
+
+    const unlockButton = event.target.closest("[data-unlock-user]");
+    if (unlockButton) {
+      event.preventDefault();
+      updateUserStatus(unlockButton.dataset.unlockUser, "unlock");
+    }
+  });
+}
+
+function bindModal() {
+  document.querySelector("[data-review-modal-close]")?.addEventListener("click", closeReviewModal);
+  document.querySelector("[data-review-approve]")?.addEventListener("click", approveSelectedAuction);
+  document.querySelector("[data-review-reject]")?.addEventListener("click", rejectSelectedAuction);
+
+  document.querySelector("[data-review-modal]")?.addEventListener("click", (event) => {
+    if (event.target.matches("[data-review-modal]")) {
+      closeReviewModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeReviewModal();
+  });
+}
+
+function bindLogout() {
+  document.querySelector("[data-admin-logout]")?.addEventListener("click", () => {
+    apiClient.clearAuth();
+    window.location.replace("./login.html");
+  });
+}
+
 function bindSocketEvents() {
   if (!window.socketClient) return;
 
@@ -962,21 +947,29 @@ async function refreshAll() {
   ]);
 }
 
+function hydrateAdminSession() {
+  const user = state.currentUser;
+
+  setText("[data-current-admin-name]", user.username || "Admin");
+  setText("[data-current-admin-email]", `${user.email || ""} • QUẢN TRỊ VIÊN`);
+}
+
 function initAdminPage() {
   const user = requireAdmin();
   if (!user) return;
 
   state.currentUser = user;
 
+  injectAdminRuntimeStyles();
   initTheme();
-  initSiteHeader({
-    hideAfter: 120,
-    topRevealOffset: 12,
-  });
+  hydrateAdminSession();
 
   bindTabs();
   bindFilters();
   bindRefreshButtons();
+  bindDelegatedActions();
+  bindModal();
+  bindLogout();
   bindSocketEvents();
 
   fetchDashboard();

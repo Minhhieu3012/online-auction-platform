@@ -3,451 +3,723 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vận Hành Quản Trị | BrosGem</title>
+    <title>Quản Trị | BrosGem</title>
 
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/admin.css" />
+
+    <style>
+      body {
+        overflow-x: hidden;
+      }
+
+      .admin-standalone-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        background:
+          linear-gradient(90deg, rgba(197, 160, 89, 0.035), transparent 20%, transparent 80%, rgba(197, 160, 89, 0.035)),
+          var(--bg);
+      }
+
+      .admin-standalone-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 36px 28px;
+        border-right: 1px solid var(--border);
+        background:
+          linear-gradient(180deg, rgba(197, 160, 89, 0.055), transparent 42%),
+          var(--surface);
+        overflow-y: auto;
+      }
+
+      .admin-standalone-brand {
+        display: inline-block;
+        margin-bottom: 42px;
+        color: var(--primary);
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 0.42em;
+        text-transform: uppercase;
+      }
+
+      .admin-sidebar-heading h1 {
+        margin-bottom: 34px;
+      }
+
+      .admin-standalone-actions {
+        display: grid;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .admin-standalone-main {
+        min-width: 0;
+        padding: 40px clamp(24px, 4vw, 64px) 72px;
+      }
+
+      .admin-standalone-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding-bottom: 34px;
+        margin-bottom: 34px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .admin-standalone-title h2 {
+        margin: 0;
+        color: var(--text);
+        font-size: clamp(54px, 6vw, 96px);
+        font-weight: 300;
+        line-height: 0.95;
+        letter-spacing: -0.075em;
+        text-transform: uppercase;
+      }
+
+      .admin-standalone-title p:last-child {
+        max-width: 780px;
+        margin: 20px 0 0;
+        color: var(--text-soft);
+        font-size: 16px;
+        line-height: 1.7;
+      }
+
+      .admin-session-card {
+        min-width: 280px;
+        padding: 18px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .admin-session-card strong {
+        display: block;
+        color: var(--text);
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .admin-session-card span {
+        display: block;
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .admin-detail-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        background: rgba(0, 0, 0, 0.74);
+        backdrop-filter: blur(14px);
+      }
+
+      .admin-detail-modal[hidden] {
+        display: none !important;
+      }
+
+      .admin-detail-dialog {
+        width: min(1040px, 100%);
+        max-height: min(860px, calc(100vh - 56px));
+        overflow: auto;
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .admin-detail-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 28px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .admin-detail-head h3 {
+        margin: 8px 0 0;
+        color: var(--text);
+        font-size: clamp(28px, 4vw, 54px);
+        font-weight: 300;
+        letter-spacing: -0.05em;
+        text-transform: uppercase;
+      }
+
+      .admin-detail-close {
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+        font-size: 24px;
+      }
+
+      .admin-detail-body {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+        gap: 0;
+      }
+
+      .admin-detail-media {
+        min-height: 480px;
+        border-right: 1px solid var(--border);
+        background: var(--surface-muted);
+      }
+
+      .admin-detail-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .admin-detail-info {
+        padding: 28px;
+      }
+
+      .admin-detail-description {
+        margin: 0 0 24px;
+        color: var(--text-soft);
+        line-height: 1.72;
+        white-space: pre-line;
+      }
+
+      .admin-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .admin-detail-stat {
+        padding: 16px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+      }
+
+      .admin-detail-stat span {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .admin-detail-stat strong {
+        color: var(--text);
+        font-size: 17px;
+      }
+
+      .admin-detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 28px;
+        border-top: 1px solid var(--border);
+      }
+
+      .admin-detail-actions .button {
+        min-width: 170px;
+      }
+
+      .admin-danger-button {
+        border-color: rgba(225, 96, 96, 0.7) !important;
+        color: #ff8f8f !important;
+      }
+
+      @media (max-width: 980px) {
+        .admin-standalone-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .admin-standalone-sidebar {
+          position: static;
+          height: auto;
+        }
+
+        .admin-detail-body {
+          grid-template-columns: 1fr;
+        }
+
+        .admin-detail-media {
+          min-height: 320px;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+      }
+    </style>
   </head>
+
   <body>
-    <div class="app-shell">
-      <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+    <div class="admin-standalone-shell">
+      <aside class="admin-standalone-sidebar">
+        <a href="../index.html" class="admin-standalone-brand">BrosGem</a>
 
-      <main class="admin-page">
-        <aside class="admin-sidebar">
-          <div class="admin-sidebar-heading">
-            <p class="eyebrow">Bảng Điều Khiển Quản Trị</p>
-            <h1>Vận Hành</h1>
+        <div class="admin-sidebar-heading">
+          <p class="eyebrow">Bảng Điều Khiển Quản Trị</p>
+          <h1>Vận Hành</h1>
+        </div>
+
+        <nav class="admin-nav" aria-label="Điều hướng quản trị">
+          <button class="admin-nav-item is-active" type="button" data-admin-tab="overview">
+            <span>◇</span>
+            Tổng Quan
+          </button>
+
+          <button class="admin-nav-item" type="button" data-admin-tab="auctions">
+            <span>◷</span>
+            Quản Lý Đấu Giá
+          </button>
+
+          <button class="admin-nav-item" type="button" data-admin-tab="verification">
+            <span>▣</span>
+            Chờ Duyệt
+          </button>
+
+          <button class="admin-nav-item" type="button" data-admin-tab="settlements">
+            <span>▤</span>
+            Đối Soát
+          </button>
+
+          <button class="admin-nav-item" type="button" data-admin-tab="fraud">
+            <span>△</span>
+            Gian Lận
+          </button>
+
+          <button class="admin-nav-item" type="button" data-admin-tab="users">
+            <span>◎</span>
+            Người Dùng
+          </button>
+
+          <button class="admin-nav-item" type="button" data-admin-tab="logs">
+            <span>☷</span>
+            Nhật Ký
+          </button>
+        </nav>
+
+        <div class="admin-standalone-actions">
+          <a href="../index.html" class="button button-outline">Về Trang Chủ</a>
+          <button type="button" class="button button-primary" data-admin-logout>Đăng Xuất</button>
+        </div>
+      </aside>
+
+      <main class="admin-standalone-main">
+        <header class="admin-standalone-top">
+          <div class="admin-standalone-title">
+            <p class="eyebrow">Trung Tâm Điều Phối</p>
+            <h2 data-admin-title>Tổng Quan</h2>
+            <p data-admin-subtitle>
+              Theo dõi trạng thái hệ thống, phiên chờ duyệt, cọc, thanh toán và cảnh báo rủi ro.
+            </p>
           </div>
 
-          <nav class="admin-nav" aria-label="Điều hướng quản trị">
-            <button class="admin-nav-item is-active" type="button" data-admin-tab="overview">
-              <span>◇</span>
-              Tổng Quan
-            </button>
-
-            <button class="admin-nav-item" type="button" data-admin-tab="auctions">
-              <span>◷</span>
-              Quản Lý Đấu Giá
-            </button>
-
-            <button class="admin-nav-item" type="button" data-admin-tab="verification">
-              <span>▣</span>
-              Chờ Duyệt
-            </button>
-
-            <button class="admin-nav-item" type="button" data-admin-tab="settlements">
-              <span>▤</span>
-              Đối Soát
-            </button>
-
-            <button class="admin-nav-item" type="button" data-admin-tab="fraud">
-              <span>△</span>
-              Gian Lận
-            </button>
-
-            <button class="admin-nav-item" type="button" data-admin-tab="users">
-              <span>◎</span>
-              Người Dùng
-            </button>
-
-            <button class="admin-nav-item" type="button" data-admin-tab="logs">
-              <span>☷</span>
-              Nhật Ký
-            </button>
-          </nav>
-
-          <a href="./account.html" class="button button-outline admin-sidebar-secondary-cta">
-            Về Tài Khoản
-          </a>
-        </aside>
-
-        <section class="admin-content">
-          <div class="admin-topbar">
-            <div>
-              <p class="eyebrow">Trung Tâm Điều Phối</p>
-              <h2 data-admin-title>Tổng Quan</h2>
-              <p data-admin-subtitle>
-                Theo dõi vòng đời phiên đấu giá, duyệt phiên mới, quản lý người dùng, cọc, thanh toán và cảnh báo rủi ro.
-              </p>
-            </div>
-
-            <div class="admin-engine-card">
-              <span class="engine-dot"></span>
-              <div>
-                <strong>Backend Admin API</strong>
-                <span data-admin-engine-label>Đang kiểm tra kết nối...</span>
-              </div>
-
-              <button type="button" class="admin-notification-link" data-refresh-all aria-label="Làm mới">
-                ↻
-              </button>
-            </div>
+          <div class="admin-session-card">
+            <strong data-current-admin-name>Admin</strong>
+            <span data-current-admin-email>Đang xác thực phiên quản trị...</span>
           </div>
+        </header>
 
-          <section class="admin-panel is-active" data-admin-panel="overview">
-            <div class="admin-stat-grid">
-              <article class="admin-stat-card">
-                <span>Tổng Phiên</span>
-                <strong data-stat-total-auctions>00</strong>
-                <p>Tất cả phiên trong hệ thống</p>
-              </article>
-
-              <article class="admin-stat-card">
-                <span>Chờ Duyệt</span>
-                <strong data-stat-pending-auctions>00</strong>
-                <p>Phiên user gửi lên</p>
-              </article>
-
-              <article class="admin-stat-card">
-                <span>Đang Mở</span>
-                <strong data-stat-active-auctions>00</strong>
-                <p>Đang nhận đấu giá</p>
-              </article>
-
-              <article class="admin-stat-card admin-stat-card-gold">
-                <span>Tổng Giá Trị</span>
-                <strong data-stat-total-volume>$0</strong>
-                <p>Tổng current_price</p>
-              </article>
-            </div>
-
-            <div class="admin-grid-2">
-              <article class="admin-section-card">
-                <div class="admin-section-heading">
-                  <h3>Phiên Giá Trị Cao</h3>
-                  <button type="button" data-admin-jump="auctions">Mở bảng</button>
-                </div>
-
-                <div class="admin-request-list" data-overview-auction-list>
-                  <div class="admin-empty-mini">
-                    <span>◇</span>
-                    <p>Đang tải dữ liệu từ Backend...</p>
-                  </div>
-                </div>
-              </article>
-
-              <article class="admin-section-card">
-                <div class="admin-section-heading">
-                  <h3>Sức Khỏe Vận Hành</h3>
-                  <button type="button" data-refresh-all>Làm mới</button>
-                </div>
-
-                <div class="risk-stack">
-                  <article class="risk-card risk-critical">
-                    <span>Backend</span>
-                    <strong data-backend-status>...</strong>
-                    <p data-backend-status-copy>Đang kiểm tra API quản trị.</p>
-                  </article>
-
-                  <article class="risk-card risk-medium">
-                    <span>Cọc Thành Công</span>
-                    <strong data-stat-successful-deposits>$0</strong>
-                    <p>Tổng cọc SUCCEEDED</p>
-                  </article>
-
-                  <article class="risk-card risk-low">
-                    <span>Cảnh Báo Mở</span>
-                    <strong data-stat-open-fraud-alerts>00</strong>
-                    <p>Fraud alerts cần xử lý</p>
-                  </article>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section class="admin-panel" data-admin-panel="auctions">
-            <article class="admin-section-card">
-              <div class="admin-section-heading admin-auction-heading">
-                <div>
-                  <h3>Quản Lý Cuộc Đấu Giá</h3>
-                  <p>Duyệt, từ chối, hủy và theo dõi trạng thái toàn bộ phiên đấu giá.</p>
-                </div>
-
-                <div class="admin-heading-actions">
-                  <button type="button" data-refresh-auctions>Làm Mới</button>
-                </div>
-              </div>
-
-              <section class="admin-auction-toolbar" aria-label="Bộ lọc quản lý đấu giá">
-                <label class="admin-search-field" for="adminAuctionSearch">
-                  <span>Tìm Kiếm</span>
-                  <input
-                    id="adminAuctionSearch"
-                    type="search"
-                    placeholder="Tìm tiêu đề, người bán, email, danh mục, mã lô..."
-                    data-admin-auction-search
-                  />
-                </label>
-
-                <label class="admin-filter-field" for="adminStatusFilter">
-                  <span>Trạng Thái</span>
-                  <select id="adminStatusFilter" data-admin-status-filter>
-                    <option value="all">Tất cả</option>
-                    <option value="pending">Chờ duyệt</option>
-                    <option value="rejected">Bị từ chối</option>
-                    <option value="scheduled">Đã lên lịch</option>
-                    <option value="active">Đang mở</option>
-                    <option value="closing">Sắp đóng</option>
-                    <option value="ended">Đã kết thúc</option>
-                    <option value="payment_pending">Chờ thanh toán</option>
-                    <option value="completed">Hoàn tất</option>
-                    <option value="cancelled">Đã hủy</option>
-                  </select>
-                </label>
-
-                <label class="admin-filter-field" for="adminCategoryFilter">
-                  <span>Danh Mục</span>
-                  <select id="adminCategoryFilter" data-admin-category-filter>
-                    <option value="all">Tất cả</option>
-                    <option value="jewelry">Trang sức</option>
-                    <option value="horology">Đồng hồ</option>
-                    <option value="fine-art">Nghệ thuật</option>
-                    <option value="automotive">Ô tô</option>
-                    <option value="collectibles">Sưu tầm</option>
-                  </select>
-                </label>
-
-                <label class="admin-filter-field" for="adminSortFilter">
-                  <span>Sắp Xếp</span>
-                  <select id="adminSortFilter" data-admin-sort-filter>
-                    <option value="pending-first">Chờ duyệt trước</option>
-                    <option value="highest-bid">Giá cao nhất</option>
-                    <option value="newest">Mới nhất</option>
-                    <option value="most-bids">Nhiều lượt giá</option>
-                  </select>
-                </label>
-              </section>
-
-              <div class="admin-auction-summary-row">
-                <p data-admin-auction-count>Đã tải 0 phiên</p>
-                <p data-admin-auction-showing>Đang hiển thị 0 bản ghi</p>
-              </div>
-
-              <div class="admin-table-shell admin-auction-table-shell">
-                <table class="admin-table admin-auction-table">
-                  <thead>
-                    <tr>
-                      <th>Lô</th>
-                      <th>Tài Sản</th>
-                      <th>Người Bán</th>
-                      <th>Trạng Thái</th>
-                      <th>Cọc</th>
-                      <th>Giá Hiện Tại</th>
-                      <th>Lượt Giá</th>
-                      <th>Kết Thúc</th>
-                      <th>Hành Động</th>
-                    </tr>
-                  </thead>
-
-                  <tbody data-admin-auction-table>
-                    <tr>
-                      <td colspan="9">
-                        <div class="admin-table-state">
-                          <span>◇</span>
-                          <p>Đang tải dữ liệu đấu giá từ máy chủ...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="admin-empty-state" data-admin-auction-empty hidden>
-                <span>◇</span>
-                <h4>Không có phiên đấu giá nào khớp</h4>
-                <p>Hãy thử bộ lọc khác hoặc làm mới dữ liệu.</p>
-              </div>
+        <section class="admin-panel is-active" data-admin-panel="overview">
+          <div class="admin-stat-grid">
+            <article class="admin-stat-card">
+              <span>Tổng Phiên</span>
+              <strong data-stat-total-auctions>00</strong>
+              <p>Tất cả phiên trong hệ thống</p>
             </article>
-          </section>
 
-          <section class="admin-panel" data-admin-panel="verification">
+            <article class="admin-stat-card">
+              <span>Chờ Duyệt</span>
+              <strong data-stat-pending-auctions>00</strong>
+              <p>Phiên user gửi lên</p>
+            </article>
+
+            <article class="admin-stat-card">
+              <span>Đang Mở</span>
+              <strong data-stat-active-auctions>00</strong>
+              <p>Đang nhận đấu giá</p>
+            </article>
+
+            <article class="admin-stat-card admin-stat-card-gold">
+              <span>Tổng Giá Trị</span>
+              <strong data-stat-total-volume>$0</strong>
+              <p>Tổng current_price</p>
+            </article>
+          </div>
+
+          <div class="admin-grid-2">
             <article class="admin-section-card">
               <div class="admin-section-heading">
-                <h3>Phiên Chờ Duyệt</h3>
-                <span data-verification-count>0 yêu cầu đang chờ</span>
+                <h3>Phiên Giá Trị Cao</h3>
+                <button type="button" data-admin-jump="auctions">Mở bảng</button>
               </div>
 
-              <div class="verification-grid" data-verification-grid>
+              <div class="admin-request-list" data-overview-auction-list>
                 <div class="admin-empty-mini">
                   <span>◇</span>
-                  <p>Đang tải hàng đợi duyệt...</p>
+                  <p>Đang tải dữ liệu từ Backend...</p>
                 </div>
               </div>
             </article>
-          </section>
 
-          <section class="admin-panel" data-admin-panel="settlements">
             <article class="admin-section-card">
               <div class="admin-section-heading">
-                <h3>Đối Soát Thanh Toán</h3>
-                <button type="button" data-refresh-settlements>Làm Mới</button>
+                <h3>Sức Khỏe Vận Hành</h3>
+                <button type="button" data-refresh-all>Làm mới</button>
               </div>
 
-              <div class="admin-table-shell">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Phiên</th>
-                      <th>Người Thắng</th>
-                      <th>Giá Chốt</th>
-                      <th>Cọc Đã Trừ</th>
-                      <th>Còn Phải Trả</th>
-                      <th>Trạng Thái</th>
-                      <th>Hạn Thanh Toán</th>
-                    </tr>
-                  </thead>
+              <div class="risk-stack">
+                <article class="risk-card risk-critical">
+                  <span>Backend</span>
+                  <strong data-backend-status>...</strong>
+                  <p data-backend-status-copy>Đang kiểm tra API quản trị.</p>
+                </article>
 
-                  <tbody data-settlement-table>
-                    <tr>
-                      <td colspan="7">
-                        <div class="admin-table-state">
-                          <span>◇</span>
-                          <p>Đang tải dữ liệu đối soát...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <article class="risk-card risk-medium">
+                  <span>Cọc Thành Công</span>
+                  <strong data-stat-successful-deposits>$0</strong>
+                  <p>Tổng cọc SUCCEEDED</p>
+                </article>
+
+                <article class="risk-card risk-low">
+                  <span>Cảnh Báo Mở</span>
+                  <strong data-stat-open-fraud-alerts>00</strong>
+                  <p>Fraud alerts cần xử lý</p>
+                </article>
               </div>
             </article>
-          </section>
+          </div>
+        </section>
 
-          <section class="admin-panel" data-admin-panel="fraud">
-            <article class="admin-section-card">
-              <div class="admin-section-heading">
-                <div>
-                  <h3>Cảnh Báo Gian Lận</h3>
-                  <p>Theo dõi cảnh báo AI đã ghi vào database hoặc được Backend đồng bộ.</p>
-                </div>
-                <button type="button" data-refresh-fraud-alerts id="fraud-summary-btn">Đang tải...</button>
+        <section class="admin-panel" data-admin-panel="auctions">
+          <article class="admin-section-card">
+            <div class="admin-section-heading admin-auction-heading">
+              <div>
+                <h3>Quản Lý Cuộc Đấu Giá</h3>
+                <p>Duyệt, từ chối, hủy và theo dõi toàn bộ vòng đời các phiên đấu giá.</p>
               </div>
 
-              <div class="fraud-list" id="ai-fraud-list">
-                <div class="admin-empty-mini" style="text-align: center; padding: 40px">
-                  <span>◇</span>
-                  <p>Đang tải cảnh báo gian lận...</p>
-                </div>
+              <div class="admin-heading-actions">
+                <button type="button" data-refresh-auctions>Làm Mới</button>
               </div>
-            </article>
-          </section>
+            </div>
 
-          <section class="admin-panel" data-admin-panel="users">
-            <article class="admin-section-card">
-              <div class="admin-section-heading admin-auction-heading">
-                <div>
-                  <h3>Quản Lý Người Dùng</h3>
-                  <p>Khóa hoặc mở khóa tài khoản có hành vi rủi ro.</p>
-                </div>
-                <button type="button" data-refresh-users>Làm Mới</button>
+            <section class="admin-auction-toolbar" aria-label="Bộ lọc quản lý đấu giá">
+              <label class="admin-search-field" for="adminAuctionSearch">
+                <span>Tìm Kiếm</span>
+                <input
+                  id="adminAuctionSearch"
+                  type="search"
+                  placeholder="Tìm tiêu đề, người bán, email, danh mục, mã lô..."
+                  data-admin-auction-search
+                />
+              </label>
+
+              <label class="admin-filter-field" for="adminStatusFilter">
+                <span>Trạng Thái</span>
+                <select id="adminStatusFilter" data-admin-status-filter>
+                  <option value="all">Tất cả</option>
+                  <option value="pending">Chờ duyệt</option>
+                  <option value="rejected">Bị từ chối</option>
+                  <option value="scheduled">Đã lên lịch</option>
+                  <option value="active">Đang mở</option>
+                  <option value="closing">Sắp đóng</option>
+                  <option value="ended">Đã kết thúc</option>
+                  <option value="payment_pending">Chờ thanh toán</option>
+                  <option value="completed">Hoàn tất</option>
+                  <option value="cancelled">Đã hủy</option>
+                </select>
+              </label>
+
+              <label class="admin-filter-field" for="adminSortFilter">
+                <span>Sắp Xếp</span>
+                <select id="adminSortFilter" data-admin-sort-filter>
+                  <option value="pending-first">Chờ duyệt trước</option>
+                  <option value="highest-bid">Giá cao nhất</option>
+                  <option value="newest">Mới nhất</option>
+                  <option value="most-bids">Nhiều lượt giá</option>
+                </select>
+              </label>
+            </section>
+
+            <div class="admin-auction-summary-row">
+              <p data-admin-auction-count>Đã tải 0 phiên</p>
+              <p data-admin-auction-showing>Đang hiển thị 0 bản ghi</p>
+            </div>
+
+            <div class="admin-table-shell admin-auction-table-shell">
+              <table class="admin-table admin-auction-table">
+                <thead>
+                  <tr>
+                    <th>Lô</th>
+                    <th>Tài Sản</th>
+                    <th>Người Bán</th>
+                    <th>Trạng Thái</th>
+                    <th>Cọc</th>
+                    <th>Giá Hiện Tại</th>
+                    <th>Lượt Giá</th>
+                    <th>Kết Thúc</th>
+                    <th>Hành Động</th>
+                  </tr>
+                </thead>
+
+                <tbody data-admin-auction-table>
+                  <tr>
+                    <td colspan="9">
+                      <div class="admin-table-state">
+                        <span>◇</span>
+                        <p>Đang tải dữ liệu đấu giá từ máy chủ...</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="admin-panel" data-admin-panel="verification">
+          <article class="admin-section-card">
+            <div class="admin-section-heading">
+              <h3>Phiên Chờ Duyệt</h3>
+              <span data-verification-count>0 yêu cầu đang chờ</span>
+            </div>
+
+            <div class="verification-grid" data-verification-grid>
+              <div class="admin-empty-mini">
+                <span>◇</span>
+                <p>Đang tải hàng đợi duyệt...</p>
               </div>
+            </div>
+          </article>
+        </section>
 
-              <section class="admin-auction-toolbar" aria-label="Bộ lọc người dùng">
-                <label class="admin-search-field" for="adminUserSearch">
-                  <span>Tìm Kiếm</span>
-                  <input
-                    id="adminUserSearch"
-                    type="search"
-                    placeholder="Tìm username, email, ID..."
-                    data-admin-user-search
-                  />
-                </label>
+        <section class="admin-panel" data-admin-panel="settlements">
+          <article class="admin-section-card">
+            <div class="admin-section-heading">
+              <h3>Đối Soát Thanh Toán</h3>
+              <button type="button" data-refresh-settlements>Làm Mới</button>
+            </div>
 
-                <label class="admin-filter-field" for="adminUserRole">
-                  <span>Vai Trò</span>
-                  <select id="adminUserRole" data-admin-user-role>
-                    <option value="all">Tất cả</option>
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </label>
+            <div class="admin-table-shell">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Phiên</th>
+                    <th>Người Thắng</th>
+                    <th>Giá Chốt</th>
+                    <th>Cọc Đã Trừ</th>
+                    <th>Còn Phải Trả</th>
+                    <th>Trạng Thái</th>
+                    <th>Hạn Thanh Toán</th>
+                  </tr>
+                </thead>
 
-                <label class="admin-filter-field" for="adminUserStatus">
-                  <span>Trạng Thái</span>
-                  <select id="adminUserStatus" data-admin-user-status>
-                    <option value="all">Tất cả</option>
-                    <option value="active">Đang hoạt động</option>
-                    <option value="locked">Đã khóa</option>
-                  </select>
-                </label>
-              </section>
+                <tbody data-settlement-table>
+                  <tr>
+                    <td colspan="7">
+                      <div class="admin-table-state">
+                        <span>◇</span>
+                        <p>Đang tải dữ liệu đối soát...</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
 
-              <div class="admin-table-shell">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Người Dùng</th>
-                      <th>Email</th>
-                      <th>Vai Trò</th>
-                      <th>Trạng Thái</th>
-                      <th>Số Dư</th>
-                      <th>Phiên Tạo</th>
-                      <th>Lượt Giá</th>
-                      <th>Cảnh Báo</th>
-                      <th>Hành Động</th>
-                    </tr>
-                  </thead>
-
-                  <tbody data-user-table>
-                    <tr>
-                      <td colspan="9">
-                        <div class="admin-table-state">
-                          <span>◇</span>
-                          <p>Đang tải người dùng...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+        <section class="admin-panel" data-admin-panel="fraud">
+          <article class="admin-section-card">
+            <div class="admin-section-heading">
+              <div>
+                <h3>Cảnh Báo Gian Lận</h3>
+                <p>Theo dõi cảnh báo AI/fraud đã được đồng bộ vào hệ thống.</p>
               </div>
-            </article>
-          </section>
+              <button type="button" data-refresh-fraud-alerts id="fraud-summary-btn">Đang tải...</button>
+            </div>
 
-          <section class="admin-panel" data-admin-panel="logs">
-            <article class="admin-section-card">
-              <div class="admin-section-heading">
-                <h3>Nhật Ký Hành Động Admin</h3>
-                <button type="button" data-refresh-logs>Làm Mới</button>
+            <div class="fraud-list" id="ai-fraud-list">
+              <div class="admin-empty-mini" style="text-align: center; padding: 40px">
+                <span>◇</span>
+                <p>Đang tải cảnh báo gian lận...</p>
               </div>
+            </div>
+          </article>
+        </section>
 
-              <div class="admin-table-shell">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Admin</th>
-                      <th>Hành Động</th>
-                      <th>Đối Tượng</th>
-                      <th>Ghi Chú</th>
-                      <th>Thời Gian</th>
-                    </tr>
-                  </thead>
-
-                  <tbody data-admin-log-table>
-                    <tr>
-                      <td colspan="5">
-                        <div class="admin-table-state">
-                          <span>◇</span>
-                          <p>Đang tải nhật ký...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+        <section class="admin-panel" data-admin-panel="users">
+          <article class="admin-section-card">
+            <div class="admin-section-heading admin-auction-heading">
+              <div>
+                <h3>Quản Lý Người Dùng</h3>
+                <p>Khóa hoặc mở khóa tài khoản có hành vi rủi ro.</p>
               </div>
-            </article>
-          </section>
+              <button type="button" data-refresh-users>Làm Mới</button>
+            </div>
+
+            <div class="admin-table-shell">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Người Dùng</th>
+                    <th>Email</th>
+                    <th>Vai Trò</th>
+                    <th>Trạng Thái</th>
+                    <th>Số Dư</th>
+                    <th>Phiên Tạo</th>
+                    <th>Lượt Giá</th>
+                    <th>Cảnh Báo</th>
+                    <th>Hành Động</th>
+                  </tr>
+                </thead>
+
+                <tbody data-user-table>
+                  <tr>
+                    <td colspan="9">
+                      <div class="admin-table-state">
+                        <span>◇</span>
+                        <p>Đang tải người dùng...</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="admin-panel" data-admin-panel="logs">
+          <article class="admin-section-card">
+            <div class="admin-section-heading">
+              <h3>Nhật Ký Hành Động Admin</h3>
+              <button type="button" data-refresh-logs>Làm Mới</button>
+            </div>
+
+            <div class="admin-table-shell">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Admin</th>
+                    <th>Hành Động</th>
+                    <th>Đối Tượng</th>
+                    <th>Ghi Chú</th>
+                    <th>Thời Gian</th>
+                  </tr>
+                </thead>
+
+                <tbody data-admin-log-table>
+                  <tr>
+                    <td colspan="5">
+                      <div class="admin-table-state">
+                        <span>◇</span>
+                        <p>Đang tải nhật ký...</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
         </section>
       </main>
-
-      <div class="toast-stack" data-toast-stack aria-live="polite"></div>
-
-      <div data-site-footer data-base-path=".."></div>
     </div>
+
+    <section class="admin-detail-modal" data-review-modal hidden>
+      <article class="admin-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle">
+        <header class="admin-detail-head">
+          <div>
+            <p class="eyebrow" data-review-modal-lot>Lô đang chọn</p>
+            <h3 id="reviewModalTitle" data-review-modal-title>Chi tiết phiên</h3>
+          </div>
+
+          <button type="button" class="admin-detail-close" data-review-modal-close aria-label="Đóng">
+            ×
+          </button>
+        </header>
+
+        <div class="admin-detail-body">
+          <figure class="admin-detail-media">
+            <img src="../assets/images/mockdata/1.png" alt="Ảnh tài sản" data-review-modal-image />
+          </figure>
+
+          <div class="admin-detail-info">
+            <p class="admin-detail-description" data-review-modal-description></p>
+
+            <div class="admin-detail-grid">
+              <div class="admin-detail-stat">
+                <span>Người bán</span>
+                <strong data-review-modal-seller></strong>
+              </div>
+
+              <div class="admin-detail-stat">
+                <span>Danh mục</span>
+                <strong data-review-modal-category></strong>
+              </div>
+
+              <div class="admin-detail-stat">
+                <span>Giá khởi điểm</span>
+                <strong data-review-modal-price></strong>
+              </div>
+
+              <div class="admin-detail-stat">
+                <span>Bước giá</span>
+                <strong data-review-modal-step></strong>
+              </div>
+
+              <div class="admin-detail-stat">
+                <span>Tiền cọc</span>
+                <strong data-review-modal-deposit></strong>
+              </div>
+
+              <div class="admin-detail-stat">
+                <span>Trạng thái</span>
+                <strong data-review-modal-status></strong>
+              </div>
+
+              <div class="admin-detail-stat">
+                <span>Ngày tạo</span>
+                <strong data-review-modal-created></strong>
+              </div>
+
+              <div class="admin-detail-stat">
+                <span>Kết thúc dự kiến</span>
+                <strong data-review-modal-end></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="admin-detail-actions">
+          <button type="button" class="button button-primary" data-review-approve>
+            Thông Qua
+          </button>
+
+          <button type="button" class="button button-outline admin-danger-button" data-review-reject>
+            Không Thông Qua
+          </button>
+
+          <button type="button" class="button button-outline" data-review-open-public>
+            Mở Trang Phiên
+          </button>
+        </footer>
+      </article>
+    </section>
+
+    <div class="toast-stack" data-toast-stack aria-live="polite"></div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="../js/core/socket-client.js"></script>
-    <script type="module" src="../components/site-header.js"></script>
-    <script type="module" src="../components/site-footer.js"></script>
     <script type="module" src="../js/modules/admin.js"></script>
   </body>
 </html>
