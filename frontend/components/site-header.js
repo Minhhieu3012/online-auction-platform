@@ -1,204 +1,300 @@
-import { initSiteHeader } from "../js/core/header.js";
-import { toggleTheme } from "../js/core/theme.js";
+import { initCommandPalette } from "../js/modules/command-palette.js";
+import { initSiteHeader, closeSettingsMenus } from "../js/core/header.js";
+import { initTheme, refreshThemeControls } from "../js/core/theme.js";
 import apiClient from "../js/core/api-client.js";
+import storage from "../js/core/storage.js";
 
 const HEADER_CONFIG = {
   brandName: "BrosGem",
   brandAriaLabel: "Trang chủ BrosGem",
 };
 
-const NOTIFICATION_STORAGE_KEY = "brosgem_runtime_notifications";
-const MAX_NOTIFICATIONS = 20;
+const NOTIFICATION_LIMIT = 6;
+
+let isNotificationDropdownBound = false;
 
 function normalizeBasePath(basePath) {
   return !basePath || basePath === "." ? "." : basePath.replace(/\/$/, "");
 }
 
-function isRootPath(basePath) {
-  return normalizeBasePath(basePath) === ".";
-}
-
-function pageHref(basePath, pageFile) {
-  const normalizedBasePath = normalizeBasePath(basePath);
-  return isRootPath(normalizedBasePath) ? `./pages/${pageFile}` : `./${pageFile}`;
-}
-
-function homeHref(basePath) {
-  const normalizedBasePath = normalizeBasePath(basePath);
-  return isRootPath(normalizedBasePath) ? "./index.html" : `${normalizedBasePath}/index.html`;
-}
-
-function protocolHref(basePath) {
-  const normalizedBasePath = normalizeBasePath(basePath);
-  return isRootPath(normalizedBasePath) ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
+function getStoredToken() {
+  return (
+    storage.getRaw("jwt_token") ||
+    storage.getRaw("token") ||
+    localStorage.getItem("jwt_token") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("brosgem_token")
+  );
 }
 
 function isAuthenticated() {
-  return Boolean(apiClient.getAuthToken() && apiClient.getAuthUser());
+  const token = getStoredToken();
+  return Boolean(token && token !== "undefined" && token !== "null" && token !== "");
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function formatRelativeTime(value) {
-  if (!value) {
-    return "Vừa xong";
-  }
-
-  const time = new Date(value).getTime();
-
-  if (Number.isNaN(time)) {
-    return "Vừa xong";
-  }
-
-  const diffMs = Math.max(0, Date.now() - time);
-  const diffMinutes = Math.floor(diffMs / 60000);
-
-  if (diffMinutes < 1) return "Vừa xong";
-  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} giờ trước`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} ngày trước`;
-}
-
-function loadRuntimeNotifications() {
-  try {
-    const rawValue = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-    const parsed = rawValue ? JSON.parse(rawValue) : [];
-
-    return Array.isArray(parsed) ? parsed.slice(0, MAX_NOTIFICATIONS) : [];
-  } catch (error) {
-    console.warn("[Header] Không thể đọc notification store:", error);
-    return [];
-  }
-}
-
-function saveRuntimeNotifications(notifications) {
-  try {
-    window.localStorage.setItem(
-      NOTIFICATION_STORAGE_KEY,
-      JSON.stringify(notifications.slice(0, MAX_NOTIFICATIONS)),
-    );
-  } catch (error) {
-    console.warn("[Header] Không thể lưu notification store:", error);
-  }
-}
-
-function getNotificationHref(basePath, notification = {}) {
+function injectCommandPaletteStyles(basePath) {
   const normalizedBasePath = normalizeBasePath(basePath);
+  const href =
+    normalizedBasePath === "." ? "./css/command-palette.css" : `${normalizedBasePath}/css/command-palette.css`;
 
-  if (notification.actionHref) {
-    return notification.actionHref;
-  }
+  if (document.querySelector('link[data-command-palette-style="true"]')) return;
 
-  if (notification.auctionId || notification.auction_id) {
-    const auctionId = notification.auctionId || notification.auction_id;
-    return pageHref(normalizedBasePath, `product-detail.html?id=${encodeURIComponent(auctionId)}`);
-  }
-
-  if (notification.type === "fraud" || notification.lss_score || notification.lss) {
-    return pageHref(normalizedBasePath, "admin.html#fraud");
-  }
-
-  return pageHref(normalizedBasePath, "notifications.html");
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  link.dataset.commandPaletteStyle = "true";
+  document.head.appendChild(link);
 }
 
-function createNotificationFromSocket(data = {}, basePath = ".") {
-  const createdAt = data.createdAt || data.created_at || data.timestamp || new Date().toISOString();
-  const riskScore = Number(data.lss_score || data.lss || data.risk_score || 0);
-  const auctionId = data.auctionId || data.auction_id;
+function injectHeaderDropdownStyles() {
+  if (document.querySelector('style[data-header-dropdown-style="true"]')) return;
 
-  let title = data.title || "Thông báo hệ thống";
-  let message = data.message || "Bạn có một cập nhật mới từ hệ thống.";
-  let type = data.type || "system";
+  const style = document.createElement("style");
+  style.dataset.headerDropdownStyle = "true";
 
-  if (riskScore > 0) {
-    type = "fraud";
-    title = "Cảnh báo gian lận";
-    message = `AI phát hiện tín hiệu rủi ro ${Math.round(riskScore * 100)}%${auctionId ? ` tại phiên #${auctionId}` : ""}.`;
-  }
+  style.textContent = `
+    .header-actions {
+      position: relative;
+    }
 
-  if (data.paymentUrl || data.userId || data.user_id) {
-    type = data.type || "payment";
-    title = data.title || "Cập nhật phiên đấu giá";
-    message = data.message || "Phiên đấu giá vừa có cập nhật quan trọng.";
-  }
+    .notification-shell,
+    .home-settings {
+      position: relative;
+    }
 
-  return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    type,
-    title,
-    message,
-    createdAt,
-    read: false,
-    actionHref: getNotificationHref(basePath, data),
-  };
+    .notification-bell {
+      position: relative;
+      display: inline-grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      background: transparent;
+      border: 0;
+      color: var(--text-soft);
+      font-size: 20px;
+      transition:
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .notification-bell:hover {
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .bell-badge {
+      display: none;
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      width: 10px;
+      height: 10px;
+      background: var(--danger);
+      border-radius: 999px;
+      border: 2px solid var(--surface);
+    }
+
+    .notification-dropdown {
+      position: absolute;
+      top: calc(100% + 14px);
+      right: -18px;
+      z-index: 90;
+      width: min(360px, calc(100vw - 28px));
+      border: 1px solid var(--border);
+      background:
+        linear-gradient(135deg, rgba(197, 160, 89, 0.08), transparent 38%),
+        var(--surface);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(18px);
+    }
+
+    .notification-dropdown[hidden] {
+      display: none !important;
+    }
+
+    .notification-dropdown::before {
+      content: "";
+      position: absolute;
+      top: -7px;
+      right: 28px;
+      width: 12px;
+      height: 12px;
+      transform: rotate(45deg);
+      border-left: 1px solid var(--border);
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .notification-dropdown-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .notification-dropdown-head strong {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .notification-dropdown-head a {
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .notification-dropdown-list {
+      max-height: 360px;
+      overflow: auto;
+      padding: 6px;
+    }
+
+    .notification-dropdown-item {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid transparent;
+      color: var(--text-soft);
+      transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+    }
+
+    .notification-dropdown-item:hover {
+      border-color: var(--border);
+      background: var(--surface-strong);
+      color: var(--text);
+    }
+
+    .notification-dropdown-item.is-unread {
+      border-color: rgba(197, 160, 89, 0.34);
+      background: var(--primary-soft);
+    }
+
+    .notification-dropdown-item strong {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .notification-dropdown-item p {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .notification-dropdown-item time {
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .notification-dropdown-state {
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      min-height: 132px;
+      padding: 20px;
+      color: var(--text-muted);
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .home-settings-menu-minimal {
+      min-width: auto;
+      width: 70px;
+      padding: 6px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .home-settings-menu[hidden] {
+      display: none !important;
+    }
+
+    .home-settings-icon-only {
+      width: 56px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .home-settings-icon-only span {
+      margin: 0;
+    }
+
+    @media (max-width: 720px) {
+      .notification-dropdown {
+        right: -76px;
+      }
+
+      .notification-dropdown::before {
+        right: 86px;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
 }
 
 function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   const normalizedBasePath = normalizeBasePath(basePath);
+  const isRoot = normalizedBasePath === ".";
   const authenticated = isAuthenticated();
 
-  const homeUrl = homeHref(normalizedBasePath);
-  const collectionsHref = pageHref(normalizedBasePath, "collections.html");
-  const liveAuctionsHref = pageHref(normalizedBasePath, "live-auctions.html");
-  const loginHref = pageHref(normalizedBasePath, "login.html");
-  const accountHref = pageHref(normalizedBasePath, "account.html");
-  const notificationsHref = pageHref(normalizedBasePath, "notifications.html");
-  const adminHref = pageHref(normalizedBasePath, "admin.html");
-  const publishHref = pageHref(normalizedBasePath, "publish-lot.html");
-  const protocolUrl = protocolHref(normalizedBasePath);
+  const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
+  const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
+  const liveAuctionsHref = isRoot ? "./pages/live-auctions.html" : "./live-auctions.html";
+  const loginHref = isRoot ? "./pages/login.html" : "./login.html";
+  const accountHref = isRoot ? "./pages/account.html" : "./account.html";
+  const notificationsHref = isRoot ? "./pages/notifications.html" : "./notifications.html";
+  const settingsHref = authenticated
+    ? isRoot
+      ? "./pages/account.html#settings"
+      : "./account.html#settings"
+    : loginHref;
+  const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
   const actionHref = authenticated ? accountHref : loginHref;
   const actionText = authenticated ? "TÀI KHOẢN" : "ĐĂNG NHẬP";
 
-  const authenticatedMenu = authenticated
-    ? `
-        <a class="home-settings-item home-settings-item-minimal" href="${notificationsHref}" title="Thông báo">
-          <span class="home-settings-item-value">◇</span>
-        </a>
-        <a class="home-settings-item home-settings-item-minimal" href="${publishHref}" title="Đăng lô đấu giá">
-          <span class="home-settings-item-value">▣</span>
-        </a>
-        <a class="home-settings-item home-settings-item-minimal" href="${adminHref}" title="Quản trị">
-          <span class="home-settings-item-value">△</span>
-        </a>
-        <button class="home-settings-item home-settings-item-minimal" type="button" data-logout-btn title="Đăng xuất">
-          <span class="home-settings-item-value">⎋</span>
-        </button>
-      `
-    : `
-        <a class="home-settings-item home-settings-item-minimal" href="${loginHref}" title="Đăng nhập">
-          <span class="home-settings-item-value">◎</span>
-        </a>
-      `;
-
   return `
-    <header class="site-header home-luxury-header" data-header data-header-base-path="${normalizedBasePath}">
-      <a href="${homeUrl}" class="brand-mark" aria-label="${HEADER_CONFIG.brandAriaLabel}">
+    <header class="site-header home-luxury-header" data-header>
+      <a href="${homeHref}" class="brand-mark" aria-label="${HEADER_CONFIG.brandAriaLabel}">
         ${HEADER_CONFIG.brandName}
       </a>
 
       <nav class="desktop-nav home-luxury-nav" aria-label="Điều hướng chính">
-        <a href="${homeUrl}" class="nav-link ${activePage === "home" ? "is-active" : ""}">
+        <a href="${homeHref}" class="nav-link ${activePage === "home" ? "is-active" : ""}">
           Trang Chủ
         </a>
+
         <a href="${collectionsHref}" class="nav-link ${activePage === "collections" ? "is-active" : ""}">
           Bộ Sưu Tập
         </a>
+
         <a href="${liveAuctionsHref}" class="nav-link ${activePage === "live-auctions" ? "is-active" : ""}">
           Đấu Giá Trực Tiếp
         </a>
-        <a href="${protocolUrl}" class="nav-link">
+
+        <a href="${protocolHref}" class="nav-link">
           Giao Thức Tin Cậy
         </a>
       </nav>
@@ -207,9 +303,9 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
         <button
           class="home-search-trigger"
           type="button"
-          data-auction-search-shortcut
-          aria-label="Mở trang tìm kiếm đấu giá"
-          title="Tìm kiếm đấu giá"
+          data-command-palette-open
+          aria-label="Tìm kiếm"
+          title="Tìm kiếm"
         >
           <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
             <circle cx="10.5" cy="10.5" r="5.5" stroke="currentColor" stroke-width="2" fill="none"></circle>
@@ -217,22 +313,38 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
           </svg>
         </button>
 
-        <div class="notification-wrapper">
-          <button type="button" class="notification-bell" id="global-notification-bell" aria-label="Mở thông báo">
-            🔔
-            <span class="bell-badge" hidden></span>
+        <div class="notification-shell">
+          <button
+            type="button"
+            class="notification-bell"
+            id="global-notification-bell"
+            data-notification-toggle
+            aria-label="Mở thông báo"
+            aria-expanded="false"
+            title="Thông báo"
+          >
+            <span aria-hidden="true">🔔</span>
+            <span class="bell-badge" aria-hidden="true"></span>
           </button>
 
-          <div class="notification-dropdown" id="global-notification-dropdown" hidden>
-            <div class="notification-header">
-              <h4>Thông báo</h4>
-              <button type="button" class="mark-read-btn" id="mark-all-read-btn">
-                Đã đọc tất cả
-              </button>
+          <section
+            class="notification-dropdown"
+            data-notification-dropdown
+            hidden
+            aria-label="Thông báo gần đây"
+          >
+            <div class="notification-dropdown-head">
+              <strong>Thông báo</strong>
+              <a href="${notificationsHref}" data-open-full-notifications>Xem tất cả</a>
             </div>
 
-            <div class="notification-list" id="global-notification-list"></div>
-          </div>
+            <div class="notification-dropdown-list" data-notification-list>
+              <div class="notification-dropdown-state">
+                <span>◇</span>
+                <p>Bấm chuông để tải thông báo mới nhất.</p>
+              </div>
+            </div>
+          </section>
         </div>
 
         <a href="${actionHref}" class="button button-primary button-compact home-register-button" data-auth-btn>
@@ -245,7 +357,8 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
             type="button"
             data-home-settings-toggle
             aria-expanded="false"
-            aria-label="Mở menu"
+            aria-label="Mở cài đặt"
+            title="Cài đặt"
           >
             <span></span>
             <span></span>
@@ -253,225 +366,292 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
           </button>
 
           <div class="home-settings-menu home-settings-menu-minimal" data-home-settings-menu hidden>
-            <button class="home-settings-item home-settings-item-minimal" type="button" data-theme-toggle title="Đổi giao diện">
-              <span class="home-settings-item-value" data-theme-icon>☾</span>
+            <button
+              class="home-settings-item home-settings-icon-only"
+              type="button"
+              data-theme-toggle
+              aria-label="Đổi giao diện"
+              title="Đổi giao diện"
+            >
+              <span data-theme-icon aria-hidden="true">☾</span>
             </button>
-            ${authenticatedMenu}
+
+            <a
+              class="home-settings-item home-settings-icon-only"
+              href="${settingsHref}"
+              aria-label="Cài đặt tài khoản"
+              title="Cài đặt tài khoản"
+              data-settings-link
+            >
+              <span aria-hidden="true">⚙</span>
+            </a>
           </div>
         </div>
       </div>
+
+      <button
+        class="mobile-menu-button"
+        type="button"
+        data-mobile-menu-button
+        aria-expanded="false"
+        aria-label="Mở menu di động"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </header>
+
+    <nav class="mobile-nav-panel" data-mobile-nav-panel aria-label="Điều hướng di động">
+      <a href="${homeHref}" class="mobile-nav-link">Trang Chủ</a>
+      <a href="${collectionsHref}" class="mobile-nav-link">Bộ Sưu Tập</a>
+      <a href="${liveAuctionsHref}" class="mobile-nav-link">Đấu Giá Trực Tiếp</a>
+      <a href="${protocolHref}" class="mobile-nav-link">Giao Thức Tin Cậy</a>
+      <a href="${actionHref}" class="mobile-nav-link mobile-nav-cta">${actionText}</a>
+    </nav>
   `;
 }
 
-function renderNotificationList(basePath = ".") {
-  const list = document.getElementById("global-notification-list");
+function closeNotificationDropdown() {
+  const dropdown = document.querySelector("[data-notification-dropdown]");
+  const toggle = document.querySelector("[data-notification-toggle]");
+
+  if (dropdown) {
+    dropdown.hidden = true;
+  }
+
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", "false");
+  }
+}
+
+function closeAllHeaderPopovers() {
+  closeSettingsMenus();
+  closeNotificationDropdown();
+}
+
+function formatNotificationTime(value) {
+  if (!value) return "Vừa xong";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Vừa xong";
+
+  const diffMs = Math.max(0, Date.now() - date.getTime());
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+
+  return `${Math.floor(diffHours / 24)} ngày trước`;
+}
+
+function normalizeNotification(raw) {
+  return {
+    id: raw.id || raw.notificationId || `${Date.now()}-${Math.random()}`,
+    title: raw.title || "Thông báo",
+    message: raw.message || raw.content || "Bạn có một cập nhật mới.",
+    isRead: Boolean(raw.isRead ?? raw.is_read),
+    actionUrl: raw.actionUrl || raw.action_url || "",
+    createdAt: raw.createdAt || raw.created_at || raw.time || null,
+  };
+}
+
+function normalizeNotificationsResponse(response) {
+  const candidates = [
+    response?.data?.notifications,
+    response?.data?.items,
+    response?.notifications,
+    response?.items,
+    response?.data,
+    response,
+  ];
+
+  const arrayValue = candidates.find((item) => Array.isArray(item));
+  return arrayValue ? arrayValue.map(normalizeNotification) : [];
+}
+
+function normalizeActionUrl(url) {
+  if (!url) return "";
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+
+  if (url.startsWith("/pages/")) {
+    return `.${url.replace("/pages", "")}`;
+  }
+
+  if (url.startsWith("/")) {
+    return `.${url}`;
+  }
+
+  return url;
+}
+
+function renderNotificationState(message) {
+  const list = document.querySelector("[data-notification-list]");
+  if (!list) return;
+
+  list.innerHTML = `
+    <div class="notification-dropdown-state">
+      <span>◇</span>
+      <p>${message}</p>
+    </div>
+  `;
+}
+
+function renderNotifications(notifications) {
+  const list = document.querySelector("[data-notification-list]");
   const badge = document.querySelector("#global-notification-bell .bell-badge");
 
-  if (!list) {
-    return;
-  }
-
-  const notifications = loadRuntimeNotifications();
-  const unreadCount = notifications.filter((item) => !item.read).length;
-
-  if (badge) {
-    badge.hidden = unreadCount === 0;
-  }
+  if (!list) return;
 
   if (notifications.length === 0) {
-    list.innerHTML = `
-      <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 12px;">
-        Chưa có thông báo real-time nào.
-      </div>
-    `;
+    if (badge) badge.style.display = "none";
+
+    renderNotificationState("Chưa có thông báo mới.");
     return;
+  }
+
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+
+  if (badge) {
+    badge.style.display = unreadCount > 0 ? "block" : "none";
   }
 
   list.innerHTML = notifications
     .map((notification) => {
-      const href = notification.actionHref || pageHref(basePath, "notifications.html");
+      const href = normalizeActionUrl(notification.actionUrl);
+
+      const content = `
+        <strong>${notification.title}</strong>
+        <p>${notification.message}</p>
+        <time>${formatNotificationTime(notification.createdAt)}</time>
+      `;
+
+      if (href) {
+        return `
+          <a
+            class="notification-dropdown-item ${notification.isRead ? "" : "is-unread"}"
+            href="${href}"
+            data-notification-item="${notification.id}"
+          >
+            ${content}
+          </a>
+        `;
+      }
 
       return `
-        <button
-          type="button"
-          class="notification-item ${notification.read ? "" : "unread"}"
-          data-notification-id="${escapeHtml(notification.id)}"
-          data-notification-href="${escapeHtml(href)}"
+        <article
+          class="notification-dropdown-item ${notification.isRead ? "" : "is-unread"}"
+          data-notification-item="${notification.id}"
         >
-          <p class="notif-title">${escapeHtml(notification.title)}</p>
-          <p class="notif-message">${escapeHtml(notification.message)}</p>
-          <p class="notif-time">${formatRelativeTime(notification.createdAt)}</p>
-        </button>
+          ${content}
+        </article>
       `;
     })
     .join("");
 }
 
-function addRuntimeNotification(notification, basePath = ".") {
-  const notifications = loadRuntimeNotifications();
+async function fetchHeaderNotifications() {
+  const list = document.querySelector("[data-notification-list]");
 
-  const nextNotifications = [
-    {
-      ...notification,
-      createdAt: notification.createdAt || new Date().toISOString(),
-      read: false,
-    },
-    ...notifications,
-  ].slice(0, MAX_NOTIFICATIONS);
+  if (!list) return;
 
-  saveRuntimeNotifications(nextNotifications);
-  renderNotificationList(basePath);
-
-  const bell = document.getElementById("global-notification-bell");
-
-  if (bell) {
-    bell.classList.remove("shake-animation");
-    void bell.offsetWidth;
-    bell.classList.add("shake-animation");
-  }
-}
-
-function bindHeaderActions(basePath = ".") {
-  document.querySelectorAll("[data-auction-search-shortcut]").forEach((button) => {
-    button.addEventListener("click", () => {
-      window.location.href = pageHref(basePath, "live-auctions.html");
-    });
-  });
-
-  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    button.addEventListener("click", () => {
-      toggleTheme();
-    });
-  });
-
-  document.querySelectorAll("[data-logout-btn]").forEach((button) => {
-    button.addEventListener("click", () => {
-      apiClient.clearAuth();
-      window.location.replace(homeHref(basePath));
-    });
-  });
-
-  const bell = document.getElementById("global-notification-bell");
-  const dropdown = document.getElementById("global-notification-dropdown");
-  const list = document.getElementById("global-notification-list");
-  const markReadButton = document.getElementById("mark-all-read-btn");
-
-  if (bell && dropdown) {
-    bell.addEventListener("click", (event) => {
-      event.stopPropagation();
-      dropdown.hidden = !dropdown.hidden;
-    });
-
-    dropdown.addEventListener("click", (event) => {
-      event.stopPropagation();
-    });
-
-    document.addEventListener("click", () => {
-      dropdown.hidden = true;
-    });
-  }
-
-  if (markReadButton) {
-    markReadButton.addEventListener("click", () => {
-      const notifications = loadRuntimeNotifications().map((notification) => ({
-        ...notification,
-        read: true,
-      }));
-
-      saveRuntimeNotifications(notifications);
-      renderNotificationList(basePath);
-    });
-  }
-
-  if (list) {
-    list.addEventListener("click", (event) => {
-      const item = event.target.closest("[data-notification-id]");
-
-      if (!item) {
-        return;
-      }
-
-      const notificationId = item.dataset.notificationId;
-      const notifications = loadRuntimeNotifications().map((notification) => {
-        if (notification.id !== notificationId) {
-          return notification;
-        }
-
-        return {
-          ...notification,
-          read: true,
-        };
-      });
-
-      saveRuntimeNotifications(notifications);
-      renderNotificationList(basePath);
-
-      const href = item.dataset.notificationHref;
-      if (href) {
-        window.location.href = href;
-      }
-    });
-  }
-
-  document.addEventListener("click", (event) => {
-    const logoutButton =
-      event.target.closest("[data-logout-btn]") ||
-      event.target.closest(".dashboard-logout-button") ||
-      (event.target.closest("[data-auth-btn]") &&
-        event.target.closest("[data-auth-btn]").textContent.trim().toUpperCase() === "ĐĂNG XUẤT");
-
-    if (!logoutButton) {
-      return;
-    }
-
-    event.preventDefault();
-    apiClient.clearAuth();
-    window.location.replace(homeHref(basePath));
-  });
-}
-
-function bindSocketNotifications(basePath = ".") {
-  if (!window.socketClient) {
+  if (!isAuthenticated()) {
+    renderNotificationState("Bạn cần đăng nhập để xem thông báo.");
     return;
   }
 
-  window.socketClient.connect("global");
+  list.innerHTML = `
+    <div class="notification-dropdown-state">
+      <span>◇</span>
+      <p>Đang tải thông báo...</p>
+    </div>
+  `;
 
-  window.socketClient.on("user_notification", (data) => {
-    addRuntimeNotification(createNotificationFromSocket(data, basePath), basePath);
-  });
-
-  window.socketClient.on("fraud_detected", (data) => {
-    addRuntimeNotification(createNotificationFromSocket({ ...data, type: "fraud" }, basePath), basePath);
-  });
-
-  window.socketClient.on("auction_winner", (data) => {
-    addRuntimeNotification(
-      createNotificationFromSocket(
-        {
-          ...data,
-          type: "payment",
-          title: "Kết quả phiên đấu giá",
-          message: data.paymentUrl
-            ? "Bạn có một phiên đấu giá cần hoàn tất thanh toán."
-            : "Một phiên đấu giá vừa kết thúc.",
-        },
-        basePath,
-      ),
-      basePath,
+  try {
+    const response = await apiClient.get(
+      "/notifications",
+      {
+        limit: NOTIFICATION_LIMIT,
+      },
+      {
+        auth: true,
+        idempotency: false,
+        redirectOnUnauthorized: false,
+      },
     );
+
+    const notifications = normalizeNotificationsResponse(response).slice(0, NOTIFICATION_LIMIT);
+    renderNotifications(notifications);
+  } catch (error) {
+    renderNotificationState("Chưa kết nối được API thông báo. Thử lại sau nhé.");
+  }
+}
+
+function toggleNotificationDropdown() {
+  const dropdown = document.querySelector("[data-notification-dropdown]");
+  const toggle = document.querySelector("[data-notification-toggle]");
+
+  if (!dropdown || !toggle) return;
+
+  const shouldOpen = dropdown.hidden;
+
+  closeSettingsMenus();
+
+  dropdown.hidden = !shouldOpen;
+  toggle.setAttribute("aria-expanded", String(shouldOpen));
+
+  if (shouldOpen) {
+    fetchHeaderNotifications();
+  }
+}
+
+function bindNotificationDropdown() {
+  if (isNotificationDropdownBound) return;
+
+  isNotificationDropdownBound = true;
+
+  document.addEventListener("click", (event) => {
+    const notificationToggle = event.target.closest("[data-notification-toggle]");
+
+    if (notificationToggle) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleNotificationDropdown();
+      return;
+    }
+
+    const clickedInsideNotification = event.target.closest(".notification-shell");
+    const clickedInsideSettings = event.target.closest(".home-settings");
+
+    if (!clickedInsideNotification && !clickedInsideSettings) {
+      closeNotificationDropdown();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeNotificationDropdown();
+    }
+  });
+
+  window.addEventListener("brosgem:close-header-menu", () => {
+    closeAllHeaderPopovers();
   });
 }
 
 function renderSiteHeaders() {
-  let lastBasePath = ".";
-
   document.querySelectorAll("[data-site-header]").forEach((mountPoint) => {
     const basePath = mountPoint.dataset.basePath || ".";
     const activePage = mountPoint.dataset.activePage || "";
 
-    lastBasePath = normalizeBasePath(basePath);
+    injectCommandPaletteStyles(basePath);
+    injectHeaderDropdownStyles();
 
     mountPoint.outerHTML = createHeaderTemplate({
       basePath,
@@ -479,12 +659,46 @@ function renderSiteHeaders() {
     });
   });
 
+  initTheme();
+  refreshThemeControls();
   initSiteHeader();
-  bindHeaderActions(lastBasePath);
-  renderNotificationList(lastBasePath);
-  bindSocketNotifications(lastBasePath);
+  bindNotificationDropdown();
+
+  if (typeof initCommandPalette === "function") {
+    initCommandPalette();
+  }
+
+  if (window.socketClient) {
+    window.socketClient.connect("global");
+
+    window.socketClient.on("user_notification", () => {
+      const bell = document.getElementById("global-notification-bell");
+      const badge = bell?.querySelector(".bell-badge");
+
+      if (bell && badge) {
+        badge.style.display = "block";
+        bell.classList.add("shake-animation");
+
+        window.setTimeout(() => {
+          bell.classList.remove("shake-animation");
+        }, 1000);
+      }
+
+      const dropdown = document.querySelector("[data-notification-dropdown]");
+
+      if (dropdown && !dropdown.hidden) {
+        fetchHeaderNotifications();
+      }
+    });
+  }
 }
 
-document.addEventListener("DOMContentLoaded", renderSiteHeaders);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", renderSiteHeaders);
+} else {
+  renderSiteHeaders();
+}
 
-export { renderSiteHeaders };
+export {
+  renderSiteHeaders,
+};
