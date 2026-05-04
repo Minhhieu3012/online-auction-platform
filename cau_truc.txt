@@ -72,7 +72,7 @@ online-auction-platform
 │       │   ├── auth.js
 │       │   ├── bidding.js
 │       │   ├── payment.js
-│       │   └── webhook.controller.js
+│       │  
 │       ├── middlewares
 │       │   ├── auth.js
 │       │   └── idempotency.js
@@ -84,7 +84,7 @@ online-auction-platform
 │       │   └── index.js
 │       ├── server.js
 │       ├── services
-│       │   ├── auction-worker.js
+│       │   |
 │       │   ├── autobid.js
 │       │   ├── bidding.js
 │       │   └── kafka-consumer.js
@@ -151,7 +151,6 @@ online-auction-platform
     │       ├── auction-detail.js
     │       ├── auction-list.js
     │       ├── auth.js
-    │       ├── bid-logic.js
     │       ├── checkout.js
     │       ├── command-palette.js
     │       ├── consignment.js
@@ -174,7 +173,6 @@ online-auction-platform
         ├── forgot-password.html
         ├── live-auctions.html
         ├── login.html
-        ├── login.js
         ├── notifications.html
         ├── product-detail.html
         ├── publish-lot.html
