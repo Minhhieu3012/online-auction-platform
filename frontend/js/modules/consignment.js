@@ -1,358 +1,446 @@
 import { initTheme } from "../core/theme.js";
-import { initI18n } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
+import apiClient from "../core/api-client.js";
 
-const DEFAULT_PREVIEW_IMAGE = "../assets/images/mockdata/4.png";
+const FALLBACK_CATEGORY_IMAGES = {
+  Jewelry: "../assets/images/mockdata/4.png",
+  Horology: "../assets/images/mockdata/1.png",
+  "Fine Art": "../assets/images/mockdata/2.png",
+  Automotive: "../assets/images/mockdata/3.png",
+  Collectibles: "../assets/images/mockdata/5.png",
+};
+
+const WINDOW_DURATION_MINUTES = {
+  "Within 2 weeks": 14 * 24 * 60,
+  "Within 1 month": 30 * 24 * 60,
+  "Next premium event": 7 * 24 * 60,
+  Flexible: 7 * 24 * 60,
+};
+
+function showToast(title, message, type = "info") {
+  const toastStack = document.querySelector("[data-toast-stack]");
+  if (!toastStack) return;
+
+  const toast = document.createElement("article");
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <p class="toast-title">${title}</p>
+    <p class="toast-message">${message}</p>
+  `;
+
+  toastStack.appendChild(toast);
+
+  window.setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-6px)";
+  }, 3200);
+
+  window.setTimeout(() => {
+    toast.remove();
+  }, 3800);
+}
 
 function formatCurrency(value) {
-    const number = Number(value);
-
-    if (!Number.isFinite(number) || number <= 0) {
-        return "$0";
-    }
-
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0
-    }).format(number);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 }
 
-function getToastStack() {
-    return document.querySelector("[data-toast-stack]");
+function getInput(selector) {
+  return document.querySelector(selector);
 }
 
-function showToast(title, message) {
-    const toastStack = getToastStack();
+function getValue(selector) {
+  return getInput(selector)?.value.trim() || "";
+}
 
-    if (!toastStack) {
-        return;
-    }
+function getNumber(selector) {
+  return Number(getValue(selector) || 0);
+}
 
-    const toast = document.createElement("article");
-    toast.className = "toast";
-    toast.innerHTML = `
-        <p class="toast-title">${title}</p>
-        <p class="toast-message">${message}</p>
-    `;
-
-    toastStack.appendChild(toast);
-
-    window.setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateY(-6px)";
-    }, 3200);
-
-    window.setTimeout(() => {
-        toast.remove();
-    }, 3800);
+function setText(selector, value) {
+  const element = document.querySelector(selector);
+  if (element) element.textContent = value;
 }
 
 function setFieldError(input, message) {
-    const field = input.closest(".consign-field");
-    const errorElement = field?.querySelector("[data-field-error]");
+  const field = input?.closest(".consign-field");
+  const errorElement = field?.querySelector("[data-field-error]");
 
-    if (!field || !errorElement) {
-        return;
-    }
+  if (!field || !errorElement) return;
 
-    field.classList.toggle("has-error", Boolean(message));
-    errorElement.textContent = message || "";
+  field.classList.toggle("has-error", Boolean(message));
+  errorElement.textContent = message || "";
 }
 
-function getFieldValue(selector) {
-    return document.querySelector(selector)?.value.trim() || "";
+function setFormBusy(form, isBusy) {
+  const controls = form.querySelectorAll("button, input, select, textarea");
+  const submitButton = form.querySelector("[type='submit']");
+
+  controls.forEach((control) => {
+    control.disabled = isBusy;
+  });
+
+  if (!submitButton) return;
+
+  if (isBusy) {
+    submitButton.dataset.originalText = submitButton.textContent.trim();
+    submitButton.textContent = "Đang gửi duyệt...";
+    return;
+  }
+
+  submitButton.textContent = submitButton.dataset.originalText || "Gửi Duyệt";
+}
+
+function requireLogin() {
+  const token = apiClient.getAuthToken();
+  const user = apiClient.getAuthUser();
+
+  if (!token || !user) {
+    showToast("Yêu cầu đăng nhập", "Vui lòng đăng nhập trước khi gửi tài sản đấu giá.", "warning");
+
+    window.setTimeout(() => {
+      const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.href = `./login.html?redirect=${encodeURIComponent(currentUrl)}`;
+    }, 800);
+
+    return false;
+  }
+
+  return true;
+}
+
+function validateRequired(selector, message) {
+  const input = getInput(selector);
+
+  if (!input) return true;
+
+  if (!input.value.trim()) {
+    setFieldError(input, message);
+    return false;
+  }
+
+  setFieldError(input, "");
+  return true;
+}
+
+function validateNumber(selector, message) {
+  const input = getInput(selector);
+  const value = Number(input?.value || 0);
+
+  if (!input || !input.value.trim() || !Number.isFinite(value) || value <= 0) {
+    setFieldError(input, message);
+    return false;
+  }
+
+  setFieldError(input, "");
+  return true;
+}
+
+function validateForm() {
+  let isValid = true;
+
+  const requiredFields = [
+    ["[data-consign-title]", "Vui lòng nhập tên tài sản."],
+    ["[data-consign-category]", "Vui lòng chọn danh mục."],
+    ["[data-consign-origin]", "Vui lòng nhập nguồn gốc tài sản."],
+    ["[data-consign-condition]", "Vui lòng chọn tình trạng tài sản."],
+    ["[data-consign-description]", "Vui lòng nhập mô tả tài sản."],
+    ["[data-consign-window]", "Vui lòng chọn thời gian đấu giá dự kiến."],
+    ["[data-consign-contact]", "Vui lòng chọn cách liên hệ."],
+  ];
+
+  requiredFields.forEach(([selector, message]) => {
+    if (!validateRequired(selector, message)) isValid = false;
+  });
+
+  const numberFields = [
+    ["[data-consign-estimate-low]", "Ước tính thấp phải lớn hơn 0."],
+    ["[data-consign-estimate-high]", "Ước tính cao phải lớn hơn 0."],
+    ["[data-consign-reserve]", "Giá khởi điểm/giá sàn phải lớn hơn 0."],
+  ];
+
+  numberFields.forEach(([selector, message]) => {
+    if (!validateNumber(selector, message)) isValid = false;
+  });
+
+  const estimateLow = getNumber("[data-consign-estimate-low]");
+  const estimateHigh = getNumber("[data-consign-estimate-high]");
+  const reservePrice = getNumber("[data-consign-reserve]");
+
+  if (estimateHigh <= estimateLow) {
+    setFieldError(getInput("[data-consign-estimate-high]"), "Ước tính cao phải lớn hơn ước tính thấp.");
+    isValid = false;
+  }
+
+  if (reservePrice > estimateHigh) {
+    setFieldError(getInput("[data-consign-reserve]"), "Giá sàn không nên lớn hơn ước tính cao.");
+    isValid = false;
+  }
+
+  const confirmInput = getInput("[data-consign-confirm]");
+  const confirmError = document.querySelector("[data-confirm-error]");
+
+  if (!confirmInput?.checked) {
+    if (confirmError) {
+      confirmError.textContent = "Bạn cần xác nhận thông tin trước khi gửi duyệt.";
+    }
+
+    isValid = false;
+  } else if (confirmError) {
+    confirmError.textContent = "";
+  }
+
+  return isValid;
+}
+
+function getPreviewImage() {
+  const previewImage = document.querySelector("[data-preview-image]");
+  const uploadedPreview = document.querySelector("[data-upload-preview] img");
+
+  if (uploadedPreview?.src) {
+    return uploadedPreview.src;
+  }
+
+  if (previewImage?.src && !previewImage.src.includes("mockdata")) {
+    return previewImage.src;
+  }
+
+  const category = getValue("[data-consign-category]") || "Collectibles";
+  return FALLBACK_CATEGORY_IMAGES[category] || FALLBACK_CATEGORY_IMAGES.Collectibles;
+}
+
+function getStepPrice(estimateLow, estimateHigh) {
+  const diff = estimateHigh - estimateLow;
+
+  if (!Number.isFinite(diff) || diff <= 0) {
+    return 100;
+  }
+
+  return Math.max(100, Math.round(diff / 20));
+}
+
+function buildAuctionPayload() {
+  const title = getValue("[data-consign-title]");
+  const category = getValue("[data-consign-category]") || "Collectibles";
+  const origin = getValue("[data-consign-origin]");
+  const condition = getValue("[data-consign-condition]");
+  const description = getValue("[data-consign-description]");
+  const estimateLow = getNumber("[data-consign-estimate-low]");
+  const estimateHigh = getNumber("[data-consign-estimate-high]");
+  const reservePrice = getNumber("[data-consign-reserve]");
+  const windowLabel = getValue("[data-consign-window]") || "Flexible";
+  const contactPreference = getValue("[data-consign-contact]") || "Email";
+  const durationMinutes = WINDOW_DURATION_MINUTES[windowLabel] || WINDOW_DURATION_MINUTES.Flexible;
+
+  return {
+    productName: title,
+    category,
+    imageUrl: getPreviewImage(),
+    startingPrice: reservePrice || estimateLow,
+    stepPrice: getStepPrice(estimateLow, estimateHigh),
+    durationMinutes,
+    status: "Scheduled",
+    description: [
+      description,
+      "",
+      `Nguồn gốc: ${origin}`,
+      `Tình trạng: ${condition}`,
+      `Khoảng ước tính: ${formatCurrency(estimateLow)} - ${formatCurrency(estimateHigh)}`,
+      `Khung đấu giá mong muốn: ${windowLabel}`,
+      `Ưu tiên liên hệ: ${contactPreference}`,
+    ].join("\n"),
+  };
+}
+
+function saveDraftLocally() {
+  const draft = {
+    title: getValue("[data-consign-title]"),
+    category: getValue("[data-consign-category]"),
+    origin: getValue("[data-consign-origin]"),
+    condition: getValue("[data-consign-condition]"),
+    description: getValue("[data-consign-description]"),
+    estimateLow: getValue("[data-consign-estimate-low]"),
+    estimateHigh: getValue("[data-consign-estimate-high]"),
+    reservePrice: getValue("[data-consign-reserve]"),
+    window: getValue("[data-consign-window]"),
+    contact: getValue("[data-consign-contact]"),
+    updatedAt: new Date().toISOString(),
+  };
+
+  window.localStorage.setItem("brosgem_consign_draft", JSON.stringify(draft));
+  showToast("Đã lưu bản nháp", "Bản nháp đã được lưu trên trình duyệt hiện tại.", "success");
+}
+
+function restoreDraft() {
+  try {
+    const rawDraft = window.localStorage.getItem("brosgem_consign_draft");
+    if (!rawDraft) return;
+
+    const draft = JSON.parse(rawDraft);
+
+    const mapping = [
+      ["[data-consign-title]", draft.title],
+      ["[data-consign-category]", draft.category],
+      ["[data-consign-origin]", draft.origin],
+      ["[data-consign-condition]", draft.condition],
+      ["[data-consign-description]", draft.description],
+      ["[data-consign-estimate-low]", draft.estimateLow],
+      ["[data-consign-estimate-high]", draft.estimateHigh],
+      ["[data-consign-reserve]", draft.reservePrice],
+      ["[data-consign-window]", draft.window],
+      ["[data-consign-contact]", draft.contact],
+    ];
+
+    mapping.forEach(([selector, value]) => {
+      const input = getInput(selector);
+      if (input && value) input.value = value;
+    });
+  } catch (error) {
+    console.warn("[Consign] Không thể khôi phục bản nháp:", error);
+  }
 }
 
 function updatePreview() {
-    const title = getFieldValue("[data-consign-title]");
-    const category = getFieldValue("[data-consign-category]");
-    const condition = getFieldValue("[data-consign-condition]");
-    const description = getFieldValue("[data-consign-description]");
-    const estimateLow = getFieldValue("[data-consign-estimate-low]");
-    const estimateHigh = getFieldValue("[data-consign-estimate-high]");
-    const reserve = getFieldValue("[data-consign-reserve]");
+  const title = getValue("[data-consign-title]") || "Tài sản chưa đặt tên";
+  const category = getValue("[data-consign-category]") || "Chưa chọn danh mục";
+  const condition = getValue("[data-consign-condition]") || "Chưa chọn tình trạng";
+  const description = getValue("[data-consign-description]") || "Mô tả tài sản sẽ hiển thị tại đây.";
+  const estimateLow = getNumber("[data-consign-estimate-low]");
+  const estimateHigh = getNumber("[data-consign-estimate-high]");
+  const reservePrice = getNumber("[data-consign-reserve]");
+  const previewImage = getInput("[data-preview-image]");
 
-    const previewTitle = document.querySelector("[data-preview-title]");
-    const previewCategory = document.querySelector("[data-preview-category]");
-    const previewCondition = document.querySelector("[data-preview-condition]");
-    const previewDescription = document.querySelector("[data-preview-description]");
-    const previewEstimate = document.querySelector("[data-preview-estimate]");
-    const previewReserve = document.querySelector("[data-preview-reserve]");
+  setText("[data-preview-lot]", "Chờ admin duyệt");
+  setText("[data-preview-title]", title);
+  setText("[data-preview-category]", category);
+  setText("[data-preview-condition]", condition);
+  setText("[data-preview-description]", description);
+  setText("[data-preview-estimate]", `${formatCurrency(estimateLow)} - ${formatCurrency(estimateHigh)}`);
+  setText("[data-preview-reserve]", formatCurrency(reservePrice));
 
-    if (previewTitle) {
-        previewTitle.textContent = title || "Untitled Asset";
-    }
-
-    if (previewCategory) {
-        previewCategory.textContent = category || "Category pending";
-    }
-
-    if (previewCondition) {
-        previewCondition.textContent = condition || "Condition pending";
-    }
-
-    if (previewDescription) {
-        previewDescription.textContent = description || "Your asset description will appear here as you type.";
-    }
-
-    if (previewEstimate) {
-        previewEstimate.textContent = `${formatCurrency(estimateLow)} - ${formatCurrency(estimateHigh)}`;
-    }
-
-    if (previewReserve) {
-        previewReserve.textContent = formatCurrency(reserve);
-    }
+  if (previewImage) {
+    previewImage.src = getPreviewImage();
+  }
 }
 
-function validateRequiredInput(input, message) {
-    if (!input.value.trim()) {
-        setFieldError(input, message);
-        return false;
-    }
+function renderUploadPreviews(files) {
+  const previewGrid = document.querySelector("[data-upload-preview]");
 
-    setFieldError(input, "");
-    return true;
+  if (!previewGrid) return;
+
+  previewGrid.innerHTML = "";
+
+  Array.from(files || [])
+    .slice(0, 4)
+    .forEach((file) => {
+      const imageUrl = URL.createObjectURL(file);
+      const item = document.createElement("article");
+
+      item.className = "upload-preview-item";
+      item.innerHTML = `
+        <img src="${imageUrl}" alt="${file.name}" />
+        <span>${file.name}</span>
+      `;
+
+      previewGrid.appendChild(item);
+    });
+
+  updatePreview();
 }
 
-function validateNumberInput(input, message) {
-    const value = Number(input.value);
+async function handleSubmit(event) {
+  event.preventDefault();
 
-    if (!input.value.trim() || !Number.isFinite(value) || value <= 0) {
-        setFieldError(input, message);
-        return false;
-    }
+  const form = event.currentTarget;
 
-    setFieldError(input, "");
-    return true;
-}
+  if (!requireLogin()) return;
 
-function validateEstimateRange(lowInput, highInput) {
-    const low = Number(lowInput.value);
-    const high = Number(highInput.value);
+  if (!validateForm()) {
+    showToast("Chưa thể gửi duyệt", "Vui lòng kiểm tra lại các trường bắt buộc.", "warning");
+    return;
+  }
 
-    if (!validateNumberInput(lowInput, "Estimate low is required.")) {
-        return false;
-    }
+  const payload = buildAuctionPayload();
 
-    if (!validateNumberInput(highInput, "Estimate high is required.")) {
-        return false;
-    }
+  setFormBusy(form, true);
 
-    if (high <= low) {
-        setFieldError(highInput, "Estimate high must be greater than estimate low.");
-        return false;
-    }
+  try {
+    const response = await apiClient.post("/auctions", payload);
 
-    setFieldError(highInput, "");
-    return true;
-}
+    showToast(
+      "Đã gửi admin duyệt",
+      response.message || "Tài sản đã được tạo thành phiên đấu giá chờ duyệt.",
+      "success",
+    );
 
-function validateConsignForm(form) {
-    let isValid = true;
-
-    const titleInput = form.querySelector("[data-consign-title]");
-    const categoryInput = form.querySelector("[data-consign-category]");
-    const originInput = form.querySelector("[data-consign-origin]");
-    const conditionInput = form.querySelector("[data-consign-condition]");
-    const descriptionInput = form.querySelector("[data-consign-description]");
-    const estimateLowInput = form.querySelector("[data-consign-estimate-low]");
-    const estimateHighInput = form.querySelector("[data-consign-estimate-high]");
-    const reserveInput = form.querySelector("[data-consign-reserve]");
-    const windowInput = form.querySelector("[data-consign-window]");
-    const contactInput = form.querySelector("[data-consign-contact]");
-    const confirmInput = form.querySelector("[data-consign-confirm]");
-    const confirmError = form.querySelector("[data-confirm-error]");
-
-    if (!validateRequiredInput(titleInput, "Asset title is required.")) {
-        isValid = false;
-    }
-
-    if (!validateRequiredInput(categoryInput, "Category is required.")) {
-        isValid = false;
-    }
-
-    if (!validateRequiredInput(originInput, "Provenance is required.")) {
-        isValid = false;
-    }
-
-    if (!validateRequiredInput(conditionInput, "Condition is required.")) {
-        isValid = false;
-    }
-
-    if (!validateRequiredInput(descriptionInput, "Description is required.")) {
-        isValid = false;
-    }
-
-    if (!validateEstimateRange(estimateLowInput, estimateHighInput)) {
-        isValid = false;
-    }
-
-    if (!validateNumberInput(reserveInput, "Reserve price is required.")) {
-        isValid = false;
-    }
-
-    if (!validateRequiredInput(windowInput, "Auction window is required.")) {
-        isValid = false;
-    }
-
-    if (!validateRequiredInput(contactInput, "Contact preference is required.")) {
-        isValid = false;
-    }
-
-    if (!confirmInput.checked) {
-        confirmError.textContent = "You must confirm before submitting.";
-        isValid = false;
-    } else {
-        confirmError.textContent = "";
-    }
-
-    return isValid;
-}
-
-function handleFormSubmit(event) {
-    event.preventDefault();
-
-    const form = event.currentTarget;
-
-    if (!validateConsignForm(form)) {
-        showToast("Review Required", "Please complete the highlighted fields before submitting.");
-        return;
-    }
-
-    showToast("Request Submitted", "Your selling request mock has been submitted for review.");
+    window.localStorage.removeItem("brosgem_consign_draft");
 
     window.setTimeout(() => {
-        window.location.href = "./account.html#selling";
-    }, 950);
+      window.location.href = "./account.html#selling";
+    }, 900);
+  } catch (error) {
+    console.error("[Consign Submit Error]:", error);
+    showToast("Gửi duyệt thất bại", error.message || "Không thể gửi tài sản lên backend.", "error");
+  } finally {
+    setFormBusy(form, false);
+  }
 }
 
-function handleSaveDraft() {
-    showToast("Draft Saved", "Your selling request draft has been saved locally as UI mock.");
-}
+function bindEvents() {
+  const form = document.querySelector("[data-consign-form]");
+  const saveDraftButton = document.querySelector("[data-save-draft]");
+  const fileInput = document.querySelector("[data-consign-images]");
 
-function renderImagePreview(files) {
-    const previewGrid = document.querySelector("[data-upload-preview]");
-    const previewImage = document.querySelector("[data-preview-image]");
+  if (form) {
+    form.addEventListener("submit", handleSubmit);
+  }
 
-    if (!previewGrid) {
-        return;
-    }
+  if (saveDraftButton) {
+    saveDraftButton.addEventListener("click", saveDraftLocally);
+  }
 
-    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
-
-    previewGrid.innerHTML = "";
-
-    if (!imageFiles.length) {
-        if (previewImage) {
-            previewImage.src = DEFAULT_PREVIEW_IMAGE;
-        }
-
-        return;
-    }
-
-    imageFiles.slice(0, 8).forEach((file, index) => {
-        const url = URL.createObjectURL(file);
-
-        const item = document.createElement("div");
-        item.className = "upload-preview-item";
-        item.innerHTML = `
-            <img src="${url}" alt="Uploaded asset image ${index + 1}" />
-            <span>${index === 0 ? "Cover" : `Image ${index + 1}`}</span>
-        `;
-
-        previewGrid.appendChild(item);
-
-        if (index === 0 && previewImage) {
-            previewImage.src = url;
-        }
+  if (fileInput) {
+    fileInput.addEventListener("change", () => {
+      renderUploadPreviews(fileInput.files);
     });
-}
+  }
 
-function initUploadZone() {
-    const uploadZone = document.querySelector("[data-upload-zone]");
-    const imageInput = document.querySelector("[data-consign-images]");
-
-    if (!uploadZone || !imageInput) {
-        return;
-    }
-
-    imageInput.addEventListener("change", () => {
-        renderImagePreview(imageInput.files);
-    });
-
-    uploadZone.addEventListener("dragover", (event) => {
-        event.preventDefault();
-        uploadZone.classList.add("is-dragging");
-    });
-
-    uploadZone.addEventListener("dragleave", () => {
-        uploadZone.classList.remove("is-dragging");
-    });
-
-    uploadZone.addEventListener("drop", (event) => {
-        event.preventDefault();
-        uploadZone.classList.remove("is-dragging");
-
-        const files = event.dataTransfer?.files;
-
-        if (files?.length) {
-            imageInput.files = files;
-            renderImagePreview(files);
-        }
-    });
-}
-
-function bindPreviewFields() {
-    const previewSelectors = [
+  document
+    .querySelectorAll(
+      [
         "[data-consign-title]",
         "[data-consign-category]",
+        "[data-consign-origin]",
         "[data-consign-condition]",
         "[data-consign-description]",
         "[data-consign-estimate-low]",
         "[data-consign-estimate-high]",
-        "[data-consign-reserve]"
-    ];
-
-    previewSelectors.forEach((selector) => {
-        const input = document.querySelector(selector);
-
-        if (!input) {
-            return;
-        }
-
-        input.addEventListener("input", updatePreview);
-        input.addEventListener("change", updatePreview);
+        "[data-consign-reserve]",
+        "[data-consign-window]",
+        "[data-consign-contact]",
+      ].join(","),
+    )
+    .forEach((input) => {
+      input.addEventListener("input", updatePreview);
+      input.addEventListener("change", updatePreview);
     });
-
-    updatePreview();
 }
 
-function bindFormEvents() {
-    const form = document.querySelector("[data-consign-form]");
-    const saveDraftButton = document.querySelector("[data-save-draft]");
+function initConsignPage() {
+  initTheme();
 
-    if (form) {
-        form.addEventListener("submit", handleFormSubmit);
-    }
+  initSiteHeader({
+    hideAfter: 120,
+    topRevealOffset: 12,
+  });
 
-    if (saveDraftButton) {
-        saveDraftButton.addEventListener("click", handleSaveDraft);
-    }
+  requireLogin();
+  restoreDraft();
+  bindEvents();
+  updatePreview();
 }
 
-function initConsignmentPage() {
-    initTheme();
-    initI18n();
-
-    initSiteHeader({
-        hideAfter: 120,
-        topRevealOffset: 12
-    });
-
-    bindPreviewFields();
-    initUploadZone();
-    bindFormEvents();
-}
-
-document.addEventListener("DOMContentLoaded", initConsignmentPage);
+document.addEventListener("DOMContentLoaded", initConsignPage);

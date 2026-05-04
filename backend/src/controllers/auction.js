@@ -5,23 +5,21 @@ const { scheduleAuctionClose } = require("../config/queue");
 const { sendSuccess, sendError } = require("../utils/response");
 const logger = require("../utils/logger");
 
+const DEFAULT_APPROVED_DURATION_MINUTES = 24 * 60;
+
 function normalizeStatusForSql(status) {
   const statusMap = {
     active: "Active",
     scheduled: "Scheduled",
     closing: "Closing",
     ended: "Ended",
-    payment_pending: "Payment Pending",
     completed: "Completed",
+    payment_pending: "Payment Pending",
+    "payment-pending": "Payment Pending",
+    "payment pending": "Payment Pending",
   };
 
-  return statusMap[String(status || "").toLowerCase()] || null;
-}
-
-function normalizeCreateStatus(status) {
-  const normalized = normalizeStatusForSql(status);
-  if (normalized === "Scheduled") return "Scheduled";
-  return "Active";
+  return statusMap[String(status || "").trim().toLowerCase()] || null;
 }
 
 function normalizeSort(sort) {
@@ -42,13 +40,21 @@ function maskBidder(username, email) {
   return `${source[0]}***${source[source.length - 1]}`.toUpperCase();
 }
 
-// --- HÀM MỚI: CHUẨN HÓA MÚI GIỜ UTC TRƯỚC KHI GỬI CHO FRONTEND ---
 function formatUTC(dateString) {
   if (!dateString) return null;
+
+  if (dateString instanceof Date) {
+    return dateString.toISOString();
+  }
+
   const str = String(dateString);
-  // Nếu đã có 'Z' thì giữ nguyên, chưa có thì biến đổi "YYYY-MM-DD HH:MM:SS" thành "YYYY-MM-DDTHH:MM:SSZ"
   if (str.endsWith("Z")) return str;
+
   return str.replace(" ", "T") + "Z";
+}
+
+function toMysqlDatetime(date) {
+  return date.toISOString().slice(0, 19).replace("T", " ");
 }
 
 function mapAuctionRow(row) {
@@ -63,20 +69,94 @@ function mapAuctionRow(row) {
     status: row.status,
     currentPrice: Number(row.current_price || 0),
     stepPrice: Number(row.step_price || 0),
-    endTime: formatUTC(row.end_time), // Đã ép UTC
-    createdAt: formatUTC(row.created_at), // Đã ép UTC
+    endTime: formatUTC(row.end_time),
+    createdAt: formatUTC(row.created_at),
     bidCount: Number(row.bid_count || 0),
     createdBy: row.created_by,
     sellerUsername: row.seller_username || null,
   };
 }
 
+function getAuctionSelectSql(whereSql = "") {
+  return `
+    SELECT
+      a.id,
+      a.product_id,
+      a.created_by,
+      a.status,
+      a.current_price,
+      a.step_price,
+      a.end_time,
+      a.created_at,
+      p.name AS product_name,
+      p.description,
+      p.category,
+      p.image_url,
+      u.username AS seller_username,
+      COUNT(b.id) AS bid_count
+    FROM Auctions a
+    INNER JOIN Products p ON p.id = a.product_id
+    INNER JOIN Users u ON u.id = a.created_by
+    LEFT JOIN Bids b ON b.auction_id = a.id
+    ${whereSql}
+    GROUP BY
+      a.id,
+      a.product_id,
+      a.created_by,
+      a.status,
+      a.current_price,
+      a.step_price,
+      a.end_time,
+      a.created_at,
+      p.name,
+      p.description,
+      p.category,
+      p.image_url,
+      u.username
+  `;
+}
+
+async function syncApprovedAuctionToRedis(auction) {
+  const auctionId = auction.id;
+  const auctionKey = redisKeys.auctionInfo(auctionId);
+  const endTimeMs = new Date(auction.end_time || auction.endTime).getTime();
+
+  await redisClient.hSet(auctionKey, {
+    current_price: String(auction.current_price || auction.currentPrice || 0),
+    step_price: String(auction.step_price || auction.stepPrice || 0),
+    status: "Active",
+    version: String(auction.version || 0),
+    highest_bidder: "",
+    end_time: String(endTimeMs),
+    extension_count: "0",
+  });
+
+  await scheduleAuctionClose(auctionId, new Date(endTimeMs));
+}
+
+function resolveApprovedEndTime(currentEndTime, requestedEndTime) {
+  const now = Date.now();
+
+  if (requestedEndTime) {
+    const parsedRequested = new Date(requestedEndTime).getTime();
+
+    if (!Number.isNaN(parsedRequested) && parsedRequested > now) {
+      return new Date(parsedRequested);
+    }
+  }
+
+  const parsedCurrent = new Date(currentEndTime).getTime();
+
+  if (!Number.isNaN(parsedCurrent) && parsedCurrent > now) {
+    return new Date(parsedCurrent);
+  }
+
+  return new Date(now + DEFAULT_APPROVED_DURATION_MINUTES * 60000);
+}
+
 class AuctionController {
-  // ==========================================
-  // API FRONTEND: LẤY DANH SÁCH & CHI TIẾT
-  // ==========================================
   static async listAuctions(req, res) {
-    const { status, category, q, sort = "ending-soon", limit = 100, offset = 0 } = req.query;
+    const { status, category, q, sort = "ending-soon", limit = 100, offset = 0, createdBy } = req.query;
 
     try {
       const sqlParams = [];
@@ -94,6 +174,11 @@ class AuctionController {
         sqlParams.push(category);
       }
 
+      if (createdBy) {
+        whereClauses.push("a.created_by = ?");
+        sqlParams.push(Number(createdBy));
+      }
+
       if (q && q.trim()) {
         whereClauses.push("(p.name LIKE ? OR p.description LIKE ? OR CAST(a.id AS CHAR) LIKE ?)");
         const keyword = `%${q.trim()}%`;
@@ -107,18 +192,7 @@ class AuctionController {
 
       const [rows] = await pool.execute(
         `
-          SELECT
-            a.id, a.product_id, a.created_by, a.status, a.current_price, a.step_price,
-            a.end_time, a.created_at, p.name AS product_name, p.description, p.category,
-            p.image_url, u.username AS seller_username, COUNT(b.id) AS bid_count
-          FROM Auctions a
-          INNER JOIN Products p ON p.id = a.product_id
-          INNER JOIN Users u ON u.id = a.created_by
-          LEFT JOIN Bids b ON b.auction_id = a.id
-          ${whereSql}
-          GROUP BY
-            a.id, a.product_id, a.created_by, a.status, a.current_price, a.step_price,
-            a.end_time, a.created_at, p.name, p.description, p.category, p.image_url, u.username
+          ${getAuctionSelectSql(whereSql)}
           ORDER BY ${sortClause}
           LIMIT ${safeLimit}
           OFFSET ${safeOffset}
@@ -145,6 +219,35 @@ class AuctionController {
     }
   }
 
+  static async listMyAuctions(req, res) {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return sendError(res, "ERR_UNAUTHORIZED", "Vui lòng đăng nhập để xem phiên của bạn.", 401);
+    }
+
+    try {
+      const [rows] = await pool.execute(
+        `
+          ${getAuctionSelectSql("WHERE a.created_by = ?")}
+          ORDER BY a.created_at DESC
+        `,
+        [userId],
+      );
+
+      return sendSuccess(
+        res,
+        {
+          auctions: rows.map(mapAuctionRow),
+        },
+        "Lấy danh sách phiên đấu giá của bạn thành công.",
+      );
+    } catch (error) {
+      logger.error("[My Auction List Error]:", error);
+      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi lấy danh sách phiên của bạn.", 500);
+    }
+  }
+
   static async getAuctionById(req, res) {
     const auctionId = Number(req.params.id);
 
@@ -155,18 +258,7 @@ class AuctionController {
     try {
       const [auctionRows] = await pool.execute(
         `
-          SELECT
-            a.id, a.product_id, a.created_by, a.status, a.current_price, a.step_price,
-            a.end_time, a.created_at, p.name AS product_name, p.description, p.category,
-            p.image_url, u.username AS seller_username, COUNT(b.id) AS bid_count
-          FROM Auctions a
-          INNER JOIN Products p ON p.id = a.product_id
-          INNER JOIN Users u ON u.id = a.created_by
-          LEFT JOIN Bids b ON b.auction_id = a.id
-          WHERE a.id = ?
-          GROUP BY
-            a.id, a.product_id, a.created_by, a.status, a.current_price, a.step_price,
-            a.end_time, a.created_at, p.name, p.description, p.category, p.image_url, u.username
+          ${getAuctionSelectSql("WHERE a.id = ?")}
           LIMIT 1
         `,
         [auctionId],
@@ -199,7 +291,7 @@ class AuctionController {
               id: bid.id,
               bidder: maskBidder(bid.username, bid.email),
               amount: Number(bid.bid_amount || 0),
-              time: formatUTC(bid.created_at), // Đã ép UTC
+              time: formatUTC(bid.created_at),
               highlight: index === 0,
             })),
           },
@@ -212,13 +304,13 @@ class AuctionController {
     }
   }
 
-  // ==========================================
-  // API BACKEND: TẠO MỚI
-  // ==========================================
   static async createAuction(req, res) {
-    const { productName, description, category, imageUrl, startingPrice, stepPrice, durationMinutes, status } =
-      req.body;
-    const userId = req.user.id;
+    const { productName, description, category, imageUrl, startingPrice, stepPrice, durationMinutes } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return sendError(res, "ERR_UNAUTHORIZED", "Vui lòng đăng nhập để tạo phiên đấu giá.", 401);
+    }
 
     if (!productName || !startingPrice || !stepPrice || !durationMinutes) {
       return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập đủ thông tin sản phẩm và giá.", 400);
@@ -239,7 +331,7 @@ class AuctionController {
       return sendError(res, "ERR_INVALID_PRICE", "Giá hoặc thời lượng đấu giá không hợp lệ.", 400);
     }
 
-    const auctionStatus = normalizeCreateStatus(status);
+    const auctionStatus = "Scheduled";
     const connection = await pool.getConnection();
 
     let auctionId;
@@ -253,52 +345,165 @@ class AuctionController {
         "INSERT INTO Products (name, description, category, image_url) VALUES (?, ?, ?, ?)",
         [productName, description || "", category || "Collectibles", imageUrl || null],
       );
-      productId = prodResult.insertId;
 
+      productId = prodResult.insertId;
       endTime = new Date(Date.now() + numericDurationMinutes * 60000);
-      const mysqlEndTime = endTime.toISOString().slice(0, 19).replace("T", " ");
 
       const [aucResult] = await connection.execute(
-        `INSERT INTO Auctions (product_id, created_by, status, current_price, step_price, end_time, version) VALUES (?, ?, ?, ?, ?, ?, 0)`,
-        [productId, userId, auctionStatus, numericStartingPrice, numericStepPrice, mysqlEndTime],
+        `
+          INSERT INTO Auctions
+            (product_id, created_by, status, current_price, step_price, end_time, version)
+          VALUES
+            (?, ?, ?, ?, ?, ?, 0)
+        `,
+        [productId, userId, auctionStatus, numericStartingPrice, numericStepPrice, toMysqlDatetime(endTime)],
       );
+
       auctionId = aucResult.insertId;
 
       await connection.commit();
-      logger.info(`[DB Success] Đã chốt lưu phiên đấu giá ${auctionId} vào MySQL.`);
+
+      logger.info(`[DB Success] User ${userId} đã tạo phiên ${auctionId} chờ admin duyệt.`);
     } catch (error) {
-      if (connection) await connection.rollback();
+      await connection.rollback();
       logger.error(`[MySQL Transaction Error]: ${error.message || error}`);
       return sendError(res, "ERR_SERVER", "Lỗi hệ thống khi lưu phiên đấu giá.", 500);
     } finally {
       connection.release();
     }
 
-    try {
-      const auctionKey = redisKeys.auctionInfo(auctionId);
-
-      await redisClient.hSet(auctionKey, {
-        current_price: String(numericStartingPrice),
-        step_price: String(numericStepPrice),
-        status: auctionStatus,
-        version: "0",
-        highest_bidder: "",
-        end_time: String(endTime.getTime()),
-        extension_count: "0",
-      });
-
-      await scheduleAuctionClose(auctionId, endTime);
-      logger.success(`[System Sync] Phiên ${auctionId} đã sẵn sàng trên Redis và BullMQ.`);
-    } catch (error) {
-      logger.error(`[Background Task Error] Phiên ${auctionId} lỗi đồng bộ Cache/Queue: ${error.message || error}`);
-    }
-
     return sendSuccess(
       res,
-      { auctionId, productId, endTime, status: auctionStatus },
-      "Tạo phiên đấu giá và khởi động bộ đếm giờ thành công!",
+      {
+        auctionId,
+        productId,
+        endTime,
+        status: auctionStatus,
+      },
+      "Đã gửi phiên đấu giá. Phiên đang chờ admin duyệt trước khi mở công khai.",
       201,
     );
+  }
+
+  static async updateAuctionStatus(req, res) {
+    const auctionId = Number(req.params.id);
+    const requestedStatus = normalizeStatusForSql(req.body?.status);
+    const requestedEndTime = req.body?.endTime || null;
+
+    if (!auctionId) {
+      return sendError(res, "ERR_INVALID_ID", "Auction ID không hợp lệ.", 400);
+    }
+
+    if (!requestedStatus) {
+      return sendError(res, "ERR_INVALID_STATUS", "Trạng thái phiên đấu giá không hợp lệ.", 400);
+    }
+
+    const allowedManualStatuses = ["Scheduled", "Active", "Ended", "Completed"];
+
+    if (!allowedManualStatuses.includes(requestedStatus)) {
+      return sendError(
+        res,
+        "ERR_STATUS_NOT_ALLOWED",
+        "Chỉ cho phép chuyển thủ công sang Scheduled, Active, Ended hoặc Completed.",
+        400,
+      );
+    }
+
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [rows] = await connection.execute(
+        `
+          SELECT
+            a.id,
+            a.status,
+            a.current_price,
+            a.step_price,
+            a.end_time,
+            a.version,
+            a.product_id,
+            a.created_by,
+            p.name AS product_name
+          FROM Auctions a
+          INNER JOIN Products p ON p.id = a.product_id
+          WHERE a.id = ?
+          FOR UPDATE
+        `,
+        [auctionId],
+      );
+
+      if (rows.length === 0) {
+        await connection.rollback();
+        return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
+      }
+
+      const auction = rows[0];
+      let finalEndTime = new Date(auction.end_time);
+
+      if (requestedStatus === "Active") {
+        finalEndTime = resolveApprovedEndTime(auction.end_time, requestedEndTime);
+
+        await connection.execute(
+          `
+            UPDATE Auctions
+            SET status = ?, end_time = ?, version = version + 1
+            WHERE id = ?
+          `,
+          [requestedStatus, toMysqlDatetime(finalEndTime), auctionId],
+        );
+      } else {
+        await connection.execute(
+          `
+            UPDATE Auctions
+            SET status = ?, version = version + 1
+            WHERE id = ?
+          `,
+          [requestedStatus, auctionId],
+        );
+      }
+
+      await connection.commit();
+
+      const nextAuction = {
+        ...auction,
+        status: requestedStatus,
+        end_time: finalEndTime,
+      };
+
+      try {
+        const auctionKey = redisKeys.auctionInfo(auctionId);
+
+        if (requestedStatus === "Active") {
+          await syncApprovedAuctionToRedis(nextAuction);
+        } else {
+          await redisClient.hSet(auctionKey, {
+            status: requestedStatus,
+          });
+        }
+      } catch (cacheError) {
+        logger.error(`[Auction Status Cache Error] ${cacheError.message || cacheError}`);
+      }
+
+      return sendSuccess(
+        res,
+        {
+          auctionId,
+          status: requestedStatus,
+          endTime: formatUTC(finalEndTime),
+        },
+        requestedStatus === "Active"
+          ? "Admin đã duyệt phiên đấu giá. Phiên đã được mở công khai."
+          : "Cập nhật trạng thái phiên đấu giá thành công.",
+      );
+    } catch (error) {
+      await connection.rollback();
+      logger.error("[Auction Status Error]:", error);
+      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi cập nhật trạng thái phiên đấu giá.", 500);
+    } finally {
+      connection.release();
+    }
   }
 }
 
