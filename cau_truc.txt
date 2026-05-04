@@ -71,20 +71,16 @@ online-auction-platform
 │       │   ├── auction.js
 │       │   ├── auth.js
 │       │   ├── bidding.js
-│       │   ├── payment.js
-│       │  
+│       │   └── payment.js
 │       ├── middlewares
 │       │   ├── auth.js
 │       │   └── idempotency.js
-│       ├── queues
-│       │   └── auctionQueue.js
 │       ├── routes
 │       │   ├── auction.js
 │       │   ├── auth.js
 │       │   └── index.js
 │       ├── server.js
 │       ├── services
-│       │   |
 │       │   ├── autobid.js
 │       │   ├── bidding.js
 │       │   └── kafka-consumer.js
