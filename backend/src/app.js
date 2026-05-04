@@ -4,15 +4,24 @@ const PaymentController = require("./controllers/payment");
 
 const app = express();
 
-// Middlewares
+// 1. Cấu hình CORS
 app.use(cors());
 
-app.post("/api/webhook", express.raw({ type: "application/json" }), PaymentController.handleStripeWebhook);
+/**
+ * 2. ROUTE WEBHOOK (PHẢI ĐẶT TRƯỚC express.json)
+ * Đường dẫn này phải khớp chính xác với lệnh 'stripe listen' của bạn.
+ * Chúng ta dùng express.raw để giữ nguyên gói tin gốc từ Stripe phục vụ việc xác thực chữ ký.
+ */
+app.post(
+  "/api/payments/webhook", 
+  express.raw({ type: "application/json" }), 
+  PaymentController.handleStripeWebhook
+);
 
-// Parse body dạng JSON cho TẤT CẢ các API còn lại (bidding, auth...)
+// 3. Parse body dạng JSON cho TẤT CẢ các API còn lại (bidding, auth, auctions...)
 app.use(express.json());
 
-// API Health-check
+// 4. API Health-check
 app.use("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -21,7 +30,7 @@ app.use("/api/health", (req, res) => {
   });
 });
 
-// Routes
+// 5. Kết nối các Routes chính
 const routes = require("./routes/index");
 app.use("/api", routes);
 
