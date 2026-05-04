@@ -11,6 +11,10 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 0,
+  // --- THÊM 2 DÒNG NÀY ĐỂ FIX LỖI TIMEZONE ---
+  timezone: "Z",
+  dateStrings: true,
+  // ------------------------------------------
 });
 
 // Test the connection

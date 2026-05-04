@@ -1,509 +1,343 @@
 import { initTheme } from "../core/theme.js";
 import { initI18n, t, onLanguageChange } from "../core/i18n.js";
 import { initSiteHeader } from "../core/header.js";
+import apiClient from "../core/api-client.js";
 
-const AUCTION_LOTS = [
-    {
-        id: 842,
-        lot: "Lot 842",
-        title: "The Midnight Chronograph",
-        category: "horology",
-        status: "active",
-        image: "../assets/images/mockdata/1.png",
-        estimate: "$220,000 - $340,000",
-        currentBid: "$285,000",
-        startingBid: "$145,000",
-        bidCount: 24,
-        endingAt: "2026-05-12T18:30:00",
-        createdAt: "2026-04-30T10:00:00"
-    },
-    {
-        id: 118,
-        lot: "Lot 118",
-        title: "Fragmented Echo",
-        category: "fine-art",
-        status: "active",
-        image: "../assets/images/mockdata/2.png",
-        estimate: "$900,000 - $1.4M",
-        currentBid: "$1,220,000",
-        startingBid: "$720,000",
-        bidCount: 18,
-        endingAt: "2026-05-13T21:00:00",
-        createdAt: "2026-04-28T10:00:00"
-    },
-    {
-        id: 883,
-        lot: "Lot 883",
-        title: "1962 GTO Heritage",
-        category: "automotive",
-        status: "active",
-        image: "../assets/images/mockdata/3.png",
-        estimate: "$3.4M - $4.2M",
-        currentBid: "$3,800,000",
-        startingBid: "$2,900,000",
-        bidCount: 42,
-        endingAt: "2026-05-15T08:00:00",
-        createdAt: "2026-04-27T10:00:00"
-    },
-    {
-        id: 254,
-        lot: "Lot 254",
-        title: "Imperial Sapphire Necklace",
-        category: "jewelry",
-        status: "active",
-        image: "../assets/images/mockdata/4.png",
-        estimate: "$220,000 - $350,000",
-        currentBid: "$295,000",
-        startingBid: "$180,000",
-        bidCount: 32,
-        endingAt: "2026-05-14T11:20:00",
-        createdAt: "2026-04-26T10:00:00"
-    },
-    {
-        id: 402,
-        lot: "Lot 402",
-        title: "Patek Philippe Ref. 2499",
-        category: "horology",
-        status: "closing",
-        image: "../assets/images/mockdata/5.png",
-        estimate: "$1.2M - $1.8M",
-        currentBid: "$1,450,000",
-        startingBid: "$950,000",
-        bidCount: 14,
-        endingAt: "2026-05-10T19:10:00",
-        createdAt: "2026-04-22T10:00:00"
-    },
-    {
-        id: 721,
-        lot: "Lot 721",
-        title: "Diamond Tennis Bracelet",
-        category: "jewelry",
-        status: "closing",
-        image: "../assets/images/mockdata/6.png",
-        estimate: "$68,000 - $92,000",
-        currentBid: "$81,000",
-        startingBid: "$42,000",
-        bidCount: 21,
-        endingAt: "2026-05-10T20:00:00",
-        createdAt: "2026-04-21T10:00:00"
-    },
-    {
-        id: 7,
-        lot: "Lot 007",
-        title: "1964 Aston Martin DB5",
-        category: "automotive",
-        status: "scheduled",
-        image: "../assets/images/mockdata/7.png",
-        estimate: "$800,000 - $1.1M",
-        currentBid: "",
-        startingBid: "$750,000",
-        bidCount: 0,
-        endingAt: "2026-05-18T18:00:00",
-        createdAt: "2026-04-20T10:00:00"
-    },
-    {
-        id: 611,
-        lot: "Lot 611",
-        title: "Rare Emerald Signet Ring",
-        category: "jewelry",
-        status: "scheduled",
-        image: "../assets/images/mockdata/1.png",
-        estimate: "$42,000 - $66,000",
-        currentBid: "",
-        startingBid: "$30,000",
-        bidCount: 0,
-        endingAt: "2026-05-19T18:00:00",
-        createdAt: "2026-04-19T10:00:00"
-    },
-    {
-        id: 319,
-        lot: "Lot 319",
-        title: "Art Deco Vase",
-        category: "collectibles",
-        status: "ended",
-        image: "../assets/images/mockdata/2.png",
-        estimate: "$38,000 - $48,000",
-        currentBid: "$42,500",
-        startingBid: "$22,000",
-        bidCount: 11,
-        endingAt: "2026-04-25T18:00:00",
-        createdAt: "2026-04-01T10:00:00"
-    },
-    {
-        id: 520,
-        lot: "Lot 520",
-        title: "Private Estate Timepiece",
-        category: "horology",
-        status: "ended",
-        image: "../assets/images/mockdata/3.png",
-        estimate: "$120,000 - $160,000",
-        currentBid: "$138,000",
-        startingBid: "$90,000",
-        bidCount: 16,
-        endingAt: "2026-04-22T18:00:00",
-        createdAt: "2026-03-28T10:00:00"
-    }
+const FALLBACK_IMAGES = [
+  "../assets/images/mockdata/1.png",
+  "../assets/images/mockdata/2.png",
+  "../assets/images/mockdata/3.png",
+  "../assets/images/mockdata/4.png",
+  "../assets/images/mockdata/5.png",
+  "../assets/images/mockdata/6.png",
+  "../assets/images/mockdata/7.png",
 ];
-
 const STATUS_LABELS = {
-    active: "Active",
-    closing: "Closing Soon",
-    scheduled: "Scheduled",
-    ended: "Ended"
+  active: "Active",
+  closing: "Closing Soon",
+  scheduled: "Scheduled",
+  ended: "Ended",
+  payment_pending: "Payment Pending",
+  completed: "Completed",
 };
-
 const VALID_STATUS_FILTERS = ["all", "active", "scheduled", "closing", "ended"];
 const VALID_SORTS = ["ending-soon", "highest-bid", "newest", "most-bids"];
 
+const DEFAULT_STATUS = "active";
+const DEFAULT_CATEGORY = "all";
+const DEFAULT_SORT = "ending-soon";
+const DEFAULT_VISIBLE_COUNT = 8;
+let AUCTION_LOTS = [];
+
 const state = {
-    status: "active",
-    category: "all",
-    search: "",
-    sort: "ending-soon",
-    visibleCount: 8
+  status: DEFAULT_STATUS,
+  category: DEFAULT_CATEGORY,
+  search: "",
+  sort: DEFAULT_SORT,
+  visibleCount: DEFAULT_VISIBLE_COUNT,
+  isLoading: false,
 };
 
-function getNumberFromMoney(value) {
-    if (!value) {
-        return 0;
-    }
+function normalizeStatus(status) {
+  const value = String(status || "")
+    .trim()
+    .toLowerCase();
+  return value === "payment pending" ? "payment_pending" : value || "active";
+}
+function normalizeCategory(category) {
+  return String(category || "collectibles")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+}
+function formatMoney(value) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+    Number(value || 0),
+  );
+}
+function getFallbackImage(id) {
+  return FALLBACK_IMAGES[Math.abs(Number(id || 0)) % FALLBACK_IMAGES.length];
+}
 
-    return Number(String(value).replace(/[^0-9.]/g, "")) || 0;
+function normalizeAuction(rawAuction) {
+  const id = rawAuction.id;
+  const status = normalizeStatus(rawAuction.status);
+  const category = normalizeCategory(rawAuction.category);
+  const currentPrice = Number(rawAuction.currentPrice || rawAuction.current_price || 0);
+  const stepPrice = Number(rawAuction.stepPrice || rawAuction.step_price || 0);
+
+  return {
+    id,
+    lot: rawAuction.lot || `Lot ${String(id).padStart(3, "0")}`,
+    title: rawAuction.title || rawAuction.productName || rawAuction.product_name || "Untitled Auction Lot",
+    description: rawAuction.description || "",
+    category,
+    status,
+    image: rawAuction.imageUrl || rawAuction.image_url || getFallbackImage(id),
+    estimate: rawAuction.estimate || "Estimate available on request",
+    currentBid: currentPrice ? formatMoney(currentPrice) : "",
+    startingBid: formatMoney(currentPrice || stepPrice || 0),
+    bidCount: Number(rawAuction.bidCount || rawAuction.bid_count || 0),
+    endingAt: rawAuction.endTime || rawAuction.end_time || rawAuction.endingAt || new Date().toISOString(),
+    createdAt: rawAuction.createdAt || rawAuction.created_at || new Date().toISOString(),
+  };
+}
+
+function getNumberFromMoney(value) {
+  return value ? Number(String(value).replace(/[^0-9.]/g, "")) || 0 : 0;
 }
 
 function getInitialStateFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-
-    const statusParam = params.get("status");
-    const categoryParam = params.get("category");
-    const sortParam = params.get("sort");
-    const searchParam = params.get("q");
-
-    state.status = VALID_STATUS_FILTERS.includes(statusParam) ? statusParam : "active";
-    state.category = categoryParam || "all";
-    state.sort = VALID_SORTS.includes(sortParam) ? sortParam : "ending-soon";
-    state.search = searchParam || "";
+  const params = new URLSearchParams(window.location.search);
+  state.status = VALID_STATUS_FILTERS.includes(params.get("status")) ? params.get("status") : DEFAULT_STATUS;
+  state.category = params.get("category") || DEFAULT_CATEGORY;
+  state.sort = VALID_SORTS.includes(params.get("sort")) ? params.get("sort") : DEFAULT_SORT;
+  state.search = params.get("q") || "";
 }
 
 function updateUrl() {
-    const params = new URLSearchParams();
-
-    if (state.status && state.status !== "active") {
-        params.set("status", state.status);
-    }
-
-    if (state.category && state.category !== "all") {
-        params.set("category", state.category);
-    }
-
-    if (state.sort && state.sort !== "ending-soon") {
-        params.set("sort", state.sort);
-    }
-
-    if (state.search.trim()) {
-        params.set("q", state.search.trim());
-    }
-
-    const nextUrl = params.toString()
-        ? `${window.location.pathname}?${params.toString()}`
-        : `${window.location.pathname}?status=active`;
-
-    window.history.replaceState({}, "", nextUrl);
+  const params = new URLSearchParams();
+  if (state.status !== DEFAULT_STATUS) params.set("status", state.status);
+  if (state.category !== DEFAULT_CATEGORY) params.set("category", state.category);
+  if (state.sort !== DEFAULT_SORT) params.set("sort", state.sort);
+  if (state.search.trim()) params.set("q", state.search.trim());
+  window.history.replaceState(
+    {},
+    "",
+    params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname,
+  );
 }
 
 function getCountdownLabel(lot) {
-    if (lot.status === "ended") {
-        return t("collections.auctionEnded");
-    }
-
-    const now = Date.now();
-    const target = new Date(lot.endingAt).getTime();
-    const distance = Math.max(0, target - now);
-    const totalSeconds = Math.floor(distance / 1000);
-
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    const timeText = days > 0
-        ? `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`
-        : `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
-
-    if (lot.status === "scheduled") {
-        return `${t("collections.startsIn")} ${timeText}`;
-    }
-
-    return `${t("collections.endsIn")} ${timeText}`;
+  if (lot.status === "ended" || lot.status === "completed") return t("collections.auctionEnded");
+  const distance = Math.max(0, new Date(lot.endingAt).getTime() - Date.now());
+  const totalSeconds = Math.floor(distance / 1000);
+  const days = Math.floor(totalSeconds / 86400),
+    hours = Math.floor((totalSeconds % 86400) / 3600),
+    minutes = Math.floor((totalSeconds % 3600) / 60),
+    seconds = totalSeconds % 60;
+  const timeText =
+    days > 0
+      ? `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`
+      : `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+  return lot.status === "scheduled"
+    ? `${t("collections.startsIn")} ${timeText}`
+    : `${t("collections.endsIn")} ${timeText}`;
 }
 
 function getFilteredLots() {
-    const normalizedSearch = state.search.trim().toLowerCase();
-
-    return AUCTION_LOTS
-        .filter((lot) => {
-            const matchesStatus = state.status === "all" || lot.status === state.status;
-            const matchesCategory = state.category === "all" || lot.category === state.category;
-            const matchesSearch = !normalizedSearch
-                || lot.title.toLowerCase().includes(normalizedSearch)
-                || lot.lot.toLowerCase().includes(normalizedSearch)
-                || lot.category.toLowerCase().includes(normalizedSearch);
-
-            return matchesStatus && matchesCategory && matchesSearch;
-        })
-        .sort((a, b) => {
-            if (state.sort === "highest-bid") {
-                return getNumberFromMoney(b.currentBid || b.startingBid) - getNumberFromMoney(a.currentBid || a.startingBid);
-            }
-
-            if (state.sort === "newest") {
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            }
-
-            if (state.sort === "most-bids") {
-                return b.bidCount - a.bidCount;
-            }
-
-            return new Date(a.endingAt).getTime() - new Date(b.endingAt).getTime();
-        });
+  const ns = state.search.trim().toLowerCase();
+  return AUCTION_LOTS.filter(
+    (lot) =>
+      (state.status === "all" || lot.status === state.status) &&
+      (state.category === "all" || lot.category === state.category) &&
+      (!ns ||
+        lot.title.toLowerCase().includes(ns) ||
+        lot.lot.toLowerCase().includes(ns) ||
+        lot.category.toLowerCase().includes(ns)),
+  ).sort((a, b) =>
+    state.sort === "highest-bid"
+      ? getNumberFromMoney(b.currentBid || b.startingBid) - getNumberFromMoney(a.currentBid || a.startingBid)
+      : state.sort === "newest"
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : state.sort === "most-bids"
+          ? b.bidCount - a.bidCount
+          : new Date(a.endingAt).getTime() - new Date(b.endingAt).getTime(),
+  );
 }
 
 function getStatusClass(status) {
-    if (status === "active") {
-        return "status-active";
-    }
-
-    if (status === "closing") {
-        return "status-closing";
-    }
-
-    if (status === "ended") {
-        return "status-ended";
-    }
-
-    return "status-scheduled";
+  return status === "active"
+    ? "status-active"
+    : status === "closing"
+      ? "status-closing"
+      : status === "ended" || status === "completed"
+        ? "status-ended"
+        : "status-scheduled";
 }
 
 function createAuctionCard(lot) {
-    const priceLabel = lot.status === "scheduled"
-        ? t("collections.startingBid")
-        : t("collections.currentBid");
-
-    const priceValue = lot.status === "scheduled"
-        ? lot.startingBid
-        : lot.currentBid || lot.startingBid;
-
-    return `
+  const priceLabel = lot.status === "scheduled" ? t("collections.startingBid") : t("collections.currentBid");
+  const priceValue = lot.status === "scheduled" ? lot.startingBid : lot.currentBid || lot.startingBid;
+  return `
         <article class="auction-card" data-lot-id="${lot.id}">
-            <div class="auction-card-media">
-                <img src="${lot.image}" alt="${lot.title}" />
-                <span class="status-badge ${getStatusClass(lot.status)}">${STATUS_LABELS[lot.status]}</span>
-            </div>
-
+            <div class="auction-card-media"><img src="${lot.image}" alt="${lot.title}" /><span class="status-badge ${getStatusClass(lot.status)}">${STATUS_LABELS[lot.status] || lot.status}</span></div>
             <div class="auction-card-body">
-                <div class="auction-card-meta">
-                    <span>${lot.lot}</span>
-                    <span>${t("collections.bids", { count: lot.bidCount })}</span>
-                </div>
-
-                <h3>${lot.title}</h3>
-                <p>${lot.estimate}</p>
-
+                <div class="auction-card-meta"><span>${lot.lot}</span><span>${t("collections.bids", { count: lot.bidCount })}</span></div>
+                <h3>${lot.title}</h3><p>${lot.estimate}</p>
                 <div class="auction-card-divider"></div>
-
                 <div class="auction-card-bottom">
                     <div>
                         <span class="field-label">${priceLabel}</span>
-                        <strong>${priceValue}</strong>
+                        <strong style="display:inline-block" data-auction-card-price="${lot.id}">${priceValue}</strong>
                     </div>
-
                     <div>
                         <span class="field-label">${lot.status === "scheduled" ? t("collections.notOpen") : "Time"}</span>
                         <strong>${getCountdownLabel(lot)}</strong>
                     </div>
                 </div>
-
-                <a href="./product-detail.html?id=${lot.id}" class="button button-outline" style="margin-top: 22px;">
-                    ${t("collections.viewDetails")}
-                </a>
+                <a href="./auction-detail.html?id=${lot.id}" class="button button-outline" style="margin-top: 22px;">${t("collections.viewDetails")}</a>
             </div>
         </article>
     `;
 }
 
 function updateStatusTabs() {
-    document.querySelectorAll("[data-status-filter]").forEach((button) => {
-        button.classList.toggle("is-active", button.dataset.statusFilter === state.status);
-    });
+  document
+    .querySelectorAll("[data-status-filter]")
+    .forEach((b) => b.classList.toggle("is-active", b.dataset.statusFilter === state.status));
 }
-
 function updateCategorySelect() {
-    const categorySelect = document.querySelector("[data-category-filter]");
-
-    if (categorySelect) {
-        categorySelect.value = state.category;
-    }
+  const s = document.querySelector("[data-category-filter]");
+  if (s) s.value = state.category;
 }
-
 function updateSortSelect() {
-    const sortSelect = document.querySelector("[data-sort-select]");
-
-    if (sortSelect) {
-        sortSelect.value = state.sort;
-    }
+  const s = document.querySelector("[data-sort-select]");
+  if (s) s.value = state.sort;
 }
-
 function updateSearchInput() {
-    const searchInput = document.querySelector("[data-search-input]");
-
-    if (searchInput) {
-        searchInput.value = state.search;
-    }
+  const s = document.querySelector("[data-search-input]");
+  if (s) s.value = state.search;
 }
-
 function updateCurrentSortLabel() {
-    const currentSortElement = document.querySelector("[data-current-sort]");
-    const sortSelect = document.querySelector("[data-sort-select]");
-
-    if (!currentSortElement || !sortSelect) {
-        return;
-    }
-
-    const selectedOption = sortSelect.querySelector(`option[value="${state.sort}"]`);
-    currentSortElement.textContent = selectedOption?.textContent || "Ending Soonest";
+  const cs = document.querySelector("[data-current-sort]"),
+    ss = document.querySelector("[data-sort-select]");
+  if (cs && ss) cs.textContent = ss.querySelector(`option[value="${state.sort}"]`)?.textContent || "Ending Soonest";
 }
 
 function renderLots() {
-    const grid = document.querySelector("[data-auction-grid]");
-    const emptyState = document.querySelector("[data-empty-state]");
-    const resultCount = document.querySelector("[data-result-count]");
-    const showingLabel = document.querySelector("[data-showing-label]");
-    const loadMoreButton = document.querySelector("[data-load-more]");
+  const grid = document.querySelector("[data-auction-grid]"),
+    emptyState = document.querySelector("[data-empty-state]"),
+    resultCount = document.querySelector("[data-result-count]"),
+    showingLabel = document.querySelector("[data-showing-label]"),
+    loadMoreButton = document.querySelector("[data-load-more]");
+  if (!grid) return;
+  if (state.isLoading) {
+    grid.innerHTML = `<article class="auction-card"><div class="auction-card-body"><p class="eyebrow">Loading</p><h3>Fetching auction lots...</h3><p>Connecting to backend inventory.</p></div></article>`;
+    return;
+  }
 
-    if (!grid) {
-        return;
-    }
-
-    const filteredLots = getFilteredLots();
-    const visibleLots = filteredLots.slice(0, state.visibleCount);
-
-    grid.innerHTML = visibleLots.map(createAuctionCard).join("");
-
-    if (emptyState) {
-        emptyState.hidden = filteredLots.length > 0;
-    }
-
-    if (resultCount) {
-        resultCount.textContent = t("collections.lotsFound", { count: filteredLots.length });
-    }
-
-    if (showingLabel) {
-        showingLabel.textContent = t("collections.showing", {
-            visible: visibleLots.length,
-            total: filteredLots.length
-        });
-    }
-
-    if (loadMoreButton) {
-        loadMoreButton.hidden = visibleLots.length >= filteredLots.length;
-    }
-
-    updateCurrentSortLabel();
+  const filteredLots = getFilteredLots(),
+    visibleLots = filteredLots.slice(0, state.visibleCount);
+  grid.innerHTML = visibleLots.map(createAuctionCard).join("");
+  if (emptyState) emptyState.hidden = filteredLots.length > 0;
+  if (resultCount) resultCount.textContent = t("collections.lotsFound", { count: filteredLots.length });
+  if (showingLabel)
+    showingLabel.textContent = t("collections.showing", { visible: visibleLots.length, total: filteredLots.length });
+  if (loadMoreButton) loadMoreButton.hidden = visibleLots.length >= filteredLots.length;
+  updateCurrentSortLabel();
 }
 
 function renderAuctionList() {
-    updateStatusTabs();
-    updateCategorySelect();
-    updateSortSelect();
-    updateSearchInput();
-    renderLots();
+  updateStatusTabs();
+  updateCategorySelect();
+  updateSortSelect();
+  updateSearchInput();
+  renderLots();
+}
+
+async function fetchAuctions() {
+  state.isLoading = true;
+  renderLots();
+  try {
+    const response = await apiClient.get("/auctions", null, { auth: false });
+    AUCTION_LOTS = (response.data?.auctions || []).map(normalizeAuction);
+  } catch (error) {
+    console.error("[Auction List]", error);
+    AUCTION_LOTS = [];
+  } finally {
+    state.isLoading = false;
+    renderAuctionList();
+  }
 }
 
 function bindFilterEvents() {
-    document.querySelectorAll("[data-status-filter]").forEach((button) => {
-        button.addEventListener("click", () => {
-            state.status = button.dataset.statusFilter || "active";
-            state.visibleCount = 8;
-            updateUrl();
-            renderAuctionList();
-        });
+  document.querySelectorAll("[data-status-filter]").forEach((b) =>
+    b.addEventListener("click", () => {
+      state.status = b.dataset.statusFilter || DEFAULT_STATUS;
+      state.visibleCount = DEFAULT_VISIBLE_COUNT;
+      updateUrl();
+      renderAuctionList();
+    }),
+  );
+  const cs = document.querySelector("[data-category-filter]");
+  if (cs)
+    cs.addEventListener("change", () => {
+      state.category = cs.value || DEFAULT_CATEGORY;
+      state.visibleCount = DEFAULT_VISIBLE_COUNT;
+      updateUrl();
+      renderAuctionList();
     });
-
-    const categorySelect = document.querySelector("[data-category-filter]");
-
-    if (categorySelect) {
-        categorySelect.addEventListener("change", () => {
-            state.category = categorySelect.value || "all";
-            state.visibleCount = 8;
-            updateUrl();
-            renderAuctionList();
-        });
-    }
-
-    const sortSelect = document.querySelector("[data-sort-select]");
-
-    if (sortSelect) {
-        sortSelect.addEventListener("change", () => {
-            state.sort = sortSelect.value || "ending-soon";
-            updateUrl();
-            renderAuctionList();
-        });
-    }
-
-    const searchInput = document.querySelector("[data-search-input]");
-
-    if (searchInput) {
-        searchInput.addEventListener("input", () => {
-            state.search = searchInput.value;
-            state.visibleCount = 8;
-            updateUrl();
-            renderAuctionList();
-        });
-    }
-
-    const loadMoreButton = document.querySelector("[data-load-more]");
-
-    if (loadMoreButton) {
-        loadMoreButton.addEventListener("click", () => {
-            state.visibleCount += 4;
-            renderAuctionList();
-        });
-    }
-
-    const resetButton = document.querySelector("[data-reset-filters]");
-
-    if (resetButton) {
-        resetButton.addEventListener("click", () => {
-            state.status = "active";
-            state.category = "all";
-            state.search = "";
-            state.sort = "ending-soon";
-            state.visibleCount = 8;
-
-            updateUrl();
-            renderAuctionList();
-        });
-    }
+  const ss = document.querySelector("[data-sort-select]");
+  if (ss)
+    ss.addEventListener("change", () => {
+      state.sort = ss.value || DEFAULT_SORT;
+      updateUrl();
+      renderAuctionList();
+    });
+  const si = document.querySelector("[data-search-input]");
+  if (si)
+    si.addEventListener("input", () => {
+      state.search = si.value;
+      state.visibleCount = DEFAULT_VISIBLE_COUNT;
+      updateUrl();
+      renderAuctionList();
+    });
+  const lm = document.querySelector("[data-load-more]");
+  if (lm)
+    lm.addEventListener("click", () => {
+      state.visibleCount += 4;
+      renderAuctionList();
+    });
+  const rb = document.querySelector("[data-reset-filters]");
+  if (rb)
+    rb.addEventListener("click", () => {
+      state.status = DEFAULT_STATUS;
+      state.category = DEFAULT_CATEGORY;
+      state.search = "";
+      state.sort = DEFAULT_SORT;
+      state.visibleCount = DEFAULT_VISIBLE_COUNT;
+      updateUrl();
+      renderAuctionList();
+    });
 }
 
 function initAuctionListPage() {
-    initTheme();
-    initI18n();
+  initTheme();
+  initI18n();
+  initSiteHeader({ hideAfter: 120, topRevealOffset: 12 });
+  getInitialStateFromUrl();
+  bindFilterEvents();
+  renderAuctionList();
+  fetchAuctions();
+  window.setInterval(renderLots, 1000);
+  onLanguageChange(() => renderAuctionList());
 
-    initSiteHeader({
-        hideAfter: 120,
-        topRevealOffset: 12
+  // --- KÍCH HOẠT REAL-TIME GIẬT GIÁ NGOÀI DANH SÁCH ---
+  if (window.socketClient) {
+    window.socketClient.connect("global");
+    window.socketClient.on("new_bid", (data) => {
+      const priceElement = document.querySelector(`[data-auction-card-price="${data.auctionId}"]`);
+      if (priceElement) {
+        const newPrice = Number(data.bidAmount || data.price || data.amount || 0);
+        priceElement.textContent = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(newPrice);
+
+        // Hiệu ứng giật giá
+        priceElement.style.color = "var(--success)";
+        priceElement.style.transform = "scale(1.1)";
+        priceElement.style.transition = "all 0.3s ease";
+
+        setTimeout(() => {
+          priceElement.style.color = "";
+          priceElement.style.transform = "scale(1)";
+        }, 500);
+      }
     });
-
-    getInitialStateFromUrl();
-    bindFilterEvents();
-    renderAuctionList();
-
-    window.setInterval(renderLots, 1000);
-
-    onLanguageChange(() => {
-        renderAuctionList();
-    });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", initAuctionListPage);

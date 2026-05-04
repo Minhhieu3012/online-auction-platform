@@ -458,8 +458,23 @@ function updateCountdown() {
   if (!auction) return;
 
   const distance = Math.max(0, auction.endTime - Date.now());
-  const totalSeconds = Math.floor(distance / 1000);
 
+  // --- ĐOẠN CODE BỔ SUNG: Cập nhật UI khi hết giờ ---
+  if (distance === 0) {
+    if (elements.statusLabel) {
+      elements.statusLabel.textContent = "Ended";
+      elements.statusLabel.style.borderColor = "var(--danger)";
+      elements.statusLabel.style.color = "var(--danger)";
+    }
+    const headerStatus = document.querySelector(".countdown-panel-header span:last-child");
+    if (headerStatus) {
+      headerStatus.textContent = "Finished";
+      headerStatus.style.color = "var(--danger)";
+    }
+  }
+  // ---------------------------------------------------
+
+  const totalSeconds = Math.floor(distance / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;

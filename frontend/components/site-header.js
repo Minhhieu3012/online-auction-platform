@@ -1,75 +1,66 @@
-// frontend/components/site-header.js
 import { initCommandPalette } from "../js/modules/command-palette.js";
-import { initSiteHeader } from "../js/core/header.js"; 
+import { initSiteHeader } from "../js/core/header.js";
 import storage from "../js/core/storage.js";
+import apiClient from "../js/core/api-client.js";
 
 const HEADER_CONFIG = {
-    brandName: "BrosGem",
-    brandAriaLabel: "Trang chủ BrosGem"
+  brandName: "BrosGem",
+  brandAriaLabel: "Trang chủ BrosGem",
 };
 
 function normalizeBasePath(basePath) {
-    if (!basePath || basePath === ".") {
-        return ".";
-    }
-    return basePath.replace(/\/$/, "");
+  return !basePath || basePath === "." ? "." : basePath.replace(/\/$/, "");
 }
 
 function isAuthenticated() {
-    const token = storage.get('jwt_token') || storage.get('token') || localStorage.getItem('jwt_token');
-    return Boolean(token && token !== 'undefined' && token !== 'null' && token !== '');
+  const token = storage.get("jwt_token") || storage.get("token") || localStorage.getItem("jwt_token");
+  return Boolean(token && token !== "undefined" && token !== "null" && token !== "");
 }
 
 function injectCommandPaletteStyles(basePath) {
-    const normalizedBasePath = normalizeBasePath(basePath);
-    const isRoot = normalizedBasePath === ".";
-    const href = isRoot ? "./css/command-palette.css" : `${normalizedBasePath}/css/command-palette.css`;
-
-    const existingLink = document.querySelector('link[data-command-palette-style="true"]');
-    if (existingLink) return;
-
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    link.dataset.commandPaletteStyle = "true";
-    document.head.appendChild(link);
+  const normalizedBasePath = normalizeBasePath(basePath);
+  const href =
+    normalizedBasePath === "." ? "./css/command-palette.css" : `${normalizedBasePath}/css/command-palette.css`;
+  if (document.querySelector('link[data-command-palette-style="true"]')) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  link.dataset.commandPaletteStyle = "true";
+  document.head.appendChild(link);
 }
 
 function createHeaderTemplate({ basePath = ".", activePage = "" }) {
-    const normalizedBasePath = normalizeBasePath(basePath);
-    const isRoot = normalizedBasePath === ".";
-    const authenticated = isAuthenticated();
+  const normalizedBasePath = normalizeBasePath(basePath);
+  const isRoot = normalizedBasePath === ".";
+  const authenticated = isAuthenticated();
 
-    const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
-    const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
-    const liveAuctionsHref = isRoot ? "./pages/live-auctions.html" : "./live-auctions.html";
-    const loginHref = isRoot ? "./pages/login.html" : "./login.html";
-    const accountHref = isRoot ? "./pages/account.html" : "./account.html";
-    const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
+  const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
+  const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
+  const liveAuctionsHref = isRoot ? "./pages/live-auctions.html" : "./live-auctions.html";
+  const loginHref = isRoot ? "./pages/login.html" : "./login.html";
+  const accountHref = isRoot ? "./pages/account.html" : "./account.html";
+  const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
-    let actionHref = loginHref;
-    let actionText = "ĐĂNG NHẬP"; 
-    let logoutMenuHtml = "";
+  let actionHref = loginHref;
+  let actionText = "ĐĂNG NHẬP";
+  let logoutMenuHtml = "";
 
-    // ĐÃ ĐỔI LOGIC: Trỏ vào trang Tài Khoản thay vì đổi thành nút Đăng xuất
-    if (authenticated) {
-        actionHref = accountHref; 
-        actionText = "TÀI KHOẢN";
+  // Lấy logic của đồng đội: Trỏ vào trang Tài Khoản thay vì đổi thành nút Đăng xuất
+  if (authenticated) {
+    actionHref = accountHref;
+    actionText = "TÀI KHOẢN";
 
-        // Bổ sung nút đăng xuất vào menu Hamburger (Menu góc phải)
-        logoutMenuHtml = `
+    // Bổ sung nút đăng xuất vào menu Hamburger (Menu góc phải)
+    logoutMenuHtml = `
             <button class="home-settings-item" type="button" data-logout-btn style="color: #ef4444;">
                 <span data-theme-icon style="margin-right: 8px;">⎋</span> Đăng xuất
             </button>
         `;
-    }
+  }
 
-    return `
+  return `
         <header class="site-header home-luxury-header" data-header>
-            <a href="${homeHref}" class="brand-mark" aria-label="${HEADER_CONFIG.brandAriaLabel}">
-                ${HEADER_CONFIG.brandName}
-            </a>
-
+            <a href="${homeHref}" class="brand-mark" aria-label="${HEADER_CONFIG.brandAriaLabel}">${HEADER_CONFIG.brandName}</a>
             <nav class="desktop-nav home-luxury-nav" aria-label="Primary navigation">
                 <a href="${homeHref}" class="nav-link ${activePage === "home" ? "is-active" : ""}">
                     Trang Chủ
@@ -84,7 +75,6 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
                     Giao Thức Tin Cậy
                 </a>
             </nav>
-
             <div class="header-actions home-header-actions">
                 <button
                     class="home-search-trigger"
@@ -98,10 +88,13 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
                     </svg>
                 </button>
 
+                <button type="button" class="notification-bell" id="global-notification-bell" style="position: relative; background: none; border: none; font-size: 20px; color: var(--text-soft); padding: 5px; margin-right: 15px;">
+                    🔔<span class="bell-badge" style="display: none; position: absolute; top: 0; right: 0; width: 10px; height: 10px; background-color: var(--danger); border-radius: 50%; border: 2px solid var(--surface);"></span>
+                </button>
+
                 <a href="${actionHref}" class="button button-primary button-compact home-register-button" data-auth-btn>
                     ${actionText}
                 </a>
-
                 <div class="home-settings">
                     <button class="icon-button home-settings-trigger" type="button" data-home-settings-toggle aria-expanded="false">
                         <span></span><span></span><span></span>
@@ -119,23 +112,37 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
 }
 
 function renderSiteHeaders() {
-    document.querySelectorAll("[data-site-header]").forEach((mountPoint) => {
-        const basePath = mountPoint.dataset.basePath || ".";
-        const activePage = mountPoint.dataset.activePage || "";
-        
-        injectCommandPaletteStyles(basePath);
+  document.querySelectorAll("[data-site-header]").forEach((mountPoint) => {
+    const basePath = mountPoint.dataset.basePath || ".";
+    const activePage = mountPoint.dataset.activePage || "";
 
-        mountPoint.outerHTML = createHeaderTemplate({
-            basePath,
-            activePage
-        });
+    injectCommandPaletteStyles(basePath);
+
+    mountPoint.outerHTML = createHeaderTemplate({
+      basePath,
+      activePage,
     });
+  });
 
-    initSiteHeader();
+  initSiteHeader();
 
-    if (typeof initCommandPalette === 'function') {
-        initCommandPalette();
-    }
+  if (typeof initCommandPalette === "function") {
+    initCommandPalette();
+  }
+
+  // KHÔI PHỤC LOGIC CỦA BẠN: Bật hiệu ứng chuông khi có thông báo từ Socket
+  if (window.socketClient) {
+    window.socketClient.connect("global");
+    window.socketClient.on("user_notification", (data) => {
+      const bell = document.getElementById("global-notification-bell");
+      const badge = bell?.querySelector(".bell-badge");
+      if (bell && badge) {
+        badge.style.display = "block";
+        bell.classList.add("shake-animation");
+        setTimeout(() => bell.classList.remove("shake-animation"), 1000);
+      }
+    });
+  }
 }
 
 // =========================================================================
@@ -143,28 +150,30 @@ function renderSiteHeaders() {
 // Đảm bảo bắt được MỌI nút đăng xuất trên toàn bộ trang web (Header + Sidebar)
 // =========================================================================
 document.addEventListener("click", (e) => {
-    // Tìm phần tử bị click xem có phải là nút Đăng xuất không (kể cả icon bên trong nút)
-    const logoutBtn = e.target.closest('[data-logout-btn]') || 
-                      e.target.closest('.dashboard-logout-button') ||
-                      (e.target.closest('[data-auth-btn]') && e.target.closest('[data-auth-btn]').textContent.trim().toUpperCase() === 'ĐĂNG XUẤT');
+  // Tìm phần tử bị click xem có phải là nút Đăng xuất không (kể cả icon bên trong nút)
+  const logoutBtn =
+    e.target.closest("[data-logout-btn]") ||
+    e.target.closest(".dashboard-logout-button") ||
+    (e.target.closest("[data-auth-btn]") &&
+      e.target.closest("[data-auth-btn]").textContent.trim().toUpperCase() === "ĐĂNG XUẤT");
 
-    if (logoutBtn) {
-        e.preventDefault();
-        
-        // Dọn dẹp LocalStorage
-        storage.remove('jwt_token');
-        storage.remove('user_info');
-        storage.remove('token'); 
-        storage.remove('user');
-        localStorage.removeItem('jwt_token');
-        localStorage.removeItem('user_info');
-        
-        // Điều hướng an toàn về trang chủ
-        const basePath = document.querySelector('[data-header]')?.querySelector('.brand-mark')?.getAttribute('href') || '/index.html';
-        window.location.replace(basePath);
-    }
+  if (logoutBtn) {
+    e.preventDefault();
+
+    // Dọn dẹp LocalStorage
+    storage.remove("jwt_token");
+    storage.remove("user_info");
+    storage.remove("token");
+    storage.remove("user");
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("user_info");
+
+    // Điều hướng an toàn về trang chủ
+    const basePath =
+      document.querySelector("[data-header]")?.querySelector(".brand-mark")?.getAttribute("href") || "/index.html";
+    window.location.replace(basePath);
+  }
 });
 
 document.addEventListener("DOMContentLoaded", renderSiteHeaders);
-
 export { renderSiteHeaders };
