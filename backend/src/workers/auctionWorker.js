@@ -41,17 +41,17 @@ async function safeSetClosing(redis, auctionKey) {
 }
 
 // ==========================================
-// LOGIC WORKER ĐÓNG PHIÊN ĐẤU GIÁ & TẠO THANH TOÁN
+// LOGIC WORKER ĐÓNG PHIÊN ĐẤU GIÁ & XỬ LÝ CỌC/THANH TOÁN
 // ==========================================
 
 const auctionWorker = new Worker(
-  "auction-lifecycle", // ĐÃ SỬA: Khớp chính xác với tên trong queue.js
+  "auction-lifecycle",
   async (job) => {
     const { auctionId } = job.data;
     const auctionKey = redisKeys.auctionInfo(auctionId);
     const lockKey = redisKeys.auctionLock(auctionId);
 
-    logger.info(`\n[Worker] Bắt đầu tiến trình đóng phiên đấu giá ID: ${auctionId}...`);
+    logger.info(`\n[Worker] Bắt đầu tiến trình đóng phiên ${auctionId} và xử lý cọc...`);
 
     // 1. Chốt khóa phân tán (Distributed Lock)
     const lock = await acquireLock(redisClient, lockKey);
@@ -118,99 +118,147 @@ const auctionWorker = new Worker(
 
       const highestBidder = auctionData.highest_bidder;
       const finalPrice = parseFloat(auctionData.current_price);
-
-      // Xác định trạng thái cuối
       let finalStatus = "Ended";
       let paymentUrl = null;
+      let winnerDepositAmount = 0;
+      let remainingAmount = finalPrice;
 
+      // 5. LẤY TẤT CẢ CÁC GIAO DỊCH ĐẶT CỌC THÀNH CÔNG (Tích hợp từ mã cũ)
+      const [deposits] = await dbConnection.execute(
+        "SELECT id, user_id, amount, provider_payment_id FROM auction_deposits WHERE auction_id = ? AND status = 'SUCCEEDED'",
+        [auctionId]
+      );
+
+      // Bắt đầu Transaction ghi nhận MySQL
+      await dbConnection.beginTransaction();
+
+      // 6. XỬ LÝ NGƯỜI THẮNG VÀ CẤN TRỪ CỌC
       if (highestBidder && highestBidder !== "") {
-        finalStatus = "Payment Pending";
+        // Tìm cọc của người thắng
+        const winnerDeposit = deposits.find(d => String(d.user_id) === String(highestBidder));
+        
+        if (winnerDeposit) {
+          winnerDepositAmount = parseFloat(winnerDeposit.amount);
+          // Đánh dấu cọc đã được áp dụng
+          await dbConnection.execute(
+            "UPDATE auction_deposits SET status = 'APPLIED_TO_WIN_PAYMENT', applied_at = NOW() WHERE id = ?",
+            [winnerDeposit.id]
+          );
+          logger.info(`[Worker] Cấn trừ tiền cọc $${winnerDepositAmount} cho người thắng ${highestBidder}`);
+        }
 
-        // --- TÍCH HỢP STRIPE CHECKOUT ---
-        try {
-          const session = await stripe.checkout.sessions.create({
-            payment_method_types: ["card"],
-            mode: "payment",
-            line_items: [
-              {
-                price_data: {
-                  currency: "usd",
-                  product_data: {
-                    name: `Thanh toán phiên đấu giá #${auctionId}`,
-                    description: `Dành cho người chiến thắng User ID: ${highestBidder}`,
+        remainingAmount = Math.max(0, finalPrice - winnerDepositAmount);
+
+        if (remainingAmount > 0) {
+          finalStatus = "Payment Pending";
+
+          // --- TÍCH HỢP STRIPE CHECKOUT CHO SỐ DƯ CÒN LẠI ---
+          try {
+            const session = await stripe.checkout.sessions.create({
+              payment_method_types: ["card"],
+              mode: "payment",
+              line_items: [
+                {
+                  price_data: {
+                    currency: "usd",
+                    product_data: {
+                      name: `Thanh toán phiên đấu giá #${auctionId}`,
+                      description: `Giá thắng: $${finalPrice} - Đã cọc: $${winnerDepositAmount}`,
+                    },
+                    unit_amount: Math.round(remainingAmount * 100),
                   },
-                  // Stripe tính bằng cent, cần nhân 100
-                  unit_amount: Math.round(finalPrice * 100),
+                  quantity: 1,
                 },
-                quantity: 1,
+              ],
+              success_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&payment=success`,
+              cancel_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&payment=failed`,
+              metadata: {
+                type: "win_payment", // Phân loại webhook
+                auction_id: auctionId.toString(),
+                user_id: highestBidder.toString(),
               },
-            ],
-            // ĐÃ SỬA: Điều hướng thẳng về trang auction-detail kèm tham số payment=success
-            success_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&payment=success`,
-            cancel_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&payment=failed`,
-            metadata: {
-              auction_id: auctionId.toString(),
-              user_id: highestBidder.toString(),
-            },
-          });
+            });
 
-          paymentUrl = session.url;
-          logger.success(`[Stripe] Đã tạo Link thanh toán cho phiên ${auctionId}`);
-        } catch (stripeErr) {
-          logger.error(`[Stripe Error] Lỗi tạo link thanh toán phiên ${auctionId}:`, stripeErr.message);
+            paymentUrl = session.url;
+            logger.success(`[Stripe] Đã tạo Link thanh toán dư nợ cho phiên ${auctionId}`);
+          } catch (stripeErr) {
+            logger.error(`[Stripe Error] Lỗi tạo link thanh toán phiên ${auctionId}:`, stripeErr.message);
+          }
+        } else {
+          finalStatus = "Completed"; // Tiền cọc đã bù đủ giá thắng
         }
       }
 
-      // 5. Bắt đầu Transaction ghi nhận MySQL
-      await dbConnection.beginTransaction();
-
+      // 7. CẬP NHẬT TRẠNG THÁI PHIÊN ĐẤU GIÁ (Bảo vệ bằng affectedRows của mã mới)
       const [updateResult] = await dbConnection.execute(
         `UPDATE Auctions 
-         SET status = ?, current_price = ?, version = version + 1
+         SET status = ?, current_price = ?, winner_id = ?, version = version + 1
          WHERE id = ? AND status IN ('Active', 'Closing')`,
-        [finalStatus, finalPrice, auctionId],
+        [finalStatus, finalPrice, highestBidder || null, auctionId],
       );
 
       if (updateResult.affectedRows === 0) {
         throw new Error("ERR_AUCTION_ALREADY_ENDED");
       }
 
-      // 6. Ghi nhận giao dịch
+      // 8. GHI NHẬN GIAO DỊCH VÀO BẢNG TRANSACTIONS (Từ mã mới)
       if (finalStatus === "Payment Pending") {
         await dbConnection.execute(
           `INSERT INTO Transactions (user_id, auction_id, amount, type, status)
            VALUES (?, ?, ?, 'WIN_PAYMENT', 'PENDING')
            ON DUPLICATE KEY UPDATE amount = VALUES(amount)`,
-          [highestBidder, auctionId, finalPrice],
+          [highestBidder, auctionId, remainingAmount],
         );
 
-        logger.info(`[Worker] NGƯỜI CHIẾN THẮNG: User ID ${highestBidder} với mức giá $${finalPrice}!`);
-
-        // Bắn Kafka gửi link cho người chiến thắng
-        if (paymentUrl) {
-          await producer.send({
-            topic: "winner-notifications",
-            messages: [
-              {
-                key: auctionId.toString(),
-                value: JSON.stringify({
-                  auctionId,
-                  userId: highestBidder,
-                  amount: finalPrice,
-                  paymentUrl: paymentUrl,
-                  timestamp: new Date().toISOString(),
-                }),
-              },
-            ],
-          });
-        }
+        logger.info(`[Worker] NGƯỜI CHIẾN THẮNG: User ID ${highestBidder} với mức giá $${finalPrice}! Cần đóng thêm: $${remainingAmount}`);
+      } else if (highestBidder) {
+        logger.info(`[Worker] NGƯỜI CHIẾN THẮNG: User ID ${highestBidder} với mức giá $${finalPrice}! Đã thanh toán đủ qua cọc.`);
       } else {
         logger.info(`[Worker] Phiên đấu giá kết thúc không có ai trả giá.`);
       }
 
       await dbConnection.commit();
 
-      // 7. Đồng bộ trạng thái cuối cùng lên Redis và dọn dẹp
+      // 9. XỬ LÝ HOÀN CỌC CHO NGƯỜI THUA (Từ mã cũ - Chạy sau khi DB an toàn)
+      for (const d of deposits) {
+        if (String(d.user_id) !== String(highestBidder)) {
+          try {
+            // Tự động kích hoạt Stripe Refund
+            if (d.provider_payment_id) {
+              await stripe.refunds.create({ payment_intent: d.provider_payment_id });
+            }
+            await dbConnection.execute(
+              "UPDATE auction_deposits SET status = 'REFUNDED', refunded_at = NOW() WHERE id = ?",
+              [d.id]
+            );
+            logger.info(`[Worker] Đã tự động hoàn cọc $${d.amount} cho user ${d.user_id}`);
+          } catch (refundErr) {
+            logger.error(`[Worker Error] Hoàn tiền cho user ${d.user_id} gặp lỗi:`, refundErr.message);
+          }
+        }
+      }
+
+      // 10. BẮN KAFKA GỬI NOTI ĐẾN WINNER
+      if (highestBidder && paymentUrl) {
+        await producer.send({
+          topic: "winner-notifications",
+          messages: [
+            {
+              key: auctionId.toString(),
+              value: JSON.stringify({
+                auctionId,
+                userId: highestBidder,
+                amount: finalPrice,
+                remaining: remainingAmount,
+                paymentUrl: paymentUrl,
+                timestamp: new Date().toISOString(),
+              }),
+            },
+          ],
+        });
+      }
+
+      // 11. Đồng bộ trạng thái cuối cùng lên Redis và dọn dẹp
       await redisClient.hSet(auctionKey, "status", finalStatus);
       await redisClient.expire(auctionKey, 3600);
 

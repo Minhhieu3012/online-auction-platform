@@ -7,6 +7,25 @@
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/auction-detail.css" />
+    <style>
+      /* Styles từ mã nguồn cũ cho Deposit flow */
+      .deposit-panel {
+        background: rgba(255, 171, 0, 0.1);
+        border: 1px solid var(--warning);
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .winner-panel {
+        background: rgba(76, 175, 80, 0.1);
+        border: 1px solid var(--success);
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+    </style>
   </head>
   <body>
     <div class="app-shell">
@@ -54,6 +73,11 @@
                   <span>Increment</span>
                   <strong data-increment>$0</strong>
                 </div>
+                <!-- Box thông tin đặt cọc từ mã nguồn cũ -->
+                <div data-deposit-info-box>
+                  <span>Required Deposit</span>
+                  <strong data-deposit-amount>$0</strong>
+                </div>
               </div>
             </div>
           </section>
@@ -80,7 +104,7 @@
               <div class="countdown-panel">
                 <div class="countdown-panel-header">
                   <span>Time Remaining</span>
-                  <span>Live</span>
+                  <span data-countdown-live-label>Live</span>
                 </div>
                 <div class="countdown-grid">
                   <div>
@@ -100,36 +124,49 @@
                 </div>
               </div>
 
-              <form class="bid-form" data-bid-form novalidate>
-                <div class="bid-input-shell">
-                  <span>$</span>
-                  <input type="number" data-bid-input placeholder="Enter amount" required />
-                  <small data-minimum-bid>Min bid: $0</small>
+              <!-- DYNAMIC PANELS INJECTED HERE BY JS (Tích hợp từ mã nguồn cũ) -->
+              <div data-dynamic-action-area>
+                <!-- DEPOSIT PANEL (Hidden by default) -->
+                <div class="deposit-panel" data-deposit-panel hidden>
+                  <p style="color: var(--warning); margin-bottom: 15px; font-weight: 600;">Bạn cần đặt cọc để tham gia trả giá.</p>
+                  <button type="button" class="button button-primary" data-deposit-action-btn style="width: 100%;">Thanh Toán Tiền Cọc</button>
                 </div>
 
-                <button type="submit" class="button button-primary place-bid-button">PLACE BID</button>
-              </form>
+                <!-- ENDED PANEL (Hidden by default) -->
+                <div class="winner-panel" data-winner-panel hidden></div>
 
-              <div style="margin-top: 24px">
-                <label class="proxy-row">
-                  <input type="checkbox" data-proxy-toggle />
-                  <div class="custom-checkbox"></div>
-                  Proxy Bidding
-                  <button
-                    type="button"
-                    class="proxy-info-button"
-                    data-tooltip="Hệ thống tự động trả giá thay bạn cho đến hạn mức này."
-                  >
-                    ?
-                  </button>
-                </label>
+                <!-- BID FORM (Luồng cũ của bản mới được đưa vào bên trong data-dynamic-action-area) -->
+                <form class="bid-form" data-bid-form novalidate>
+                  <div class="bid-input-shell">
+                    <span>$</span>
+                    <input type="number" data-bid-input placeholder="Enter amount" required />
+                    <small data-minimum-bid>Min bid: $0</small>
+                  </div>
 
-                <div class="proxy-settings" data-proxy-settings hidden style="margin-top: 16px">
-                  <label class="proxy-max-field">
-                    <span>Max Budget</span>
-                    <input type="number" data-proxy-max placeholder="Enter max amount" />
-                  </label>
-                </div>
+                  <button type="submit" class="button button-primary place-bid-button">PLACE BID</button>
+                  
+                  <div style="margin-top: 24px">
+                    <label class="proxy-row">
+                      <input type="checkbox" data-proxy-toggle />
+                      <div class="custom-checkbox"></div>
+                      Proxy Bidding
+                      <button
+                        type="button"
+                        class="proxy-info-button"
+                        data-tooltip="Hệ thống tự động trả giá thay bạn cho đến hạn mức này."
+                      >
+                        ?
+                      </button>
+                    </label>
+
+                    <div class="proxy-settings" data-proxy-settings hidden style="margin-top: 16px">
+                      <label class="proxy-max-field">
+                        <span>Max Budget</span>
+                        <input type="number" data-proxy-max placeholder="Enter max amount" />
+                      </label>
+                    </div>
+                  </div>
+                </form>
               </div>
             </div>
 

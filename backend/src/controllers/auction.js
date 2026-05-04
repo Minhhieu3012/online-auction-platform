@@ -1,8 +1,18 @@
+// backend/src/controllers/auction.js
+
 const pool = require("../config/db");
 const { sendSuccess, sendError } = require("../utils/response");
 const logger = require("../utils/logger");
 
 const PUBLIC_STATUSES = ["Scheduled", "Active", "Closing", "Ended", "Payment Pending", "Completed"];
+
+// Khởi tạo Stripe từ mã cũ
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const DEFAULT_APPROVED_DURATION_MINUTES = 24 * 60;
+
+// ==========================================
+// CÁC HÀM BỔ TRỢ (HELPERS)
+// ==========================================
 
 function normalizeStatusForSql(status) {
   const statusMap = {
@@ -86,7 +96,7 @@ function mapAuctionRow(row) {
     startTime: formatUTC(row.start_time),
     endTime: formatUTC(row.end_time),
 
-    winnerId: row.winner_id,
+    winnerId: row.winner_id || null,
     finalPrice: row.final_price === null ? null : Number(row.final_price),
     paymentDueAt: formatUTC(row.payment_due_at),
 
@@ -160,6 +170,9 @@ async function getUserDepositStatus(auctionId, userId) {
 
   return rows[0] || null;
 }
+// ==========================================
+// AUCTION CONTROLLER
+// ==========================================
 
 class AuctionController {
   static async listAuctions(req, res) {
@@ -480,6 +493,102 @@ class AuctionController {
       return sendError(res, "ERR_CREATE_AUCTION", "Không thể tạo phiên đấu giá.", 500);
     } finally {
       connection.release();
+    }
+  }
+
+  static async getDepositStatus(req, res) {
+    const auctionId = Number(req.params.id);
+    const userId = req.user.id;
+
+    if (!auctionId) return sendError(res, "ERR_INVALID_ID", "Auction ID không hợp lệ.", 400);
+
+    try {
+      const [rows] = await pool.execute(
+        `SELECT status, amount FROM auction_deposits WHERE auction_id = ? AND user_id = ? LIMIT 1`,
+        [auctionId, userId]
+      );
+
+      const deposit = rows.length > 0 ? rows[0] : { status: "NONE", amount: 0 };
+      return sendSuccess(res, deposit, "Lấy trạng thái đặt cọc thành công.");
+    } catch (error) {
+      logger.error("[Get Deposit Status Error]:", error);
+      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi kiểm tra đặt cọc.", 500);
+    }
+  }
+
+  static async createDeposit(req, res) {
+    const auctionId = Number(req.params.id);
+    const userId = req.user.id;
+
+    if (!auctionId) return sendError(res, "ERR_INVALID_ID", "Auction ID không hợp lệ.", 400);
+
+    try {
+      const [auctions] = await pool.execute(
+        "SELECT status, requires_deposit, deposit_amount FROM Auctions WHERE id = ?",
+        [auctionId]
+      );
+      
+      if (auctions.length === 0) return sendError(res, "ERR_NOT_FOUND", "Phiên đấu giá không tồn tại.", 404);
+      
+      const auction = auctions[0];
+      if (auction.status !== "Active" && auction.status !== "Scheduled") {
+        return sendError(res, "ERR_INVALID_STATE", "Không thể đặt cọc vì phiên đấu giá chưa mở hoặc đã kết thúc.", 400);
+      }
+      if (!auction.requires_deposit) {
+        return sendError(res, "ERR_NO_DEPOSIT", "Phiên đấu giá này không yêu cầu đặt cọc.", 400);
+      }
+
+      const [deps] = await pool.execute(
+        "SELECT id, status FROM auction_deposits WHERE auction_id = ? AND user_id = ?",
+        [auctionId, userId]
+      );
+
+      if (deps.length > 0 && deps[0].status === 'SUCCEEDED') {
+        return sendError(res, "ERR_ALREADY_DEPOSITED", "Bạn đã đặt cọc thành công cho phiên này rồi.", 400);
+      }
+
+      const depositAmountCent = Math.round(Number(auction.deposit_amount) * 100);
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Đặt Cọc Tham Gia Đấu Giá #${auctionId}`,
+                description: "Sẽ được hoàn lại nếu bạn không trúng thầu.",
+              },
+              unit_amount: depositAmountCent,
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&deposit=success`,
+        cancel_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&deposit=failed`,
+        metadata: {
+          type: "deposit",
+          auction_id: auctionId.toString(),
+          user_id: userId.toString(),
+        },
+      });
+
+      if (deps.length > 0) {
+        await pool.execute(
+          "UPDATE auction_deposits SET stripe_session_id = ?, status = 'PENDING', amount = ? WHERE id = ?",
+          [session.id, auction.deposit_amount, deps[0].id]
+        );
+      } else {
+        await pool.execute(
+          "INSERT INTO auction_deposits (auction_id, user_id, amount, status, stripe_session_id) VALUES (?, ?, ?, 'PENDING', ?)",
+          [auctionId, userId, auction.deposit_amount, session.id]
+        );
+      }
+
+      return sendSuccess(res, { url: session.url }, "Tạo yêu cầu thanh toán đặt cọc thành công.");
+    } catch (error) {
+      logger.error("[Create Deposit Error]:", error);
+      return sendError(res, "ERR_SERVER", "Lỗi tạo yêu cầu thanh toán.", 500);
     }
   }
 }

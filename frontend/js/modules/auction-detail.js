@@ -12,6 +12,7 @@ const FALLBACK_IMAGES = [
 ];
 
 let auction = null;
+let depositStatusObj = null; // Quản lý state đặt cọc của user hiện tại
 let activeImageIndex = 0;
 let countdownInterval = null;
 
@@ -23,7 +24,13 @@ function cacheElements() {
   elements.currentBid = document.querySelector("[data-current-bid]");
   elements.minimumBid = document.querySelector("[data-minimum-bid]");
   elements.bidInput = document.querySelector("[data-bid-input]");
+  
+  // Các panel điều hướng flow
   elements.bidForm = document.querySelector("[data-bid-form]");
+  elements.depositPanel = document.querySelector("[data-deposit-panel]");
+  elements.depositActionBtn = document.querySelector("[data-deposit-action-btn]");
+  elements.winnerPanel = document.querySelector("[data-winner-panel]");
+  
   elements.bidHistory = document.querySelector("[data-bid-history]");
   elements.activeBids = document.querySelector("[data-active-bids]");
   elements.hours = document.querySelector("[data-countdown-hours]");
@@ -43,6 +50,8 @@ function cacheElements() {
   elements.condition = document.querySelector("[data-condition]");
   elements.startingPrice = document.querySelector("[data-starting-price]");
   elements.increment = document.querySelector("[data-increment]");
+  elements.depositAmount = document.querySelector("[data-deposit-amount]");
+  elements.depositInfoBox = document.querySelector("[data-deposit-info-box]");
 
   elements.lightbox = document.querySelector("[data-image-lightbox]");
   elements.lightboxImage = document.querySelector("[data-lightbox-image]");
@@ -92,7 +101,7 @@ function getStatusLabel(status) {
     closing: "SẮP ĐÓNG",
     ended: "ĐÃ KẾT THÚC",
     payment_pending: "CHỜ THANH TOÁN",
-    completed: "ĐÃ HOÀN TẤT",
+    completed: "ĐĐÃ HOÀN TẤT",
     cancelled: "ĐÃ HỦY",
   };
 
@@ -124,6 +133,7 @@ function normalizeAuction(rawAuction) {
   const title = rawAuction.title || rawAuction.productName || rawAuction.product_name || "Vật phẩm chưa đặt tên";
   const currentPrice = Number(rawAuction.currentPrice || rawAuction.current_price || 0);
   const stepPrice = Number(rawAuction.stepPrice || rawAuction.step_price || 0);
+  const depositAmount = Number(rawAuction.depositAmount || rawAuction.deposit_amount || 0);
 
   const bidHistory = Array.isArray(rawAuction.bidHistory)
     ? rawAuction.bidHistory.map((bid, index) => ({
@@ -143,17 +153,19 @@ function normalizeAuction(rawAuction) {
     provenance: rawAuction.sellerUsername
       ? `Người đăng: ${rawAuction.sellerUsername}. Hồ sơ chứng thực đang được hệ thống lưu trữ.`
       : "Thông tin nguồn gốc sẽ được cập nhật sau khi xác minh.",
-    condition: rawAuction.condition || "Báo cáo tình trạng sẽ được cập nhật sau khi hồ sơ hoàn tất.",
+    condition: rawAuction.condition || "Báo cáo tình trạng sẽ được đồng bộ khi hồ sơ sản phẩm hoàn tất.",
     status: rawAuction.status || "Active",
+    rawStatus: normalizeStatusKey(rawAuction.status),
     currentBid: currentPrice,
     startingPrice: currentPrice,
     increment: stepPrice || 1000,
+    depositAmount,
+    requiresDeposit: Boolean(rawAuction.requiresDeposit ?? rawAuction.requires_deposit),
     endTime: new Date(rawAuction.endTime || rawAuction.end_time || Date.now()).getTime(),
     activeBids: Number(rawAuction.bidCount || rawAuction.bid_count || bidHistory.length || 0),
 
     createdBy: rawAuction.createdBy || rawAuction.created_by,
-    requiresDeposit: Boolean(rawAuction.requiresDeposit ?? rawAuction.requires_deposit),
-    depositAmount: Number(rawAuction.depositAmount || rawAuction.deposit_amount || 0),
+    winnerId: rawAuction.winnerId || rawAuction.winner_id || null,
     userDeposit: rawAuction.userDeposit || rawAuction.user_deposit || null,
     canBid: Boolean(rawAuction.canBid),
 
@@ -193,6 +205,36 @@ function getCurrentUser() {
 
 function isLoggedIn() {
   return Boolean(apiClient.getAuthToken() && getCurrentUser());
+}
+
+function setBidFormBusy(isBusy) {
+  const controls = elements.bidForm?.querySelectorAll("button, input") || [];
+  const submitButton = elements.bidForm?.querySelector("[type='submit']");
+  const depositBtn = elements.depositActionBtn;
+
+  controls.forEach((control) => {
+    control.disabled = isBusy;
+  });
+  
+  if (depositBtn) {
+    depositBtn.disabled = isBusy;
+    if (isBusy) {
+      depositBtn.dataset.originalText = depositBtn.textContent.trim();
+      depositBtn.textContent = "Đang xử lý...";
+    } else {
+      depositBtn.textContent = depositBtn.dataset.originalText || "Thanh Toán Tiền Cọc";
+    }
+  }
+
+  if (!submitButton) return;
+
+  if (isBusy) {
+    submitButton.dataset.originalText = submitButton.textContent.trim();
+    submitButton.textContent = "Đang xử lý...";
+    return;
+  }
+
+  submitButton.textContent = submitButton.dataset.originalText || "ĐẶT GIÁ NGAY";
 }
 
 function getActiveImage() {
@@ -273,10 +315,10 @@ function showNextImage() {
 function renderProductCopy() {
   if (!auction) return;
 
-  const label = getStatusLabel(auction.status);
+  const statusLabelText = getStatusLabel(auction.status);
 
-  if (elements.statusLabel) elements.statusLabel.textContent = label;
-  if (elements.liveChip) elements.liveChip.textContent = label;
+  if (elements.statusLabel) elements.statusLabel.textContent = statusLabelText;
+  if (elements.liveChip) elements.liveChip.textContent = statusLabelText;
   if (elements.lotLabel) elements.lotLabel.textContent = auction.lot;
   if (elements.productTitle) elements.productTitle.textContent = auction.title;
   if (elements.productDescription) elements.productDescription.textContent = auction.description;
@@ -284,6 +326,17 @@ function renderProductCopy() {
   if (elements.condition) elements.condition.textContent = auction.condition;
   if (elements.startingPrice) elements.startingPrice.textContent = formatMoney(auction.startingPrice);
   if (elements.increment) elements.increment.textContent = formatMoney(auction.increment);
+
+  if (auction.requiresDeposit) {
+    if (elements.depositInfoBox) elements.depositInfoBox.hidden = false;
+    if (elements.depositAmount) elements.depositAmount.textContent = formatMoney(auction.depositAmount);
+  } else {
+    if (elements.depositInfoBox) elements.depositInfoBox.hidden = true;
+  }
+
+  if (elements.mainImage) {
+    elements.mainImage.alt = auction.title;
+  }
 }
 
 function renderBidPanel() {
@@ -328,99 +381,88 @@ function renderBidHistory() {
     )
     .join("");
 }
+// --- LOGIC PHÂN QUYỀN GIAO DIỆN CHÍNH ---
+function renderActionPanel() {
+  if (!auction) return;
 
-function buildBidFormContent() {
-  const minimumBid = getMinimumBid();
-
-  return `
-    <label class="bid-input-field">
-      <span>Nhập mức giá của bạn</span>
-      <input
-        type="number"
-        min="${minimumBid}"
-        step="${auction.increment}"
-        placeholder="${minimumBid}"
-        data-bid-input
-      />
-    </label>
-
-    <button type="submit" class="button button-primary" style="width: 100%;">
-      ĐẶT GIÁ NGAY
-    </button>
-
-    <p style="margin: 12px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.5;">
-      Giá tối thiểu: <strong>${formatMoney(minimumBid)}</strong>
-    </p>
-  `;
-}
-
-function renderBidAccess() {
-  if (!elements.bidForm || !auction) return;
-
-  const statusKey = normalizeStatusKey(auction.status);
+  const isEnded = auction.endTime <= Date.now() || ["ended", "payment_pending", "completed"].includes(auction.rawStatus);
+  const isGuest = !isLoggedIn();
   const currentUser = getCurrentUser();
   const isOwner = currentUser && Number(currentUser.id) === Number(auction.createdBy);
-  const depositStatus = auction.userDeposit?.status || null;
 
-  if (!isLoggedIn()) {
-    elements.bidForm.innerHTML = `
-      <button type="button" class="button button-primary" data-login-to-bid style="width: 100%;">
-        ĐĂNG NHẬP ĐỂ THAM GIA ĐẤU GIÁ
-      </button>
-      <p style="margin: 12px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.5;">
-        Bạn có thể xem phiên đấu giá, nhưng cần đăng nhập và đặt cọc để trả giá.
-      </p>
-    `;
+  // 1. Đấu giá kết thúc
+  if (isEnded) {
+    if (elements.bidForm) elements.bidForm.hidden = true;
+    if (elements.depositPanel) elements.depositPanel.hidden = true;
+    if (elements.winnerPanel) elements.winnerPanel.hidden = false;
 
-    elements.bidForm.querySelector("[data-login-to-bid]")?.addEventListener("click", () => {
-      const currentUrl = `${window.location.pathname}${window.location.search}`;
-      window.location.href = `./login.html?redirect=${encodeURIComponent(currentUrl)}`;
-    });
+    if (isGuest || isOwner) {
+      elements.winnerPanel.innerHTML = `
+        <h3 style="margin-bottom: 10px;">Phiên đấu giá đã kết thúc.</h3>
+        <p>Giá chốt: <strong>${formatMoney(auction.currentBid)}</strong></p>
+      `;
+      return;
+    }
 
+    if (String(auction.winnerId) === String(currentUser.id)) {
+      elements.winnerPanel.innerHTML = `
+        <h3 style="color: var(--success); margin-bottom: 10px;">🎉 BẠN ĐÃ CHIẾN THẮNG</h3>
+        <p>Giá thắng: ${formatMoney(auction.currentBid)}</p>
+        <p>Tiền cọc đã cấn trừ: ${formatMoney(auction.depositAmount)}</p>
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+        <p style="font-weight:bold;">Cần thanh toán: ${formatMoney(Math.max(0, auction.currentBid - auction.depositAmount))}</p>
+        <button class="button button-primary" style="margin-top: 15px;" onclick="location.reload()">Kiểm Tra Nút Thanh Toán</button>
+      `;
+    } else {
+      let refundText = depositStatusObj?.status === 'REFUNDED' ? "Tiền cọc đã được hoàn thành công." : "Tiền cọc của bạn đang được hoàn lại.";
+      elements.winnerPanel.innerHTML = `
+        <h3 style="color: var(--text-muted); margin-bottom: 10px;">Bạn không thắng phiên này</h3>
+        ${depositStatusObj && depositStatusObj.status !== 'NONE' ? `<p style="color: var(--warning);">${refundText}</p>` : ""}
+      `;
+    }
     return;
   }
 
-  if (isOwner) {
-    elements.bidForm.innerHTML = `
-      <p style="text-align: center; color: var(--text-muted);">
-        Bạn là người tạo phiên này nên không thể tự tham gia trả giá.
-      </p>
-    `;
-    return;
-  }
+  // 2. Đang diễn ra
+  if (elements.winnerPanel) elements.winnerPanel.hidden = true;
 
-  if (statusKey !== "active") {
-    elements.bidForm.innerHTML = `
-      <p style="text-align: center; color: var(--text-muted);">
-        Phiên hiện ở trạng thái <strong>${getStatusLabel(auction.status)}</strong>, chưa thể đặt giá.
-      </p>
-    `;
-    return;
-  }
-
-  if (auction.requiresDeposit && depositStatus !== "SUCCEEDED") {
-    elements.bidForm.innerHTML = `
-      <div style="display: grid; gap: 14px;">
-        <div style="padding: 16px; border: 1px solid var(--border); background: var(--surface);">
-          <p class="eyebrow" style="margin-bottom: 8px;">Điều kiện tham gia</p>
-          <h3 style="margin: 0 0 8px;">Cần đặt cọc ${formatMoney(auction.depositAmount)}</h3>
-          <p style="margin: 0; color: var(--text-muted); line-height: 1.5;">
-            Người thua sẽ được hoàn cọc về tài khoản. Người thắng được trừ cọc vào khoản thanh toán cuối.
+  if (isGuest || isOwner) {
+    if (elements.depositPanel) elements.depositPanel.hidden = true;
+    if (elements.bidForm) {
+      elements.bidForm.hidden = false;
+      if (isGuest) {
+        elements.bidForm.innerHTML = `
+          <button type="button" class="button button-primary" onclick="window.location.href='./login.html'" style="width: 100%;">
+            ĐĂNG NHẬP ĐỂ THAM GIA ĐẤU GIÁ
+          </button>
+          <p style="margin: 12px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.5; text-align: center;">
+            Bạn có thể xem phiên đấu giá, nhưng cần đăng nhập để trả giá.
           </p>
-        </div>
-
-        <button type="button" class="button button-primary" data-place-deposit style="width: 100%;">
-          ĐẶT CỌC ĐỂ THAM GIA
-        </button>
-      </div>
-    `;
-
-    elements.bidForm.querySelector("[data-place-deposit]")?.addEventListener("click", handlePlaceDeposit);
+        `;
+      } else {
+        elements.bidForm.innerHTML = `
+          <p style="text-align: center; color: var(--text-muted);">
+            Bạn là người tạo phiên này nên không thể tự tham gia trả giá.
+          </p>
+        `;
+      }
+    }
     return;
   }
 
-  elements.bidForm.innerHTML = buildBidFormContent();
-  elements.bidInput = elements.bidForm.querySelector("[data-bid-input]");
+  const currentDepositStatus = auction.userDeposit?.status || depositStatusObj?.status;
+
+  if (auction.requiresDeposit && currentDepositStatus !== 'SUCCEEDED') {
+    if (elements.bidForm) elements.bidForm.hidden = true;
+    if (elements.depositPanel) elements.depositPanel.hidden = false;
+    if (elements.depositActionBtn && currentDepositStatus === 'PENDING') {
+      elements.depositActionBtn.textContent = "Tiếp Tục Thanh Toán Đặt Cọc";
+    }
+  } else {
+    // Đã cọc hoặc không cần cọc -> Hiện form bid thật (do HTML load tĩnh đã có)
+    if (elements.bidForm) elements.bidForm.hidden = false;
+    if (elements.depositPanel) elements.depositPanel.hidden = true;
+  }
 }
 
 function renderAuction() {
@@ -428,7 +470,7 @@ function renderAuction() {
   renderProductCopy();
   renderBidPanel();
   renderBidHistory();
-  renderBidAccess();
+  renderActionPanel();
 }
 
 function updateCountdown() {
@@ -446,8 +488,21 @@ function updateCountdown() {
 
   if (distance <= 0 && normalizeStatusKey(auction.status) === "active") {
     auction.status = "Ended";
-    renderProductCopy();
-    renderBidAccess();
+    auction.rawStatus = "ended";
+    
+    if (elements.statusLabel) {
+      elements.statusLabel.textContent = "ĐÃ KẾT THÚC";
+      elements.statusLabel.style.borderColor = "var(--danger)";
+      elements.statusLabel.style.color = "var(--danger)";
+    }
+
+    if (elements.liveChip) {
+      elements.liveChip.textContent = "ĐÃ KẾT THÚC";
+      elements.liveChip.style.borderColor = "var(--danger)";
+      elements.liveChip.style.color = "var(--danger)";
+    }
+
+    renderActionPanel(); 
   }
 }
 
@@ -485,7 +540,6 @@ function updateUIWithNewBid(data) {
 
   renderBidPanel();
   renderBidHistory();
-  renderBidAccess();
 
   if (elements.currentBid) {
     elements.currentBid.style.color = "var(--success)";
@@ -523,55 +577,45 @@ function bindSocketEvents() {
   });
 
   window.socketClient.on("auction_winner", (data) => {
-    const currentUser = getCurrentUser();
-
-    if (currentUser && String(currentUser.id) === String(data.userId || data.user_id)) {
-      showToast("Bạn đã thắng phiên đấu giá", "Hãy hoàn tất thanh toán phần còn lại để nhận tài sản.", "success");
-      elements.bidForm.innerHTML = `
-        <div style="display: grid; gap: 14px; text-align: center;">
-          <h3 style="color: var(--success); margin: 0;">
-            Bạn đã thắng với giá ${formatMoney(data.amount || auction.currentBid)}
-          </h3>
-          <a href="${data.paymentUrl || `./checkout.html?auctionId=${auction.id}`}" class="button button-primary">
-            Thanh Toán Ngay
-          </a>
-        </div>
-      `;
+    const eventAuctionId = Number(data.auctionId || data.auction_id);
+    if (eventAuctionId && Number(auction.id) !== eventAuctionId) {
       return;
     }
 
-    showToast("Phiên đã kết thúc", "Phiên đấu giá đã khép lại.", "info");
-    renderBidAccess();
+    const currentUser = getCurrentUser();
+    if (currentUser && String(currentUser.id) === String(data.userId || data.user_id)) {
+      showToast("Bạn đã thắng phiên đấu giá", "Hãy hoàn tất thanh toán phần còn lại để nhận tài sản.", "success");
+    } else {
+      showToast("Phiên đã kết thúc", "Phiên đấu giá đã khép lại.", "info");
+    }
+
+    // Force reload page status on winner received
+    auction.endTime = 0;
+    auction.winnerId = data.userId || data.user_id;
+    updateCountdown();
   });
 }
 
-async function handlePlaceDeposit() {
+// Xử lý tạo link thanh toán cọc qua Stripe
+async function handleDepositClick() {
   if (!auction) return;
-
-  if (!isLoggedIn()) {
-    const currentUrl = `${window.location.pathname}${window.location.search}`;
-    window.location.href = `./login.html?redirect=${encodeURIComponent(currentUrl)}`;
-    return;
-  }
-
-  const ok = window.confirm(`Xác nhận đặt cọc ${formatMoney(auction.depositAmount)} để tham gia phiên này?`);
-
-  if (!ok) return;
+  setBidFormBusy(true);
 
   try {
-    const response = await apiClient.post(`/auctions/${auction.id}/deposit`, {});
-
-    auction.userDeposit = response.data?.deposit || {
-      status: "SUCCEEDED",
-      amount: auction.depositAmount,
-    };
-
-    auction.canBid = true;
-
-    showToast("Đặt cọc thành công", response.message || "Bạn đã đủ điều kiện tham gia trả giá.", "success");
-    renderBidAccess();
+    const res = await apiClient.post(`/auctions/${auction.id}/deposit`);
+    if (res.data?.url) {
+      window.location.href = res.data.url;
+    } else if (res.data?.deposit) {
+      // Fallback for mock backend mode
+      auction.userDeposit = res.data.deposit;
+      depositStatusObj = res.data.deposit;
+      showToast("Đặt cọc thành công", "Bạn đã đủ điều kiện tham gia trả giá.", "success");
+      renderActionPanel();
+    }
   } catch (error) {
-    showToast("Không thể đặt cọc", error.message || "Vui lòng thử lại sau.", "error");
+    showToast("Lỗi Khởi Tạo", error.message || "Không thể tạo phiên thanh toán", "error");
+  } finally {
+    setBidFormBusy(false);
   }
 }
 
@@ -584,7 +628,7 @@ async function handleManualBid(event) {
   }
 
   if (!isLoggedIn()) {
-    renderBidAccess();
+    renderActionPanel();
     return;
   }
 
@@ -598,10 +642,7 @@ async function handleManualBid(event) {
     return;
   }
 
-  const controls = elements.bidForm.querySelectorAll("button, input");
-  controls.forEach((control) => {
-    control.disabled = true;
-  });
+  setBidFormBusy(true);
 
   try {
     const response = await apiClient.post(`/auctions/${auction.id}/bids`, {
@@ -614,17 +655,16 @@ async function handleManualBid(event) {
   } catch (error) {
     if (error.errorCode === "ERR_DEPOSIT_REQUIRED") {
       auction.canBid = false;
-      auction.userDeposit = null;
-      renderBidAccess();
+      if (auction.userDeposit) auction.userDeposit.status = "NONE";
+      if (depositStatusObj) depositStatusObj.status = "NONE";
+      renderActionPanel();
       showToast("Cần đặt cọc", error.message || "Bạn cần đặt cọc trước khi trả giá.", "warning");
       return;
     }
 
     showToast("Không thể đặt giá", error.message || "Vui lòng thử lại sau.", "error");
   } finally {
-    controls.forEach((control) => {
-      control.disabled = false;
-    });
+    setBidFormBusy(false);
   }
 }
 
@@ -639,7 +679,9 @@ function disableDemoControls() {
 }
 
 function bindEvents() {
-  elements.bidForm?.addEventListener("submit", handleManualBid);
+  if (elements.bidForm) elements.bidForm.addEventListener("submit", handleManualBid);
+  if (elements.depositActionBtn) elements.depositActionBtn.addEventListener("click", handleDepositClick);
+  if (elements.proxyToggle) elements.proxyToggle.addEventListener("change", handleProxyToggle);
 
   disableDemoControls();
 
@@ -661,6 +703,17 @@ function bindEvents() {
       closeLightbox();
     }
   });
+}
+
+function checkParamsURL() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("deposit") === "success") {
+    showToast("Đặt Cọc Thành Công", "Chúc bạn may mắn trong phiên đấu giá!", "success");
+    window.history.replaceState({}, document.title, window.location.pathname + "?id=" + auction.id);
+  } else if (params.get("deposit") === "failed") {
+    showToast("Thanh toán bị hủy", "Bạn chưa hoàn tất thanh toán tiền cọc.", "warning");
+    window.history.replaceState({}, document.title, window.location.pathname + "?id=" + auction.id);
+  }
 }
 
 async function loadAuctionDetail() {
@@ -686,15 +739,32 @@ async function loadAuctionDetail() {
 
     auction = normalizeAuction(rawAuction);
 
+    // Load Deposit Status song song nếu đã login
+    if (isLoggedIn()) {
+      try {
+        const depRes = await apiClient.get(`/auctions/${auctionId}/deposit-status`);
+        depositStatusObj = depRes.data;
+        // Gắn luôn vào object auction để tiện dụng toàn cục
+        auction.userDeposit = depositStatusObj;
+      } catch (e) {
+        console.warn("[Auction Detail] Lỗi load trạng thái cọc:", e);
+      }
+    }
+
     renderAuction();
     updateCountdown();
+    checkParamsURL();
 
-    if (countdownInterval) window.clearInterval(countdownInterval);
+    if (countdownInterval) {
+      window.clearInterval(countdownInterval);
+    }
+
     countdownInterval = window.setInterval(updateCountdown, 1000);
 
     bindSocketEvents();
   } catch (error) {
-    showToast("Không thể tải phiên", error.message || "Không thể lấy thông tin từ Backend.", "error");
+    console.error("[Auction Detail] Không thể tải dữ liệu:", error);
+    showToast("Không thể tải chi tiết", error.message || "Vui lòng kiểm tra Backend.", "error");
   }
 }
 
