@@ -1,121 +1,143 @@
 // frontend/js/core/header.js
-function initSettingsMenu() {
-    const toggleButtons = Array.from(document.querySelectorAll("[data-home-settings-toggle]"));
 
-    toggleButtons.forEach((toggleButton) => {
-        // CHỐNG DOUBLE BINDING: Đảm bảo nút không bị gắn 2 sự kiện click cùng lúc
-        if (toggleButton.dataset.menuInitialized === "true") return;
-        toggleButton.dataset.menuInitialized = "true";
+let isHeaderBound = false;
 
-        const settingsRoot = toggleButton.closest(".home-settings");
-        const settingsMenu = settingsRoot?.querySelector("[data-home-settings-menu]");
+function closeSettingsMenus() {
+  document.querySelectorAll("[data-home-settings-menu]").forEach((menu) => {
+    menu.hidden = true;
+  });
 
-        if (!settingsMenu) {
-            return;
-        }
-
-        const closeMenu = () => {
-            settingsMenu.hidden = true;
-            toggleButton.setAttribute("aria-expanded", "false");
-        };
-
-        const toggleMenu = (e) => {
-            e.stopPropagation(); 
-            // Đã sửa lỗi gọi sai tên biến menu -> settingsMenu
-            const isHidden = settingsMenu.hidden;
-            settingsMenu.hidden = !isHidden;
-            toggleButton.setAttribute('aria-expanded', String(!isHidden));
-        };
-
-        toggleButton.addEventListener("click", toggleMenu);
-
-        settingsMenu.addEventListener("click", (event) => {
-            event.stopPropagation();
-        });
-
-        document.addEventListener("click", closeMenu);
-        document.addEventListener("scroll", closeMenu, { passive: true });
-    });
+  document.querySelectorAll("[data-home-settings-toggle]").forEach((button) => {
+    button.setAttribute("aria-expanded", "false");
+  });
 }
 
-function initDiorStyleHeader(options = {}) {
-    const header = document.querySelector("[data-header]");
+function toggleSettingsMenu(button) {
+  const settingsRoot = button.closest(".home-settings");
+  const menu = settingsRoot?.querySelector("[data-home-settings-menu]");
 
-    // CHỐNG DOUBLE BINDING: Ngăn scroll event bị nhân bản
-    if (!header || header.dataset.scrollInitialized === "true") {
-        return;
+  if (!menu) return;
+
+  const shouldOpen = menu.hidden;
+
+  closeSettingsMenus();
+
+  menu.hidden = !shouldOpen;
+  button.setAttribute("aria-expanded", String(shouldOpen));
+}
+
+function closeMobileMenu() {
+  const mobilePanel = document.querySelector("[data-mobile-nav-panel]");
+  const mobileButton = document.querySelector("[data-mobile-menu-button]");
+
+  if (mobilePanel) {
+    mobilePanel.classList.remove("is-open");
+  }
+
+  if (mobileButton) {
+    mobileButton.setAttribute("aria-expanded", "false");
+  }
+
+  document.body.classList.remove("is-menu-open");
+}
+
+function toggleMobileMenu(button) {
+  const mobilePanel = document.querySelector("[data-mobile-nav-panel]");
+
+  if (!mobilePanel) return;
+
+  const shouldOpen = !mobilePanel.classList.contains("is-open");
+
+  mobilePanel.classList.toggle("is-open", shouldOpen);
+  button.setAttribute("aria-expanded", String(shouldOpen));
+  document.body.classList.toggle("is-menu-open", shouldOpen);
+
+  if (shouldOpen) {
+    closeSettingsMenus();
+  }
+}
+
+function initHeaderScrollBehavior(options = {}) {
+  const header = document.querySelector("[data-header]");
+  if (!header) return;
+
+  const hideAfter = Number(options.hideAfter || 120);
+  const topRevealOffset = Number(options.topRevealOffset || 12);
+
+  let lastScrollY = window.scrollY;
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      const currentScrollY = window.scrollY;
+      const isScrollingDown = currentScrollY > lastScrollY;
+      const isNearTop = currentScrollY <= topRevealOffset;
+
+      header.classList.toggle("is-hidden", isScrollingDown && currentScrollY > hideAfter);
+      header.classList.toggle("is-scrolled", currentScrollY > topRevealOffset);
+
+      if (isNearTop) {
+        header.classList.remove("is-hidden");
+      }
+
+      lastScrollY = currentScrollY;
+    },
+    {
+      passive: true,
+    },
+  );
+}
+
+function bindHeaderEvents() {
+  if (isHeaderBound) return;
+
+  isHeaderBound = true;
+
+  document.addEventListener("click", (event) => {
+    const settingsToggle = event.target.closest("[data-home-settings-toggle]");
+
+    if (settingsToggle) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleSettingsMenu(settingsToggle);
+      return;
     }
-    header.dataset.scrollInitialized = "true";
 
-    const config = {
-        hideAfter: options.hideAfter ?? 120,
-        topRevealOffset: options.topRevealOffset ?? 12
-    };
+    const mobileToggle = event.target.closest("[data-mobile-menu-button]");
 
-    let lastScrollY = window.scrollY;
-    let ticking = false;
+    if (mobileToggle) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleMobileMenu(mobileToggle);
+      return;
+    }
 
-    header.style.transition = [
-        "transform 320ms ease",
-        "background-color 260ms ease",
-        "border-color 260ms ease"
-    ].join(", ");
+    const clickedInsideSettings = event.target.closest(".home-settings");
 
-    const showHeader = () => {
-        header.style.transform = "translateY(0)";
-        header.classList.remove("header-hidden");
-    };
+    if (!clickedInsideSettings) {
+      closeSettingsMenus();
+    }
+  });
 
-    const hideHeader = () => {
-        header.style.transform = "translateY(-100%)";
-        header.classList.add("header-hidden");
-    };
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
 
-    const updateHeaderState = () => {
-        const currentScrollY = window.scrollY;
-        const isScrollingDown = currentScrollY > lastScrollY;
-        const isPastHidePoint = currentScrollY > config.hideAfter;
-        const isNearTop = currentScrollY <= config.topRevealOffset;
+    closeSettingsMenus();
+    closeMobileMenu();
+  });
 
-        header.classList.toggle("is-scrolled", currentScrollY > config.topRevealOffset);
-
-        if (isNearTop) {
-            showHeader();
-            lastScrollY = currentScrollY;
-            ticking = false;
-            return;
-        }
-
-        if (isScrollingDown && isPastHidePoint) {
-            hideHeader();
-        } else {
-            showHeader();
-        }
-
-        lastScrollY = currentScrollY;
-        ticking = false;
-    };
-
-    const requestHeaderUpdate = () => {
-        if (ticking) {
-            return;
-        }
-
-        ticking = true;
-        window.requestAnimationFrame(updateHeaderState);
-    };
-
-    updateHeaderState();
-    window.addEventListener("scroll", requestHeaderUpdate, { passive: true });
+  window.addEventListener("brosgem:close-header-menu", () => {
+    closeSettingsMenus();
+  });
 }
 
 function initSiteHeader(options = {}) {
-    initSettingsMenu();
-    initDiorStyleHeader(options);
+  bindHeaderEvents();
+  initHeaderScrollBehavior(options);
 }
 
 export {
-    initSettingsMenu,
-    initDiorStyleHeader,
-    initSiteHeader
+  initSiteHeader,
+  closeSettingsMenus,
+  closeMobileMenu,
 };
