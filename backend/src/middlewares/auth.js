@@ -1,10 +1,11 @@
 const jwt = require("jsonwebtoken");
 const { sendError } = require("../utils/response");
+const logger = require("../utils/logger");
 
-// KIỂM TRA NGAY LÚC KHỞI ĐỘNG SERVER (Bên ngoài hàm)
+// KIỂM TRA NGAY LÚC KHỞI ĐỘNG SERVER (Kiến trúc Fail Fast)
 const secretKey = process.env.JWT_SECRET;
 if (!secretKey) {
-  console.error("FATAL ERROR: JWT_SECRET chưa được cấu hình trong file .env");
+  logger.error("FATAL ERROR: JWT_SECRET chưa được cấu hình trong file .env");
   process.exit(1);
 }
 

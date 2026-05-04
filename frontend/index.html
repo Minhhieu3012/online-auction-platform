@@ -10,9 +10,11 @@
 </head>
 <body>
     <div class="app-shell">
+        <!-- Site Header Component -->
         <div data-site-header data-base-path="." data-active-page="home"></div>
 
         <main>
+            <!-- Hero Section[cite: 3] -->
             <section class="hero-section">
                 <div class="hero-background-orb" aria-hidden="true"></div>
 
@@ -39,6 +41,7 @@
                 </div>
             </section>
 
+            <!-- Trust Strip[cite: 3] -->
             <section class="trust-strip" aria-label="Platform strengths">
                 <article class="trust-item">
                     <span class="trust-icon">◇</span>
@@ -65,6 +68,7 @@
                 </article>
             </section>
 
+            <!-- Live Auctions Section[cite: 3] -->
             <section class="section-block live-auctions-section" id="live-auctions">
                 <div class="section-heading-row">
                     <div>
@@ -76,32 +80,20 @@
                 </div>
 
                 <div class="auction-grid" data-featured-auctions>
+                    <!-- Mock Data Cards[cite: 3] -->
                     <article class="auction-card">
                         <div class="auction-card-media">
                             <img src="./assets/images/mockdata/1.png" alt="The Chronos Alpha watch" />
                             <span class="status-badge status-closing">Closing Soon</span>
                         </div>
-
                         <div class="auction-card-body">
-                            <div class="auction-card-meta">
-                                <span>Lot #821</span>
-                                <span>24 bids</span>
-                            </div>
-
+                            <div class="auction-card-meta"><span>Lot #821</span><span>24 bids</span></div>
                             <h3>The Chronos Alpha</h3>
                             <p>Rare horology piece with verified provenance.</p>
-
                             <div class="auction-card-divider"></div>
-
                             <div class="auction-card-bottom">
-                                <div>
-                                    <span class="field-label" data-i18n="collections.currentBid">Current Bid</span>
-                                    <strong>$425,000</strong>
-                                </div>
-                                <div>
-                                    <span class="field-label">Ends In</span>
-                                    <strong data-countdown="2026-05-12T18:30:00">02:14:45</strong>
-                                </div>
+                                <div><span class="field-label" data-i18n="collections.currentBid">Current Bid</span><strong>$425,000</strong></div>
+                                <div><span class="field-label">Ends In</span><strong data-countdown="2026-05-12T18:30:00">02:14:45</strong></div>
                             </div>
                         </div>
                     </article>
@@ -111,27 +103,14 @@
                             <img src="./assets/images/mockdata/2.png" alt="Fragmented Echo artwork" />
                             <span class="status-badge status-active">Active</span>
                         </div>
-
                         <div class="auction-card-body">
-                            <div class="auction-card-meta">
-                                <span>Lot #882</span>
-                                <span>18 bids</span>
-                            </div>
-
+                            <div class="auction-card-meta"><span>Lot #882</span><span>18 bids</span></div>
                             <h3>Fragmented Echo</h3>
                             <p>Contemporary visual work from a private collection.</p>
-
                             <div class="auction-card-divider"></div>
-
                             <div class="auction-card-bottom">
-                                <div>
-                                    <span class="field-label" data-i18n="collections.currentBid">Current Bid</span>
-                                    <strong>$1,220,000</strong>
-                                </div>
-                                <div>
-                                    <span class="field-label">Ends In</span>
-                                    <strong data-countdown="2026-05-13T21:00:00">18:42:10</strong>
-                                </div>
+                                <div><span class="field-label" data-i18n="collections.currentBid">Current Bid</span><strong>$1,220,000</strong></div>
+                                <div><span class="field-label">Ends In</span><strong data-countdown="2026-05-13T21:00:00">18:42:10</strong></div>
                             </div>
                         </div>
                     </article>
@@ -141,33 +120,21 @@
                             <img src="./assets/images/mockdata/3.png" alt="1962 GTO Heritage car" />
                             <span class="status-badge status-active">Active</span>
                         </div>
-
                         <div class="auction-card-body">
-                            <div class="auction-card-meta">
-                                <span>Lot #883</span>
-                                <span>42 bids</span>
-                            </div>
-
+                            <div class="auction-card-meta"><span>Lot #883</span><span>42 bids</span></div>
                             <h3>1962 GTO Heritage</h3>
                             <p>Automotive icon preserved in collector-grade condition.</p>
-
                             <div class="auction-card-divider"></div>
-
                             <div class="auction-card-bottom">
-                                <div>
-                                    <span class="field-label" data-i18n="collections.currentBid">Current Bid</span>
-                                    <strong>$3,800,000</strong>
-                                </div>
-                                <div>
-                                    <span class="field-label">Ends In</span>
-                                    <strong data-countdown="2026-05-15T08:00:00">2d 04:15:33</strong>
-                                </div>
+                                <div><span class="field-label" data-i18n="collections.currentBid">Current Bid</span><strong>$3,800,000</strong></div>
+                                <div><span class="field-label">Ends In</span><strong data-countdown="2026-05-15T08:00:00">2d 04:15:33</strong></div>
                             </div>
                         </div>
                     </article>
                 </div>
             </section>
 
+            <!-- Protocol Section[cite: 3] -->
             <section class="section-block protocol-section" id="protocol">
                 <div class="center-heading">
                     <p class="eyebrow" data-i18n="home.protocol">The Trinity Protocol</p>
@@ -184,13 +151,11 @@
                         <h3 data-i18n="home.step1">Know Your Collector</h3>
                         <p data-i18n="home.step1Desc">Every participant passes account validation before entering private auction rooms.</p>
                     </article>
-
                     <article class="protocol-card">
                         <span class="protocol-number">02</span>
                         <h3 data-i18n="home.step2">The Digital Gavel</h3>
                         <p data-i18n="home.step2Desc">Place manual or proxy bids through a latency-focused interface monitored in real time.</p>
                     </article>
-
                     <article class="protocol-card">
                         <span class="protocol-number">03</span>
                         <h3 data-i18n="home.step3">Vault Settlement</h3>
@@ -199,6 +164,7 @@
                 </div>
             </section>
 
+            <!-- CTA Section[cite: 3] -->
             <section class="portfolio-cta-section" id="valuation">
                 <div class="portfolio-cta-card">
                     <p class="eyebrow" data-i18n="home.ctaEyebrow">Elevate Your Portfolio</p>
@@ -214,9 +180,14 @@
             </section>
         </main>
 
+        <!-- Site Footer Component[cite: 3] -->
         <div data-site-footer data-base-path="."></div>
     </div>
 
+    <!-- Nạp thư viện Socket.io trước khi nạp các component và logic xử lý -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- Các thành phần module cũ của bạn[cite: 3] -->
     <script type="module" src="./components/site-header.js"></script>
     <script type="module" src="./components/site-footer.js"></script>
     <script type="module" src="./js/main.js"></script>

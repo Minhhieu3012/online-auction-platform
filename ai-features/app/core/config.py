@@ -30,10 +30,10 @@ class Settings(BaseSettings):
     JWT_EXPIRES_IN: str = "7d"
 
     # ==========================================
-    # CẤU HÌNH PYDANTIC V2 (ROOT FIX CHO MONOREPO)
+    # CẤU HÌNH PYDANTIC V2 (ROOT FIX)
     # ==========================================
     model_config = SettingsConfigDict(
-        env_file="../.env",           # Dấu "../" chỉ định lùi ra thư mục gốc để đọc file
+        env_file=".env",           # Đã sửa: Xóa "../" để đọc đúng file .env nằm cùng thư mục ai-features
         env_file_encoding="utf-8",
         extra="ignore"
     )
