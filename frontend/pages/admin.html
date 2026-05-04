@@ -52,7 +52,9 @@
             </button>
           </nav>
 
-          <a href="./publish-lot.html" class="button button-primary admin-sidebar-cta"> Xuất Bản Lô Mới </a>
+          <a href="./publish-lot.html" class="button button-primary admin-sidebar-cta">
+            Xuất Bản Lô Mới
+          </a>
 
           <a href="./account.html" class="button button-outline admin-sidebar-secondary-cta">
             Bảng Điều Khiển Thành Viên
@@ -264,7 +266,7 @@
             <article class="admin-section-card">
               <div class="admin-section-heading">
                 <h3>Hàng Đợi Xác Minh Tài Sản</h3>
-                <span data-verification-count>4 yêu cầu đang chờ</span>
+                <span data-verification-count>2 yêu cầu đang chờ</span>
               </div>
 
               <div class="verification-grid" data-verification-grid>
@@ -298,14 +300,16 @@
                     </dl>
 
                     <p class="verification-note">
-                      Đã đính kèm hình ảnh chứng chỉ. Cần chuyên gia xác nhận trước khi cấu hình lên sàn.
+                      Luồng này sẽ nối API duyệt thật ở nhiệm vụ chính. Hiện tại chỉ giữ UI thao tác để không vỡ trang.
                     </p>
 
                     <div class="verification-actions">
                       <button type="button" class="button button-primary" data-review-action="approve">
                         Phê Duyệt
                       </button>
-                      <button type="button" class="button button-outline" data-review-action="decline">Từ Chối</button>
+                      <button type="button" class="button button-outline" data-review-action="decline">
+                        Từ Chối
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -340,14 +344,16 @@
                     </dl>
 
                     <p class="verification-note">
-                      Đã có ghi chú nguồn gốc, nhưng hồ sơ phòng tranh đang chờ thẩm định thủ công.
+                      Luồng này sẽ nối API duyệt thật ở nhiệm vụ chính. Hiện tại chỉ giữ UI thao tác để không vỡ trang.
                     </p>
 
                     <div class="verification-actions">
                       <button type="button" class="button button-primary" data-review-action="approve">
                         Phê Duyệt
                       </button>
-                      <button type="button" class="button button-outline" data-review-action="decline">Từ Chối</button>
+                      <button type="button" class="button button-outline" data-review-action="decline">
+                        Từ Chối
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -358,14 +364,21 @@
           <section class="admin-panel" data-admin-panel="fraud">
             <article class="admin-section-card">
               <div class="admin-section-heading">
-                <h3>Giám Sát Gian Lận Bằng AI</h3>
-                <button type="button" id="fraud-summary-btn">Đang phân tích...</button>
+                <div>
+                  <h3>Giám Sát Gian Lận Bằng AI</h3>
+                  <p>
+                    Frontend chỉ gọi Backend. Backend nhận cảnh báo từ AI/Kafka rồi trả về API hoặc bắn Socket.
+                  </p>
+                </div>
+                <button type="button" id="fraud-summary-btn" data-refresh-fraud-alerts>
+                  Đang phân tích...
+                </button>
               </div>
 
               <div class="fraud-list" id="ai-fraud-list">
                 <div class="admin-empty-mini" style="text-align: center; padding: 40px">
                   <span>◇</span>
-                  <p>Đang kết nối tới AI Engine (Cổng 8000)...</p>
+                  <p>Đang lấy cảnh báo từ Backend...</p>
                 </div>
               </div>
             </article>
@@ -375,7 +388,7 @@
             <article class="admin-section-card">
               <div class="admin-section-heading">
                 <h3>Đối Soát Tài Chính</h3>
-                <button type="button" data-admin-toast="Báo cáo thanh toán đã được tải xuống (bản mô phỏng).">
+                <button type="button" data-admin-toast="Luồng đối soát sẽ nối API thanh toán ở nhiệm vụ chính.">
                   Xuất Dữ Liệu
                 </button>
               </div>
@@ -395,21 +408,12 @@
 
                   <tbody>
                     <tr>
-                      <td>#BG-8821</td>
-                      <td>Art Deco Vase</td>
-                      <td>Alexander V.</td>
-                      <td>$42,500</td>
-                      <td><span class="admin-status is-settled">Đã Thanh Toán</span></td>
-                      <td><button type="button" data-admin-toast="Biên lai đối soát đã mở.">Biên Lai</button></td>
-                    </tr>
-
-                    <tr>
-                      <td>#BG-8822</td>
-                      <td>Private Sale - Patek 5711</td>
-                      <td>Seraphina R.</td>
-                      <td>$185,000</td>
-                      <td><span class="admin-status is-pending">Đang Chờ</span></td>
-                      <td><button type="button" data-admin-toast="Đã gửi nhắc nhở thanh toán.">Nhắc Nhở</button></td>
+                      <td colspan="6">
+                        <div class="admin-table-state">
+                          <span>◇</span>
+                          <p>Chưa nối API đối soát thanh toán. Sẽ xử lý trong nhiệm vụ chính.</p>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -421,7 +425,9 @@
             <article class="admin-section-card">
               <div class="admin-section-heading">
                 <h3>Truy Cập Người Dùng</h3>
-                <button type="button" data-admin-toast="Danh sách sẽ kết nối API khi máy chủ sẵn sàng.">Làm Mới</button>
+                <button type="button" data-admin-toast="Danh sách người dùng sẽ kết nối API khi Backend sẵn sàng.">
+                  Làm Mới
+                </button>
               </div>
 
               <div class="admin-table-shell">
@@ -429,7 +435,7 @@
                   <thead>
                     <tr>
                       <th>Người Dùng</th>
-                      <th>Thư Điện Tử (Email)</th>
+                      <th>Thư Điện Tử</th>
                       <th>Quyền Hạn</th>
                       <th>Trạng Thái</th>
                       <th>Rủi Ro</th>
@@ -444,22 +450,6 @@
                       <td><span class="admin-status is-settled">Phiên Đang Hoạt Động</span></td>
                       <td>Chế Độ Phát Triển</td>
                     </tr>
-
-                    <tr>
-                      <td>Alexander Vaughn</td>
-                      <td>alexander@brosgem.com</td>
-                      <td>Đấu Giá + Bán</td>
-                      <td><span class="admin-status is-settled">Đã Xác Thực</span></td>
-                      <td>Thấp</td>
-                    </tr>
-
-                    <tr>
-                      <td>Người dùng #8291</td>
-                      <td>risk-user@brosgem.com</td>
-                      <td>Chỉ Đấu Giá</td>
-                      <td><span class="admin-status is-pending">Bị Hạn Chế</span></td>
-                      <td>Nghiêm Trọng</td>
-                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -473,6 +463,8 @@
       <div data-site-footer data-base-path=".."></div>
     </div>
 
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="../js/core/socket-client.js"></script>
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>
     <script type="module" src="../js/modules/admin.js"></script>

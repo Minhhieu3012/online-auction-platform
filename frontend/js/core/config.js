@@ -2,19 +2,28 @@ const CONFIG = {
     APP_NAME: "BrosGem",
 
     THEME_STORAGE_KEY: "brosgem_theme",
-    LANGUAGE_STORAGE_KEY: "brosgem_language",
 
     AUTH_TOKEN_KEY: "brosgem_auth_token",
     AUTH_USER_KEY: "brosgem_auth_user",
 
+    LEGACY_AUTH_TOKEN_KEYS: [
+        "jwt_token",
+        "token",
+        "auth_token"
+    ],
+
+    LEGACY_AUTH_USER_KEYS: [
+        "user_info",
+        "user",
+        "auth_user"
+    ],
+
     DEFAULT_THEME: "dark",
-    DEFAULT_LANGUAGE: "en",
 
     MOCK_MODE: false,
 
     API: {
         BASE_URL: "http://localhost:3000/api",
-        AI_BASE_URL: "http://localhost:8000/api/v1",
         TIMEOUT_MS: 12000
     },
 
@@ -57,5 +66,7 @@ const CONFIG = {
         PUBLISH_LOT: "./publish-lot.html"
     }
 };
+
+window.BROSGEM_CONFIG = CONFIG;
 
 export default CONFIG;
