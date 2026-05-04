@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 
-const authMiddleware = require("../middlewares/auth");
+// SỬA LỖI Ở ĐÂY: Thêm ngoặc nhọn {} để lấy đúng hàm authMiddleware
+// do file auth.js giờ đã export nhiều module (của Thành làm)
+const { authMiddleware } = require("../middlewares/auth");
 const checkIdempotency = require("../middlewares/idempotency");
 const BiddingController = require("../controllers/bidding");
 
