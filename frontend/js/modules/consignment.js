@@ -35,9 +35,7 @@ function showToast(title, message, type = "info") {
     toast.style.transform = "translateY(-6px)";
   }, 3200);
 
-  window.setTimeout(() => {
-    toast.remove();
-  }, 3800);
+  window.setTimeout(() => toast.remove(), 3800);
 }
 
 function formatCurrency(value) {
@@ -159,7 +157,7 @@ function validateForm() {
   const numberFields = [
     ["[data-consign-estimate-low]", "Ước tính thấp phải lớn hơn 0."],
     ["[data-consign-estimate-high]", "Ước tính cao phải lớn hơn 0."],
-    ["[data-consign-reserve]", "Giá khởi điểm/giá sàn phải lớn hơn 0."],
+    ["[data-consign-reserve]", "Giá khởi điểm phải lớn hơn 0."],
   ];
 
   numberFields.forEach(([selector, message]) => {
@@ -176,14 +174,14 @@ function validateForm() {
   }
 
   if (reservePrice > estimateHigh) {
-    setFieldError(getInput("[data-consign-reserve]"), "Giá sàn không nên lớn hơn ước tính cao.");
+    setFieldError(getInput("[data-consign-reserve]"), "Giá khởi điểm không nên lớn hơn ước tính cao.");
     isValid = false;
   }
 
   const confirmInput = getInput("[data-consign-confirm]");
   const confirmError = document.querySelector("[data-confirm-error]");
 
-  if (!confirmInput?.checked) {
+  if (confirmInput && !confirmInput.checked) {
     if (confirmError) {
       confirmError.textContent = "Bạn cần xác nhận thông tin trước khi gửi duyệt.";
     }
@@ -222,6 +220,10 @@ function getStepPrice(estimateLow, estimateHigh) {
   return Math.max(100, Math.round(diff / 20));
 }
 
+function getDepositAmount(startingPrice) {
+  return Math.max(50, Math.round(Number(startingPrice || 0) * 0.1));
+}
+
 function buildAuctionPayload() {
   const title = getValue("[data-consign-title]");
   const category = getValue("[data-consign-category]") || "Collectibles";
@@ -234,15 +236,19 @@ function buildAuctionPayload() {
   const windowLabel = getValue("[data-consign-window]") || "Flexible";
   const contactPreference = getValue("[data-consign-contact]") || "Email";
   const durationMinutes = WINDOW_DURATION_MINUTES[windowLabel] || WINDOW_DURATION_MINUTES.Flexible;
+  const stepPrice = getStepPrice(estimateLow, estimateHigh);
+  const startingPrice = reservePrice || estimateLow;
+  const depositAmount = getDepositAmount(startingPrice);
 
   return {
     productName: title,
     category,
     imageUrl: getPreviewImage(),
-    startingPrice: reservePrice || estimateLow,
-    stepPrice: getStepPrice(estimateLow, estimateHigh),
+    startingPrice,
+    stepPrice,
     durationMinutes,
-    status: "Scheduled",
+    requiresDeposit: true,
+    depositAmount,
     description: [
       description,
       "",
@@ -251,6 +257,7 @@ function buildAuctionPayload() {
       `Khoảng ước tính: ${formatCurrency(estimateLow)} - ${formatCurrency(estimateHigh)}`,
       `Khung đấu giá mong muốn: ${windowLabel}`,
       `Ưu tiên liên hệ: ${contactPreference}`,
+      `Tiền cọc tham gia dự kiến: ${formatCurrency(depositAmount)}`,
     ].join("\n"),
   };
 }
@@ -311,6 +318,7 @@ function updatePreview() {
   const estimateLow = getNumber("[data-consign-estimate-low]");
   const estimateHigh = getNumber("[data-consign-estimate-high]");
   const reservePrice = getNumber("[data-consign-reserve]");
+  const depositAmount = getDepositAmount(reservePrice || estimateLow);
   const previewImage = getInput("[data-preview-image]");
 
   setText("[data-preview-lot]", "Chờ admin duyệt");
@@ -320,6 +328,7 @@ function updatePreview() {
   setText("[data-preview-description]", description);
   setText("[data-preview-estimate]", `${formatCurrency(estimateLow)} - ${formatCurrency(estimateHigh)}`);
   setText("[data-preview-reserve]", formatCurrency(reservePrice));
+  setText("[data-preview-deposit]", formatCurrency(depositAmount));
 
   if (previewImage) {
     previewImage.src = getPreviewImage();

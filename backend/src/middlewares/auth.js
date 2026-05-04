@@ -1,67 +1,147 @@
 const jwt = require("jsonwebtoken");
-const { sendError } = require("../utils/response");
-const logger = require("../utils/logger");
 
-// ==========================================
-// KIỂM TRA NGAY LÚC KHỞI ĐỘNG SERVER (Kiến trúc Fail Fast)
-// ==========================================
-const secretKey = process.env.JWT_SECRET;
-if (!secretKey) {
-  logger.error("FATAL ERROR: JWT_SECRET chưa được cấu hình trong file .env");
-  process.exit(1);
+const pool = require("../config/db");
+const { sendError } = require("../utils/response");
+
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new Error("JWT_SECRET is missing in environment variables.");
+  }
+
+  return secret;
 }
 
-/**
- * Middleware xác thực Token JWT
- */
-const authMiddleware = (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
+function extractBearerToken(req) {
+  const header = req.headers.authorization || req.headers.Authorization || "";
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return sendError(
-        res, 
-        "ERR_UNAUTHORIZED", 
-        "Vui lòng đăng nhập để thực hiện chức năng này.", 
-        401
-      );
+  if (!header || typeof header !== "string") {
+    return null;
+  }
+
+  const [scheme, token] = header.split(" ");
+
+  if (scheme !== "Bearer" || !token) {
+    return null;
+  }
+
+  return token;
+}
+
+async function findUserById(userId) {
+  const [rows] = await pool.execute(
+    `
+      SELECT
+        id,
+        username,
+        email,
+        role,
+        account_status,
+        balance,
+        created_at,
+        updated_at
+      FROM Users
+      WHERE id = ?
+      LIMIT 1
+    `,
+    [userId],
+  );
+
+  return rows[0] || null;
+}
+
+async function hydrateUserFromRequest(req) {
+  const token = extractBearerToken(req);
+
+  if (!token) {
+    return null;
+  }
+
+  const decoded = jwt.verify(token, getJwtSecret());
+
+  if (!decoded?.id) {
+    return null;
+  }
+
+  const user = await findUserById(decoded.id);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role || "user",
+    accountStatus: user.account_status || "active",
+    balance: Number(user.balance || 0),
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
+}
+
+async function authMiddleware(req, res, next) {
+  try {
+    const user = await hydrateUserFromRequest(req);
+
+    if (!user) {
+      return sendError(res, "ERR_UNAUTHORIZED", "Vui lòng đăng nhập để tiếp tục.", 401);
     }
 
-    const token = authHeader.split(" ")[1];
+    if (user.accountStatus === "locked") {
+      return sendError(res, "ERR_ACCOUNT_LOCKED", "Tài khoản của bạn đang bị khóa.", 403);
+    }
 
-    // Xác thực token bằng secretKey đã kiểm tra
-    const decoded = jwt.verify(token, secretKey);
-
-    // Lưu thông tin user (id, role) vào request để các middleware sau sử dụng
-    req.user = decoded;
-    next();
+    req.user = user;
+    return next();
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       return sendError(res, "ERR_TOKEN_EXPIRED", "Phiên đăng nhập đã hết hạn.", 401);
     }
-    return sendError(res, "ERR_INVALID_TOKEN", "Token xác thực không hợp lệ.", 401);
+
+    return sendError(res, "ERR_INVALID_TOKEN", "Token không hợp lệ.", 401);
   }
-};
+}
 
-/**
- * Middleware kiểm tra quyền hạn (Role-Based Access Control - RBAC)
- */
-const authorize = (...allowedRoles) => {
-  return (req, res, next) => {
-    // Đảm bảo user đã qua bước authMiddleware và có role hợp lệ
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return sendError(
-        res, 
-        "ERR_FORBIDDEN", 
-        "Bạn không có quyền thực hiện hành động này.", 
-        403
-      );
+async function optionalAuth(req, res, next) {
+  try {
+    const user = await hydrateUserFromRequest(req);
+
+    if (user && user.accountStatus !== "locked") {
+      req.user = user;
     }
-    next();
-  };
-};
 
-module.exports = { 
-  authMiddleware, 
-  authorize 
+    return next();
+  } catch {
+    req.user = null;
+    return next();
+  }
+}
+
+function authorize(...roles) {
+  const allowedRoles = roles.flat().filter(Boolean);
+
+  return (req, res, next) => {
+    if (!req.user) {
+      return sendError(res, "ERR_UNAUTHORIZED", "Vui lòng đăng nhập để tiếp tục.", 401);
+    }
+
+    if (allowedRoles.length === 0) {
+      return next();
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return sendError(res, "ERR_FORBIDDEN", "Bạn không có quyền thực hiện thao tác này.", 403);
+    }
+
+    return next();
+  };
+}
+
+module.exports = {
+  authMiddleware,
+  optionalAuth,
+  authorize,
 };

@@ -1,180 +1,238 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 const pool = require("../config/db");
 const { sendSuccess, sendError } = require("../utils/response");
+const logger = require("../utils/logger");
 
-class AuthController {
-  // --- ĐĂNG KÝ ---
-  static async register(req, res) {
-    const { username, email, password } = req.body;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 
-    if (!username || !email || !password) {
-      return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập đủ username, email và password.", 400);
-    }
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
 
-    try {
-      const [existingUsers] = await pool.execute("SELECT id FROM Users WHERE email = ? OR username = ?", [
-        email,
-        username,
-      ]);
-
-      if (existingUsers.length > 0) {
-        return sendError(res, "ERR_USER_EXISTS", "Email hoặc Username đã được sử dụng.", 409);
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      const [result] = await pool.execute(
-        "INSERT INTO Users (username, email, password, balance) VALUES (?, ?, ?, 0)",
-        [username, email, hashedPassword],
-      );
-
-      return sendSuccess(res, { userId: result.insertId }, "Đăng ký tài khoản thành công!", 201);
-    } catch (error) {
-      console.error("[Auth Register Error]:", error);
-      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi đăng ký.", 500);
-    }
+  if (!secret) {
+    throw new Error("JWT_SECRET is missing in environment variables.");
   }
 
-  // --- ĐĂNG NHẬP ---
-  static async login(req, res) {
-    const { email, password } = req.body;
+  return secret;
+}
 
-    if (!email || !password) {
-      return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập email và password.", 400);
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function normalizeUsername(username) {
+  return String(username || "").trim();
+}
+
+function buildPublicUser(row) {
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    role: row.role || "user",
+    accountStatus: row.account_status || "active",
+    balance: Number(row.balance || 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function signToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role || "user",
+      accountStatus: user.accountStatus || "active",
+    },
+    getJwtSecret(),
+    {
+      expiresIn: JWT_EXPIRES_IN,
+    },
+  );
+}
+
+function isStrongEnoughPassword(password) {
+  return typeof password === "string" && password.length >= 8;
+}
+
+class AuthController {
+  static async register(req, res) {
+    const username = normalizeUsername(req.body?.username);
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+
+    if (!username || !email || !password) {
+      return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập đủ tên đăng nhập, email và mật khẩu.", 400);
+    }
+
+    if (!isStrongEnoughPassword(password)) {
+      return sendError(res, "ERR_WEAK_PASSWORD", "Mật khẩu phải có ít nhất 8 ký tự.", 400);
     }
 
     try {
-      const [users] = await pool.execute("SELECT * FROM Users WHERE email = ?", [email]);
-      const user = users[0];
+      const [existingUsers] = await pool.execute(
+        `
+          SELECT id, username, email
+          FROM Users
+          WHERE username = ? OR email = ?
+          LIMIT 1
+        `,
+        [username, email],
+      );
 
-      if (!user) {
-        return sendError(res, "ERR_AUTH_FAILED", "Email hoặc mật khẩu không chính xác.", 401);
+      if (existingUsers.length > 0) {
+        const duplicatedField = existingUsers[0].email === email ? "email" : "tên đăng nhập";
+        return sendError(res, "ERR_USER_EXISTS", `${duplicatedField} đã tồn tại trong hệ thống.`, 409);
       }
 
-      const isMatch = await bcrypt.compare(password, user.password);
+      const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-      if (!isMatch) {
-        return sendError(res, "ERR_AUTH_FAILED", "Email hoặc mật khẩu không chính xác.", 401);
-      }
+      const [result] = await pool.execute(
+        `
+          INSERT INTO Users
+            (username, email, password, role, account_status, balance)
+          VALUES
+            (?, ?, ?, 'user', 'active', 0.00)
+        `,
+        [username, email, passwordHash],
+      );
 
-      const payload = {
-        id: user.id,
-        username: user.username,
+      const user = {
+        id: result.insertId,
+        username,
+        email,
+        role: "user",
+        accountStatus: "active",
+        balance: 0,
       };
 
-      const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-      });
+      const token = signToken(user);
 
       return sendSuccess(
         res,
         {
           token,
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            balance: user.balance,
-          },
+          user,
         },
-        "Đăng nhập thành công!",
+        "Tạo tài khoản thành công.",
+        201,
       );
     } catch (error) {
-      console.error("[Auth Login Error]:", error);
-      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi đăng nhập.", 500);
+      logger.error("[Auth Register Error]:", error);
+      return sendError(res, "ERR_REGISTER_FAILED", "Không thể tạo tài khoản lúc này.", 500);
     }
   }
 
-  // --- QUÊN MẬT KHẨU ---
-  static async forgotPassword(req, res) {
-    const { email } = req.body;
+  static async login(req, res) {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
 
-    if (!email) {
-      return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập email.", 400);
+    if (!email || !password) {
+      return sendError(res, "ERR_MISSING_DATA", "Vui lòng nhập email và mật khẩu.", 400);
     }
 
     try {
-      const [users] = await pool.execute("SELECT id, username, email FROM Users WHERE email = ?", [email]);
-      const user = users[0];
+      const [rows] = await pool.execute(
+        `
+          SELECT
+            id,
+            username,
+            email,
+            password,
+            role,
+            account_status,
+            balance,
+            created_at,
+            updated_at
+          FROM Users
+          WHERE email = ?
+          LIMIT 1
+        `,
+        [email],
+      );
 
-      if (!user) {
-        return sendError(res, "ERR_USER_NOT_FOUND", "Không tìm thấy tài khoản với email này.", 404);
+      if (rows.length === 0) {
+        return sendError(res, "ERR_INVALID_CREDENTIALS", "Email hoặc mật khẩu không chính xác.", 401);
       }
 
-      const resetToken = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-          purpose: "password_reset",
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "15m",
-        },
-      );
+      const userRow = rows[0];
+
+      if (userRow.account_status === "locked") {
+        return sendError(
+          res,
+          "ERR_ACCOUNT_LOCKED",
+          "Tài khoản của bạn đang bị khóa. Vui lòng liên hệ quản trị viên.",
+          403,
+        );
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, userRow.password);
+
+      if (!isPasswordValid) {
+        return sendError(res, "ERR_INVALID_CREDENTIALS", "Email hoặc mật khẩu không chính xác.", 401);
+      }
+
+      const user = buildPublicUser(userRow);
+      const token = signToken(user);
 
       return sendSuccess(
         res,
         {
-          resetToken,
-          expiresIn: "15m",
-          email: user.email,
+          token,
+          user,
         },
-        "Reset token đã được tạo. Trong bản production, token này sẽ được gửi qua email.",
+        "Đăng nhập thành công.",
       );
     } catch (error) {
-      console.error("[Auth Forgot Password Error]:", error);
-      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi xử lý quên mật khẩu.", 500);
+      logger.error("[Auth Login Error]:", error);
+      return sendError(res, "ERR_LOGIN_FAILED", "Không thể đăng nhập lúc này.", 500);
     }
   }
 
-  // --- ĐẶT LẠI MẬT KHẨU ---
-  static async resetPassword(req, res) {
-    const { token, password } = req.body;
-
-    if (!token || !password) {
-      return sendError(res, "ERR_MISSING_DATA", "Vui lòng cung cấp token và mật khẩu mới.", 400);
-    }
-
-    if (password.length < 8) {
-      return sendError(res, "ERR_WEAK_PASSWORD", "Mật khẩu mới phải có ít nhất 8 ký tự.", 400);
+  static async me(req, res) {
+    if (!req.user?.id) {
+      return sendError(res, "ERR_UNAUTHORIZED", "Phiên đăng nhập không hợp lệ.", 401);
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const [rows] = await pool.execute(
+        `
+          SELECT
+            id,
+            username,
+            email,
+            role,
+            account_status,
+            balance,
+            created_at,
+            updated_at
+          FROM Users
+          WHERE id = ?
+          LIMIT 1
+        `,
+        [req.user.id],
+      );
 
-      if (decoded.purpose !== "password_reset") {
-        return sendError(res, "ERR_INVALID_RESET_TOKEN", "Reset token không hợp lệ.", 401);
+      if (rows.length === 0) {
+        return sendError(res, "ERR_USER_NOT_FOUND", "Không tìm thấy tài khoản.", 404);
       }
 
-      const [users] = await pool.execute("SELECT id FROM Users WHERE id = ? AND email = ?", [
-        decoded.id,
-        decoded.email,
-      ]);
+      const user = buildPublicUser(rows[0]);
 
-      if (users.length === 0) {
-        return sendError(res, "ERR_USER_NOT_FOUND", "Tài khoản không tồn tại.", 404);
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      await pool.execute("UPDATE Users SET password = ? WHERE id = ?", [hashedPassword, decoded.id]);
-
-      return sendSuccess(res, null, "Đặt lại mật khẩu thành công.");
+      return sendSuccess(
+        res,
+        {
+          user,
+        },
+        "Lấy thông tin tài khoản thành công.",
+      );
     } catch (error) {
-      if (error.name === "TokenExpiredError") {
-        return sendError(res, "ERR_RESET_TOKEN_EXPIRED", "Reset token đã hết hạn.", 401);
-      }
-
-      if (error.name === "JsonWebTokenError") {
-        return sendError(res, "ERR_INVALID_RESET_TOKEN", "Reset token không hợp lệ.", 401);
-      }
-
-      console.error("[Auth Reset Password Error]:", error);
-      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi đặt lại mật khẩu.", 500);
+      logger.error("[Auth Me Error]:", error);
+      return sendError(res, "ERR_ME_FAILED", "Không thể lấy thông tin tài khoản.", 500);
     }
   }
 }

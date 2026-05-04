@@ -12,7 +12,6 @@ const checkIdempotency = async (req, res, next) => {
   const redisKey = `idempotency:user:${userId}:req:${requestId}`;
 
   try {
-    // Atomic
     const isNewRequest = await redisClient.set(redisKey, "processing", {
       NX: true,
       EX: 10,
@@ -22,16 +21,18 @@ const checkIdempotency = async (req, res, next) => {
       return sendError(
         res,
         "ERR_DUPLICATE_REQUEST",
-        "Bạn thao tác quá nhanh. Hệ thống đang xử lý yêu cầu trước đó!",
+        "Bạn thao tác quá nhanh. Hệ thống đang xử lý yêu cầu trước đó.",
         429,
       );
     }
 
-    next();
+    return next();
   } catch (error) {
     console.error("[Idempotency Error]:", error.message);
-    next();
+    return next();
   }
 };
 
 module.exports = checkIdempotency;
+module.exports.checkIdempotency = checkIdempotency;
+module.exports.idempotencyMiddleware = checkIdempotency;
