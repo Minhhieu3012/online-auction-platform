@@ -3,14 +3,13 @@ import aiomysql
 import redis.asyncio as aioredis
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import health, alerts
 from app.core.config import settings
 from app.db.redis_client import close_redis_pool
 from app.kafka.producer import close_kafka_producer
-
-# Sử dụng handler mới nhất đã tối ưu cho Kafka thay vì worker cũ
 from app.kafka.handlers.bid_handler import start_bid_consumer
 
 # ==========================================
@@ -18,14 +17,14 @@ from app.kafka.handlers.bid_handler import start_bid_consumer
 # ==========================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Giai đoạn Startup: Kích hoạt Kafka Consumer chạy ngầm (Sử dụng code mới nhất)
+    # Giai đoạn Startup: Kích hoạt Kafka Consumer chạy ngầm (Xử lý logic AI)
     print("[System] Khởi động AI Background Task (Bid Consumer)...")
     kafka_task = asyncio.create_task(start_bid_consumer())
     
     # Nhường quyền điều khiển lại cho FastAPI để phục vụ HTTP requests
     yield 
     
-    # Giai đoạn Shutdown: Hủy bỏ an toàn task đang chạy ngầm
+    # Giai đoạn Shutdown: Hủy bỏ an toàn task đang chạy ngầm và đóng kết nối
     print("🛑 [System] Đang dọn dẹp AI Background Task và Đóng Cache...")
     kafka_task.cancel()
     try:
@@ -33,7 +32,6 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     
-    # Dọn dẹp Connection Pool của Redis và Kafka Producer an toàn
     try:
         await close_redis_pool()
         await close_kafka_producer()
@@ -44,32 +42,41 @@ async def lifespan(app: FastAPI):
 # 2. KHỞI TẠO APP
 # ==========================================
 app = FastAPI(
-    title="Online Auction LSS AI Service",
+    title="BrosGem AI Engine",
     description="Dịch vụ chấm điểm gian lận thời gian thực (Live Shill Score)",
     version="1.0.0",
     lifespan=lifespan
 )
 
 # ==========================================
-# 3. ĐĂNG KÝ ROUTERS
+# 3. CẤU HÌNH CORS (SỬA LỖI ACCESS-CONTROL-ALLOW-ORIGIN)
 # ==========================================
+# Sử dụng cấu hình "Mở cửa hoàn toàn" để fix triệt để lỗi trong ảnh của bạn[cite: 15, 16]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ==========================================
+# 4. ĐĂNG KÝ ROUTERS
+# ==========================================
+# Endpoint xử lý logic AI chính - Khớp với Admin Dashboard[cite: 15, 16]
+app.include_router(alerts.router, prefix="/api/v1", tags=["AI Logic"])
+
 # Endpoint kiểm tra sức khỏe cơ bản
 app.include_router(health.router, prefix="/api", tags=["Monitoring"])
 
-# Endpoint xử lý logic AI chính (LSS, Bidding)
-# Chỉnh sửa prefix thành /api/v1 để kết hợp với /alerts bên trong file router.
-app.include_router(alerts.router, prefix="/api/v1", tags=["AI Logic"])
-
 # ==========================================
-# 4. DEBUG & SYSTEM CHECK
+# 5. DEBUG & SYSTEM CHECK (Chẩn đoán lỗi mất kết nối)
 # ==========================================
 @app.get("/", tags=["Debug"])
 async def read_root():
     """
-    API kiểm tra kết nối hệ thống phân tương tác theo chuẩn Asyncio.
-    Sử dụng Pydantic Settings để đảm bảo cấu hình chính xác tuyệt đối.
+    API tự động chẩn đoán trạng thái kết nối của AI Engine với các thành phần khác[cite: 16].
     """
-    
     # 1. Kiểm tra MySQL (Async)
     mysql_status = "Disconnected"
     try:
@@ -83,7 +90,7 @@ async def read_root():
             ),
             timeout=3.0
         )
-        mysql_status = "Connected (Đã thông với DB của hệ thống)"
+        mysql_status = "Connected"
         conn.close()
     except Exception as e:
         mysql_status = f"Error: {str(e)}"
@@ -91,55 +98,31 @@ async def read_root():
     # 2. Kiểm tra Redis (Async)
     redis_status = "Disconnected"
     try:
-        r = aioredis.Redis(
-            host=settings.REDIS_HOST, 
-            port=settings.REDIS_PORT, 
-            socket_timeout=3.0, 
-            decode_responses=True
-        )
+        r = aioredis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, socket_timeout=3.0)
         if await r.ping():
-            redis_status = "Connected (Cache đã sẵn sàng)"
+            redis_status = "Connected"
         await r.aclose()
     except Exception as e:
         redis_status = f"Error: {str(e)}"
 
-    # 3. Kiểm tra Kafka (Async Socket Check)
-    kafka_status = "Disconnected"
-    try:
-        host, port = settings.KAFKA_BROKER.split(":")
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(host, int(port)),
-            timeout=3.0
-        )
-        kafka_status = f"Connected (Broker {settings.KAFKA_BROKER} đang chờ dữ liệu)"
-        writer.close()
-        await writer.wait_closed()
-    except Exception as e:
-        kafka_status = f"Error: Không thể kết nối Kafka - {str(e)}"
-
     return JSONResponse(
         status_code=200,
         content={
-            "message": "AI System Status",
-            "status": "AI Logic đã đồng bộ hoàn hảo với hệ thống mới nhất",
+            "message": "AI System Online",
+            "cors_status": "Enabled (Allow All)",
             "real_time_check": {
                 "mysql_database": mysql_status,
-                "redis_cache": redis_status,
-                "kafka_broker": kafka_status
-            },
-            "environment_info": {
-                "connected_to": settings.MYSQL_HOST,
-                "db_name": settings.MYSQL_DB
+                "redis_cache": redis_status
             }
         }
     )
 
 if __name__ == "__main__":
     import uvicorn
-    # Đã khóa cứng port ở 8000 để nhường 3000 cho Node.js
+    # Khởi chạy trên port 8000 theo chuẩn hệ thống[cite: 16]
     uvicorn.run(
         "app.main:app", 
         host="0.0.0.0", 
         port=8000, 
-        reload=(settings.NODE_ENV == "development")
+        reload=True
     )

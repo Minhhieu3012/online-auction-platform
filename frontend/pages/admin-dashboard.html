@@ -38,8 +38,11 @@
     </div>
 
     <script>
-        // Cấu hình URL gọi thẳng vào AI Service
-        const AI_API_URL = 'http://localhost:8000/api/v1/alerts';
+        /**
+         * Cấu hình URL gọi thẳng vào AI Service
+         * Đổi localhost thành 127.0.0.1 để khớp với origin của trình duyệt, tránh lỗi CORS
+         */
+        const AI_API_URL = 'http://127.0.0.1:8000/api/v1/alerts';
 
         async function fetchFraudAlerts() {
             try {
@@ -62,7 +65,7 @@
             const tbody = document.getElementById('fraud-alerts-body');
             tbody.innerHTML = ''; // Xóa trạng thái loading
 
-            if (alerts.length === 0) {
+            if (!alerts || alerts.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center text-success">Hệ thống an toàn. Chưa phát hiện gian lận.</td></tr>`;
                 return;
             }
@@ -74,7 +77,7 @@
                     const parsedReasons = typeof alert.reasons === 'string' ? JSON.parse(alert.reasons) : alert.reasons;
                     reasonsText = Array.isArray(parsedReasons) ? parsedReasons.join(', ') : parsedReasons;
                 } catch(e) {
-                    reasonsText = alert.reasons;
+                    reasonsText = alert.reasons || "Hành vi đấu giá bất thường";
                 }
 
                 const tr = document.createElement('tr');
@@ -93,13 +96,13 @@
             });
         }
 
-        // Auto-refresh mỗi 10 giây để giữ tính Real-time cho Admin
+        // Auto-refresh mỗi 10 giây để giữ tính Real-time cho Admin[cite: 17]
         fetchFraudAlerts();
         setInterval(fetchFraudAlerts, 10000);
 
         function banUser(userId) {
             alert(`Đã gửi lệnh khóa tài khoản #${userId} xuống Backend!`);
-            // Thực tế: Gọi API /api/admin/users/${userId}/ban của Node.js Backend
+            // Thực tế: Gọi API /api/admin/users/${userId}/ban của Node.js Backend[cite: 17]
         }
     </script>
 </body>
