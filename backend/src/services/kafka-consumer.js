@@ -4,16 +4,21 @@ const pool = require("../config/db");
 
 const consumer = kafka.consumer({ groupId: "bidding-group" });
 
-// Nhận thêm tham số 'io' từ file chạy server (app.js hoặc server.js) để gọi Socket
+// Nhận tham số 'io' từ file chạy server (server.js) để gọi Socket.io
 const startKafkaConsumer = async (io = null) => {
   try {
     await consumer.connect();
     logger.success("[Kafka Consumer] Đã khởi động và sẵn sàng nhận việc!");
 
-    // Subscribe cùng lúc 3 topics (1 của Node.js, 2 của AI)
-    await consumer.subscribe({ 
-      topics: ["auction-bids", "fraud_alerts", "auction_extensions"], 
-      fromBeginning: false 
+    // Subscribe 4 topics: 1 của Node.js (bids), 1 của Worker (winner) và 2 của AI (fraud, extension)
+    await consumer.subscribe({
+      topics: [
+        "auction-bids",
+        "fraud_alerts",
+        "auction_extensions",
+        "winner-notifications", // Thêm Topic của Priority 2
+      ],
+      fromBeginning: false,
     });
 
     await consumer.run({
@@ -22,13 +27,12 @@ const startKafkaConsumer = async (io = null) => {
           const payload = JSON.parse(message.value.toString());
 
           // ==========================================
-          // 1. LẮNG NGHE LỆNH KHÓA TÀI KHOẢN TỪ AI
+          // 1. LẮNG NGHE CẢNH BÁO GIAN LẬN TỪ AI
           // ==========================================
           if (topic === "fraud_alerts") {
-            logger.warn(`[AI WARNING] Khóa tài khoản ${payload.user_id} - Điểm: ${payload.lss_score}`);
-            // TODO: Bổ sung logic khóa user trong DB ở đây nếu cần
+            logger.warn(`[AI WARNING] Cảnh báo tài khoản ${payload.user_id} - Điểm rủi ro: ${payload.lss_score}`);
             if (io) {
-              io.emit('fraud_detected', payload); // Bắn Socket lên cho Frontend
+              io.emit("fraud_detected", payload);
             }
             return;
           }
@@ -39,44 +43,70 @@ const startKafkaConsumer = async (io = null) => {
           if (topic === "auction_extensions") {
             logger.info(`[AI SYSTEM] Gia hạn phiên ${payload.auction_id} thêm ${payload.extend_by || 30}s`);
             if (io) {
-              io.emit('auction_extended', payload); // Bắn Socket lên cho Frontend
+              io.emit("auction_extended", payload);
             }
             return;
           }
 
           // ==========================================
-          // 3. ĐỒNG BỘ BID VÀO DATABASE (CŨ)
+          // 3. THÔNG BÁO NGƯỜI CHIẾN THẮNG & LINK THANH TOÁN
+          // ==========================================
+          if (topic === "winner-notifications") {
+            logger.info(
+              `[Socket.io] Chuẩn bị gửi Link thanh toán cho User ${payload.userId} (Phiên ${payload.auctionId})`,
+            );
+            if (io) {
+              // Bắn event kèm paymentUrl để Frontend hiển thị nút thanh toán
+              io.emit("auction_winner", payload);
+            }
+            return;
+          }
+
+          // ==========================================
+          // 4. XỬ LÝ ĐẶT GIÁ & ĐỒNG BỘ XUỐNG DATABASE
           // ==========================================
           if (topic === "auction-bids") {
-            // Lấy data theo chuẩn mới khớp với Pydantic (auction_id, user_id, price)
+            // Chuẩn hóa dữ liệu tương thích cả Backend và AI (Pydantic)
             const auctionId = payload.auction_id || payload.auctionId;
             const userId = payload.user_id || payload.userId;
             const bidAmount = payload.price || payload.bidAmount;
             const version = payload.version;
             const newEndTime = payload.newEndTime;
 
+            // 👉 PHÁT SÓNG REAL-TIME CHO FRONTEND (PRIORITY 3)
+            // Phát sóng ngay lập tức để UI cập nhật không độ trễ, việc ghi DB sẽ chạy âm thầm ngay sau đó
+            if (io) {
+              io.emit("new_bid", {
+                auctionId: auctionId,
+                bidAmount: bidAmount,
+                bidder: userId, // Tạm dùng userId, Frontend có thể call API lấy tên sau nếu cần
+                newEndTime: newEndTime,
+              });
+            }
+
             const connection = await pool.getConnection();
             try {
               await connection.beginTransaction();
 
-              // 1. Ghi lịch sử Bid
+              // 4.1 Ghi lịch sử Bid vào bảng Bids
               await connection.execute("INSERT INTO Bids (auction_id, user_id, bid_amount) VALUES (?, ?, ?)", [
                 auctionId,
                 userId,
                 bidAmount,
               ]);
 
-              // 2. UPDATE với Optimistic Locking
+              // 4.2 Cập nhật bảng Auctions với Optimistic Locking
               let sql = `UPDATE Auctions SET current_price = ?, version = ?`;
               let params = [bidAmount, version];
 
               if (newEndTime) {
+                // Format lại datetime chuẩn MySQL (YYYY-MM-DD HH:MM:SS)
                 const mysqlDatetime = new Date(newEndTime).toISOString().slice(0, 19).replace("T", " ");
                 sql += `, end_time = ?`;
                 params.push(mysqlDatetime);
               }
 
-              // Chỉ update nếu version trong DB nhỏ hơn version mới
+              // Ràng buộc bảo vệ: Chỉ update nếu version trong DB nhỏ hơn version truyền vào
               sql += ` WHERE id = ? AND version < ?`;
               params.push(auctionId, version);
 

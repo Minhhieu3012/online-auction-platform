@@ -1,15 +1,16 @@
 const logger = require("../utils/logger");
 const { Queue } = require("bullmq");
-const IORedis = require("ioredis");
 require("dotenv").config();
 
-const connection = new IORedis({
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT, 10),
+// Sử dụng connection options để BullMQ tự tạo các kết nối Redis độc lập.
+// Tránh lỗi Deadlock khi Queue và Worker dùng chung 1 kết nối.
+const connectionOptions = {
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || 6379, 10),
   maxRetriesPerRequest: null,
-});
+};
 
-const auctionQueue = new Queue("auction-lifecycle", { connection });
+const auctionQueue = new Queue("auction-lifecycle", { connection: connectionOptions });
 
 const scheduleAuctionClose = async (auctionId, endTime) => {
   const targetTime = new Date(endTime).getTime();
@@ -22,6 +23,7 @@ const scheduleAuctionClose = async (auctionId, endTime) => {
       delay: finalDelay,
       attempts: 3,
       backoff: { type: "exponential", delay: 5000 },
+      jobId: `close-auction-${auctionId}`, // Thêm jobId để chống lưu trùng
     },
   );
 
@@ -30,4 +32,4 @@ const scheduleAuctionClose = async (auctionId, endTime) => {
 
 logger.info("[BullMQ] Đã khởi tạo Hàng đợi Quản lý Đấu giá");
 
-module.exports = { auctionQueue, connection, scheduleAuctionClose };
+module.exports = { auctionQueue, connection: connectionOptions, scheduleAuctionClose };
