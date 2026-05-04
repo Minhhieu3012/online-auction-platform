@@ -145,8 +145,9 @@ const auctionWorker = new Worker(
                 quantity: 1,
               },
             ],
-            success_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-success?session_id={CHECKOUT_SESSION_ID}&auction_id=${auctionId}`,
-            cancel_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-failed`,
+            // ĐÃ SỬA: Điều hướng thẳng về trang auction-detail kèm tham số payment=success
+            success_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&payment=success`,
+            cancel_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/auction-detail.html?id=${auctionId}&payment=failed`,
             metadata: {
               auction_id: auctionId.toString(),
               user_id: highestBidder.toString(),

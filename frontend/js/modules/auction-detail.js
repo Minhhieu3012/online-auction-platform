@@ -601,12 +601,34 @@ async function loadAuctionDetail() {
   }
 }
 
+// --- XỬ LÝ TRẠNG THÁI SAU THANH TOÁN STRIPE ---
+function checkPaymentStatus() {
+  const params = new URLSearchParams(window.location.search);
+  const paymentStatus = params.get("payment");
+  const auctionId = params.get("id");
+
+  if (paymentStatus === "success") {
+    showToast("Thanh toán thành công!", "Đơn hàng của bạn đã được ghi nhận hệ thống.", "success");
+  } else if (paymentStatus === "failed") {
+    showToast("Thanh toán bị hủy", "Bạn đã hủy giao dịch hoặc thẻ bị lỗi.", "error");
+  }
+
+  // Dọn dẹp thanh URL (xóa chữ payment=success đi cho đẹp) để F5 không bị hiện lại thông báo
+  if (paymentStatus && auctionId) {
+    const cleanUrl = window.location.pathname + "?id=" + auctionId;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+}
+
 function initAuctionDetailPage() {
   initTheme();
   initI18n();
   initSiteHeader({ hideAfter: 120, topRevealOffset: 12 });
   cacheElements();
   bindEvents();
+
+  // Kiểm tra xem có phải vừa từ Stripe quay về không
+  checkPaymentStatus();
 
   // Khởi chạy lấy dữ liệu từ Backend thật
   loadAuctionDetail();
