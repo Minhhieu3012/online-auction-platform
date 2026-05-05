@@ -4,127 +4,203 @@ const pool = require("../config/db");
 
 const consumer = kafka.consumer({ groupId: "bidding-group" });
 
-// Nhận tham số 'io' từ file chạy server (server.js) để gọi Socket.io
+function formatUTC(value) {
+  if (!value) return new Date().toISOString();
+  if (value instanceof Date) return value.toISOString();
+  const text = String(value);
+  return text.endsWith("Z") ? text : text.replace(" ", "T") + "Z";
+}
+
+function maskBidder(username, email) {
+  const source = username || email || "Bidder";
+  if (source.length <= 2) return `${source[0] || "B"}***`;
+  return `${source[0]}***${source[source.length - 1]}`.toUpperCase();
+}
+
+function emitToAuctionRoom(io, event, auctionId, payload) {
+  if (!io || !auctionId) return;
+  io.to(String(auctionId)).emit(event, payload);
+}
+
+function buildBidPayload({ bid, auctionId, userId, bidAmount, version, newEndTime }) {
+  const amount = Number(bid?.bid_amount || bidAmount || 0);
+  const createdAt = formatUTC(bid?.created_at);
+
+  return {
+    auctionId: Number(auctionId),
+    auction_id: Number(auctionId),
+    bidId: bid?.id ? Number(bid.id) : null,
+    bid_id: bid?.id ? Number(bid.id) : null,
+    id: bid?.id ? Number(bid.id) : null,
+    userId: Number(userId),
+    user_id: Number(userId),
+    bidder: maskBidder(bid?.username, bid?.email),
+    username: bid?.username || null,
+    bidAmount: amount,
+    bid_amount: amount,
+    amount,
+    currentPrice: amount,
+    current_price: amount,
+    version: Number(version || 0),
+    newEndTime: newEndTime || null,
+    endTime: newEndTime || null,
+    createdAt,
+    created_at: createdAt,
+    time: createdAt,
+  };
+}
+
+async function persistBidEvent(payload, io) {
+  const auctionId = Number(payload.auction_id || payload.auctionId);
+  const userId = Number(payload.user_id || payload.userId);
+  const bidAmount = Number(payload.price || payload.bidAmount || payload.bid_amount || payload.amount);
+  const incomingVersion = Number(payload.version || 0);
+  const newEndTime = payload.newEndTime || payload.new_end_time || null;
+
+  if (!auctionId || !userId || !bidAmount) {
+    logger.warn("[Kafka Consumer] Bỏ qua bid event thiếu auctionId/userId/bidAmount.");
+    return;
+  }
+
+  const connection = await pool.getConnection();
+  let realtimePayload = null;
+
+  try {
+    await connection.beginTransaction();
+
+    const [auctionRows] = await connection.execute(
+      `
+        SELECT id, current_price, version, status
+        FROM Auctions
+        WHERE id = ?
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [auctionId],
+    );
+
+    if (auctionRows.length === 0) {
+      await connection.rollback();
+      logger.warn(`[Kafka Consumer] Không tìm thấy phiên ${auctionId}.`);
+      return;
+    }
+
+    const auction = auctionRows[0];
+    const currentVersion = Number(auction.version || 0);
+    const nextVersion = incomingVersion > currentVersion ? incomingVersion : currentVersion + 1;
+
+    if (incomingVersion > 0 && currentVersion >= incomingVersion) {
+      await connection.rollback();
+      logger.info(
+        `[Kafka Consumer] Bỏ qua bid $${bidAmount} cho phiên ${auctionId} vì DB đã ở version ${currentVersion}.`,
+      );
+      return;
+    }
+
+    const [insertResult] = await connection.execute(
+      `
+        INSERT INTO Bids (auction_id, user_id, bid_amount)
+        VALUES (?, ?, ?)
+      `,
+      [auctionId, userId, bidAmount],
+    );
+
+    let sql = `
+      UPDATE Auctions
+      SET current_price = ?, version = ?, updated_at = NOW()
+    `;
+    const params = [bidAmount, nextVersion];
+
+    if (newEndTime) {
+      const mysqlDatetime = new Date(newEndTime).toISOString().slice(0, 19).replace("T", " ");
+      sql += `, end_time = ?`;
+      params.push(mysqlDatetime);
+    }
+
+    sql += ` WHERE id = ?`;
+    params.push(auctionId);
+
+    await connection.execute(sql, params);
+
+    const [bidRows] = await connection.execute(
+      `
+        SELECT
+          b.id,
+          b.auction_id,
+          b.user_id,
+          b.bid_amount,
+          b.created_at,
+          u.username,
+          u.email
+        FROM Bids b
+        INNER JOIN Users u ON u.id = b.user_id
+        WHERE b.id = ?
+        LIMIT 1
+      `,
+      [insertResult.insertId],
+    );
+
+    realtimePayload = buildBidPayload({
+      bid: bidRows[0],
+      auctionId,
+      userId,
+      bidAmount,
+      version: nextVersion,
+      newEndTime,
+    });
+
+    await connection.commit();
+    logger.info(`[Kafka Consumer] Đã đồng bộ bid $${bidAmount} cho phiên ${auctionId} xuống DB.`);
+  } catch (error) {
+    await connection.rollback();
+    logger.error(`[Kafka Consumer DB Error] Lỗi đồng bộ bid $${bidAmount}:`, error.message);
+  } finally {
+    connection.release();
+  }
+
+  if (realtimePayload) {
+    emitToAuctionRoom(io, "new_bid", auctionId, realtimePayload);
+  }
+}
+
 const startKafkaConsumer = async (io = null) => {
   try {
     await consumer.connect();
     logger.success("[Kafka Consumer] Đã khởi động và sẵn sàng nhận việc!");
 
-    // Subscribe 4 topics: 1 của Node.js (bids), 1 của Worker (winner) và 2 của AI (fraud, extension)
     await consumer.subscribe({
-      topics: [
-        "auction-bids",
-        "fraud_alerts",
-        "auction_extensions",
-        "winner-notifications", // Thêm Topic của Priority 2
-      ],
+      topics: ["auction-bids", "fraud_alerts", "auction_extensions", "winner-notifications"],
       fromBeginning: false,
     });
 
     await consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ topic, message }) => {
         try {
           const payload = JSON.parse(message.value.toString());
 
-          // ==========================================
-          // 1. LẮNG NGHE CẢNH BÁO GIAN LẬN TỪ AI
-          // ==========================================
           if (topic === "fraud_alerts") {
             logger.warn(`[AI WARNING] Cảnh báo tài khoản ${payload.user_id} - Điểm rủi ro: ${payload.lss_score}`);
-            if (io) {
-              io.emit("fraud_detected", payload);
-            }
+            if (io) io.emit("fraud_detected", payload);
             return;
           }
 
-          // ==========================================
-          // 2. LẮNG NGHE LỆNH GIA HẠN THỜI GIAN TỪ AI
-          // ==========================================
           if (topic === "auction_extensions") {
-            logger.info(`[AI SYSTEM] Gia hạn phiên ${payload.auction_id} thêm ${payload.extend_by || 30}s`);
-            if (io) {
-              io.emit("auction_extended", payload);
-            }
-            return;
-          }
-
-          // ==========================================
-          // 3. THÔNG BÁO NGƯỜI CHIẾN THẮNG & LINK THANH TOÁN
-          // ==========================================
-          if (topic === "winner-notifications") {
-            logger.info(
-              `[Socket.io] Chuẩn bị gửi Link thanh toán cho User ${payload.userId} (Phiên ${payload.auctionId})`,
-            );
-            if (io) {
-              // Bắn event kèm paymentUrl để Frontend hiển thị nút thanh toán
-              io.emit("auction_winner", payload);
-            }
-            return;
-          }
-
-          // ==========================================
-          // 4. XỬ LÝ ĐẶT GIÁ & ĐỒNG BỘ XUỐNG DATABASE
-          // ==========================================
-          if (topic === "auction-bids") {
-            // Chuẩn hóa dữ liệu tương thích cả Backend và AI (Pydantic)
             const auctionId = payload.auction_id || payload.auctionId;
-            const userId = payload.user_id || payload.userId;
-            const bidAmount = payload.price || payload.bidAmount;
-            const version = payload.version;
-            const newEndTime = payload.newEndTime;
+            logger.info(`[AI SYSTEM] Gia hạn phiên ${auctionId} thêm ${payload.extend_by || 30}s`);
+            emitToAuctionRoom(io, "auction_extended", auctionId, payload);
+            return;
+          }
 
-            // 👉 PHÁT SÓNG REAL-TIME CHO FRONTEND (PRIORITY 3)
-            // Phát sóng ngay lập tức để UI cập nhật không độ trễ, việc ghi DB sẽ chạy âm thầm ngay sau đó
-            if (io) {
-              io.emit("new_bid", {
-                auctionId: auctionId,
-                bidAmount: bidAmount,
-                bidder: userId, // Tạm dùng userId, Frontend có thể call API lấy tên sau nếu cần
-                newEndTime: newEndTime,
-              });
-            }
+          if (topic === "winner-notifications") {
+            const auctionId = payload.auctionId || payload.auction_id;
+            logger.info(`[Socket.io] Gửi kết quả phiên ${auctionId} tới auction room.`);
+            emitToAuctionRoom(io, "auction_winner", auctionId, payload);
+            emitToAuctionRoom(io, "auction_finalized", auctionId, payload);
+            return;
+          }
 
-            const connection = await pool.getConnection();
-            try {
-              await connection.beginTransaction();
-
-              // 4.1 Ghi lịch sử Bid vào bảng Bids
-              await connection.execute("INSERT INTO Bids (auction_id, user_id, bid_amount) VALUES (?, ?, ?)", [
-                auctionId,
-                userId,
-                bidAmount,
-              ]);
-
-              // 4.2 Cập nhật bảng Auctions với Optimistic Locking
-              let sql = `UPDATE Auctions SET current_price = ?, version = ?`;
-              let params = [bidAmount, version];
-
-              if (newEndTime) {
-                // Format lại datetime chuẩn MySQL (YYYY-MM-DD HH:MM:SS)
-                const mysqlDatetime = new Date(newEndTime).toISOString().slice(0, 19).replace("T", " ");
-                sql += `, end_time = ?`;
-                params.push(mysqlDatetime);
-              }
-
-              // Ràng buộc bảo vệ: Chỉ update nếu version trong DB nhỏ hơn version truyền vào
-              sql += ` WHERE id = ? AND version < ?`;
-              params.push(auctionId, version);
-
-              const [updateResult] = await connection.execute(sql, params);
-
-              if (updateResult.affectedRows === 0) {
-                logger.info(`[Kafka Consumer] Bỏ qua Bid $${bidAmount} (Version ${version}) vì DB đã có giá mới hơn.`);
-              } else {
-                logger.info(`[Kafka Consumer] Đã đồng bộ Bid $${bidAmount} (Version ${version}) xuống DB.`);
-              }
-
-              await connection.commit();
-            } catch (error) {
-              await connection.rollback();
-              logger.error(`[Kafka Consumer DB Error] Lỗi đồng bộ Bid $${bidAmount}:`, error.message);
-            } finally {
-              connection.release();
-            }
+          if (topic === "auction-bids") {
+            await persistBidEvent(payload, io);
           }
         } catch (parseError) {
           logger.error("[Kafka Message Parse Error]:", parseError.message);

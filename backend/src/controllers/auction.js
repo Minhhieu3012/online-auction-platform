@@ -68,6 +68,15 @@ function maskBidder(username, email) {
   return `${source[0]}***${source[source.length - 1]}`.toUpperCase();
 }
 
+// BẢN VÁ: Hàm ép chuỗi MySQL DATETIME thành UTC Timestamp tuyệt đối
+function parseDbTimeToUTC(timeStr) {
+  if (!timeStr) return 0;
+  let str = String(timeStr);
+  if (str.includes('GMT') || str.includes('Z')) return new Date(timeStr).getTime();
+  str = str.replace(' ', 'T') + 'Z';
+  return new Date(str).getTime();
+}
+
 function formatUTC(value) {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
@@ -139,7 +148,9 @@ function mapAuctionRow(row) {
     sellerUsername: row.seller_username || null,
     sellerEmail: row.seller_email || null,
     winnerId: row.winner_id || null,
+    winner_id: row.winner_id || null,
     finalPrice: row.final_price === null || row.final_price === undefined ? null : Number(row.final_price),
+    version: Number(row.version || 0)
   };
 }
 
@@ -160,6 +171,7 @@ function getAuctionSelectSql(whereSql = "") {
       a.final_price,
       a.created_at,
       a.updated_at,
+      a.version,
       p.name AS product_name,
       p.description,
       p.category,
@@ -203,9 +215,10 @@ function getAuctionSelectSql(whereSql = "") {
 async function trySyncAuctionToRedis(auction) {
   try {
     const auctionId = auction.id;
-    const endTimeMs = new Date(auction.end_time || auction.endTime).getTime();
+    // BẢN VÁ: Đảm bảo Redis và BullMQ nhận được thời gian UTC chuẩn xác
+    const endTimeMs = parseDbTimeToUTC(auction.end_time || auction.endTime);
 
-    if (Number.isNaN(endTimeMs)) {
+    if (!endTimeMs) {
       return;
     }
 
@@ -215,7 +228,7 @@ async function trySyncAuctionToRedis(auction) {
       status: auction.status || "Active",
       version: String(auction.version || 0),
       highest_bidder: "",
-      end_time: String(endTimeMs),
+      end_time: new Date(endTimeMs).toISOString(),
       extension_count: "0",
     });
 
@@ -396,7 +409,11 @@ class AuctionController {
         highlight: index === 0,
       }));
 
-      return sendSuccess(res, { auction }, "Lấy chi tiết phiên đấu giá thành công.");
+      // BẢN VÁ: Gửi kèm server_time để Frontend bù trừ lệch múi giờ
+      return sendSuccess(res, { 
+        auction,
+        server_time: new Date().toISOString()
+      }, "Lấy chi tiết phiên đấu giá thành công.");
     } catch (error) {
       logger.error("[Auction Detail Error]:", error);
       return sendError(res, "ERR_SERVER", "Không thể tải chi tiết phiên đấu giá.", 500);
@@ -671,166 +688,6 @@ class AuctionController {
   static async rejectAuction(req, res) {
     req.body.status = "Rejected";
     return AuctionController.updateAuctionStatus(req, res);
-  }
-
-  static async getDepositStatus(req, res) {
-    const userId = req.user?.id;
-    const auctionId = Number(req.params.id);
-
-    try {
-      const [rows] = await pool.execute(
-        `
-          SELECT
-            id,
-            status,
-            amount,
-            stripe_session_id,
-            paid_at,
-            refunded_at,
-            applied_at,
-            created_at,
-            updated_at
-          FROM auction_deposits
-          WHERE auction_id = ? AND user_id = ?
-          LIMIT 1
-        `,
-        [auctionId, userId],
-      );
-
-      return sendSuccess(
-        res,
-        rows[0] || {
-          status: "NONE",
-          amount: 0,
-        },
-        "Lấy trạng thái đặt cọc thành công.",
-      );
-    } catch (error) {
-      logger.error("[Deposit Status Error]:", error);
-      return sendError(res, "ERR_SERVER", "Không thể lấy trạng thái đặt cọc.", 500);
-    }
-  }
-
-  static async createDeposit(req, res) {
-    const userId = req.user?.id;
-    const auctionId = Number(req.params.id);
-
-    try {
-      const [auctionRows] = await pool.execute(
-        `
-          SELECT
-            id,
-            status,
-            requires_deposit,
-            deposit_amount
-          FROM Auctions
-          WHERE id = ?
-          LIMIT 1
-        `,
-        [auctionId],
-      );
-
-      if (auctionRows.length === 0) {
-        return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
-      }
-
-      const auction = auctionRows[0];
-
-      if (!["Scheduled", "Active", "Closing"].includes(auction.status)) {
-        return sendError(res, "ERR_INVALID_STATE", "Phiên đấu giá hiện không nhận đặt cọc.", 400);
-      }
-
-      const amount = Number(auction.deposit_amount || 0);
-
-      if (!auction.requires_deposit || amount <= 0) {
-        await pool.execute(
-          `
-            INSERT INTO auction_deposits (
-              auction_id,
-              user_id,
-              amount,
-              status,
-              payment_provider,
-              paid_at
-            )
-            VALUES (?, ?, 0, 'SUCCEEDED', 'SYSTEM', NOW())
-            ON DUPLICATE KEY UPDATE
-              status = 'SUCCEEDED',
-              paid_at = NOW(),
-              updated_at = NOW()
-          `,
-          [auctionId, userId],
-        );
-
-        return sendSuccess(
-          res,
-          {
-            status: "SUCCEEDED",
-            url: null,
-          },
-          "Phiên này không yêu cầu đặt cọc.",
-        );
-      }
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        mode: "payment",
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: `Cọc tham gia phiên #${auctionId}`,
-              },
-              unit_amount: Math.round(amount * 100),
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: `${getClientUrl()}/product-detail.html?id=${auctionId}&deposit=success`,
-        cancel_url: `${getClientUrl()}/product-detail.html?id=${auctionId}&deposit=failed`,
-        metadata: {
-          type: "deposit",
-          payment_type: "deposit",
-          auction_id: String(auctionId),
-          user_id: String(userId),
-        },
-      });
-
-      await pool.execute(
-        `
-          INSERT INTO auction_deposits (
-            auction_id,
-            user_id,
-            amount,
-            status,
-            payment_provider,
-            stripe_session_id
-          )
-          VALUES (?, ?, ?, 'PENDING', 'STRIPE', ?)
-          ON DUPLICATE KEY UPDATE
-            amount = VALUES(amount),
-            status = 'PENDING',
-            payment_provider = 'STRIPE',
-            stripe_session_id = VALUES(stripe_session_id),
-            updated_at = NOW()
-        `,
-        [auctionId, userId, amount, session.id],
-      );
-
-      return sendSuccess(
-        res,
-        {
-          url: session.url,
-          sessionId: session.id,
-          amount,
-        },
-        "Đã tạo phiên thanh toán đặt cọc.",
-      );
-    } catch (error) {
-      logger.error("[Deposit Create Error]:", error);
-      return sendError(res, "ERR_STRIPE", "Không thể tạo phiên thanh toán đặt cọc.", 500);
-    }
   }
 }
 

@@ -54,21 +54,14 @@ online-auction-platform
 │   ├── .env.example
 │   ├── package-lock.json
 │   ├── package.json
-│   ├── public
 │   ├── scripts
 │   │   ├── seed-admin.js
-│   │   ├── seed-redis.js
-│   │   ├── test-worker.js
 │   │   └── warmup.js
 │   └── src
 │       ├── app.js
 │       ├── config
 │       │   ├── db.js
-│       │   ├── kafka.js
-│       │   ├── queue.js
-│       │   └── redis.js
-│       ├── constants
-│       │   └── business.js
+│       │   └── queue.js
 │       ├── controllers
 │       │   ├── admin.js
 │       │   ├── auction.js
@@ -87,13 +80,8 @@ online-auction-platform
 │       │   └── index.js
 │       ├── server.js
 │       ├── services
-│       │   ├── autobid.js
 │       │   ├── bidding.js
 │       │   └── kafka-consumer.js
-│       ├── utils
-│       │   ├── logger.js
-│       │   ├── redis-keys.js
-│       │   └── response.js
 │       └── workers
 │           └── auctionWorker.js
 ├── cau_truc.txt
@@ -101,80 +89,82 @@ online-auction-platform
 │   ├── init.sql
 │   └── mock_data.sql
 ├── docker-compose.yml
-└── frontend
-    ├── assets
-    │   ├── icons
-    │   │   ├── bidding.png
-    │   │   ├── cart.png
-    │   │   └── user.png
-    │   └── images
-    │       ├── background.jpg
-    │       ├── logo.png
-    │       └── mockdata
-    │           ├── 1.png
-    │           ├── 2.png
-    │           ├── 3.png
-    │           ├── 4.png
-    │           ├── 5.png
-    │           └── 6.png
-    ├── components
-    │   ├── auction-list.js
-    │   ├── site-footer.js
-    │   └── site-header.js
-    ├── css
-    │   ├── admin.css
-    │   ├── auction-detail.css
-    │   ├── auth.css
-    │   ├── checkout.css
-    │   ├── collections.css
-    │   ├── command-palette.css
-    │   ├── components.css
-    │   ├── consignment.css
-    │   ├── dashboard.css
-    │   ├── forgot-password.css
-    │   ├── main.css
-    │   ├── notifications.css
-    │   ├── publish-lot.css
-    │   └── watchlist.css
-    ├── index.html
-    ├── js
-    │   ├── core
-    │   │   ├── api-client.js
-    │   │   ├── config.js
-    │   │   ├── header.js
-    │   │   ├── socket-client.js
-    │   │   ├── storage.js
-    │   │   └── theme.js
-    │   ├── main.js
-    │   └── modules
-    │       ├── account.js
-    │       ├── admin.js
-    │       ├── auction-detail.js
-    │       ├── auction-list.js
-    │       ├── auth.js
-    │       ├── checkout.js
-    │       ├── command-palette.js
-    │       ├── consignment.js
-    │       ├── countdown.js
-    │       ├── forgot-password.js
-    │       ├── notifications.js
-    │       ├── page-shell.js
-    │       ├── publish-lot.js
-    │       ├── register.js
-    │       └── watchlist.js
-    └── pages
-        ├── account.html
-        ├── admin.html
-        ├── auction-detail.html
-        ├── checkout.html
-        ├── collections.html
-        ├── consign.html
-        ├── dashboard.html
-        ├── forgot-password.html
-        ├── live-auctions.html
-        ├── login.html
-        ├── notifications.html
-        ├── product-detail.html
-        ├── publish-lot.html
-        ├── register.html
-        └── watchlist.html 
+├── frontend
+│   ├── assets
+│   │   ├── icons
+│   │   │   ├── bidding.png
+│   │   │   ├── cart.png
+│   │   │   └── user.png
+│   │   └── images
+│   │       ├── background.jpg
+│   │       ├── logo.png
+│   │       └── mockdata
+│   │           ├── 1.png
+│   │           ├── 2.png
+│   │           ├── 3.png
+│   │           ├── 4.png
+│   │           ├── 5.png
+│   │           └── 6.png
+│   ├── components
+│   │   ├── auction-list.js
+│   │   ├── site-footer.js
+│   │   └── site-header.js
+│   ├── css
+│   │   ├── admin.css
+│   │   ├── auction-detail.css
+│   │   ├── auth.css
+│   │   ├── checkout.css
+│   │   ├── collections.css
+│   │   ├── command-palette.css
+│   │   ├── components.css
+│   │   ├── consignment.css
+│   │   ├── dashboard.css
+│   │   ├── forgot-password.css
+│   │   ├── main.css
+│   │   ├── notifications.css
+│   │   ├── publish-lot.css
+│   │   └── watchlist.css
+│   ├── index.html
+│   ├── js
+│   │   ├── core
+│   │   │   ├── api-client.js
+│   │   │   ├── config.js
+│   │   │   ├── header.js
+│   │   │   ├── socket-client.js
+│   │   │   ├── storage.js
+│   │   │   └── theme.js
+│   │   ├── main.js
+│   │   └── modules
+│   │       ├── account.js
+│   │       ├── admin.js
+│   │       ├── auction-detail.js
+│   │       ├── auction-list.js
+│   │       ├── auth.js
+│   │       ├── checkout.js
+│   │       ├── command-palette.js
+│   │       ├── consignment.js
+│   │       ├── countdown.js
+│   │       ├── forgot-password.js
+│   │       ├── notifications.js
+│   │       ├── page-shell.js
+│   │       ├── publish-lot.js
+│   │       ├── register.js
+│   │       └── watchlist.js
+│   └── pages
+│       ├── account.html
+│       ├── admin.html
+│       ├── auction-detail.html
+│       ├── checkout.html
+│       ├── collections.html
+│       ├── consign.html
+│       ├── dashboard.html
+│       ├── forgot-password.html
+│       ├── live-auctions.html
+│       ├── login.html
+│       ├── notifications.html
+│       ├── product-detail.html
+│       ├── publish-lot.html
+│       ├── register.html
+│       └── watchlist.html
+├── package-lock.json
+└── package.json

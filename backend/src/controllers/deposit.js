@@ -1,57 +1,25 @@
 const pool = require("../config/db");
 const { sendSuccess, sendError } = require("../utils/response");
 const logger = require("../utils/logger");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-function formatUTC(value) {
-  if (!value) return null;
-  if (value instanceof Date) return value.toISOString();
-
-  const text = String(value);
-  if (text.endsWith("Z")) return text;
-
-  return text.replace(" ", "T") + "Z";
+function getClientUrl() {
+  return String(process.env.CLIENT_URL || "http://127.0.0.1:5500/frontend/pages").replace(/\/$/, "");
 }
 
-function mapDeposit(row) {
-  if (!row) return null;
+/**
+ * CLIENT_URL hiện tại của team đang trỏ vào /frontend/pages.
+ * Stripe thanh toán phần còn lại thành công cần đưa user về trang index:
+ * /frontend/index.html?payment=success&auction_id=...
+ */
+function getFrontendRootUrl() {
+  const clientUrl = getClientUrl();
 
-  return {
-    id: row.id,
-    auctionId: row.auction_id,
-    userId: row.user_id,
-    amount: Number(row.amount || 0),
-    status: row.status,
-    paymentProvider: row.payment_provider,
-    stripeSessionId: row.stripe_session_id,
-    providerPaymentId: row.provider_payment_id,
-    paidAt: formatUTC(row.paid_at),
-    failedAt: formatUTC(row.failed_at),
-    refundedAt: formatUTC(row.refunded_at),
-    appliedAt: formatUTC(row.applied_at),
-    createdAt: formatUTC(row.created_at),
-    updatedAt: formatUTC(row.updated_at),
-  };
-}
+  if (clientUrl.endsWith("/pages")) {
+    return clientUrl.slice(0, -"/pages".length);
+  }
 
-async function getAuction(connection, auctionId) {
-  const [rows] = await connection.execute(
-    `
-      SELECT
-        id,
-        created_by,
-        status,
-        requires_deposit,
-        deposit_amount,
-        end_time
-      FROM Auctions
-      WHERE id = ?
-      LIMIT 1
-      FOR UPDATE
-    `,
-    [auctionId],
-  );
-
-  return rows[0] || null;
+  return clientUrl.replace(/\/pages\/?$/, "");
 }
 
 class DepositController {
@@ -59,61 +27,40 @@ class DepositController {
     const auctionId = Number(req.params.id);
     const userId = req.user?.id;
 
-    if (!auctionId) {
-      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
-    }
+    if (!auctionId) return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
 
     try {
       const [auctionRows] = await pool.execute(
-        `
-          SELECT
-            id,
-            status,
-            requires_deposit,
-            deposit_amount,
-            created_by
-          FROM Auctions
-          WHERE id = ?
-          LIMIT 1
-        `,
+        `SELECT id, status, requires_deposit, deposit_amount, created_by FROM Auctions WHERE id = ? LIMIT 1`,
         [auctionId],
       );
 
-      if (auctionRows.length === 0) {
-        return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
-      }
-
-      const auction = auctionRows[0];
+      if (auctionRows.length === 0) return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy.", 404);
 
       const [depositRows] = await pool.execute(
-        `
-          SELECT *
-          FROM auction_deposits
-          WHERE auction_id = ? AND user_id = ?
-          LIMIT 1
-        `,
+        `SELECT * FROM auction_deposits WHERE auction_id = ? AND user_id = ? LIMIT 1`,
         [auctionId, userId],
       );
 
-      const deposit = mapDeposit(depositRows[0]);
-      const hasSucceededDeposit = deposit?.status === "SUCCEEDED";
+      const deposit = depositRows[0];
+      const hasDeposit = !!deposit && deposit.status !== "NONE";
 
       return sendSuccess(
         res,
         {
-          requiresDeposit: Boolean(auction.requires_deposit),
-          depositAmount: Number(auction.deposit_amount || 0),
-          deposit,
-          canBid:
-            auction.status === "Active" &&
-            Number(auction.created_by) !== Number(userId) &&
-            (!auction.requires_deposit || hasSucceededDeposit),
+          requires_deposit: Boolean(auctionRows[0].requires_deposit),
+          deposit_amount: Number(auctionRows[0].deposit_amount || 0),
+          has_deposit: hasDeposit,
+          status: deposit ? deposit.status : "NONE",
+          amount: deposit ? Number(deposit.amount) : 0,
+          refunded_at: deposit ? deposit.refunded_at : null,
+          applied_at: deposit ? deposit.applied_at : null,
         },
-        "Lấy trạng thái đặt cọc thành công.",
+        "Thành công.",
       );
     } catch (error) {
-      logger.error("[Deposit Status Error]:", error);
-      return sendError(res, "ERR_DEPOSIT_STATUS", "Không thể lấy trạng thái đặt cọc.", 500);
+      logger.error("[Deposit Status Error]:", error.message);
+      return sendError(res, "ERR_SERVER", "Lỗi lấy trạng thái cọc.", 500);
     }
   }
 
@@ -121,21 +68,24 @@ class DepositController {
     const auctionId = Number(req.params.id);
     const userId = req.user?.id;
 
-    if (!auctionId) {
-      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
-    }
+    if (!auctionId) return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
 
     const connection = await pool.getConnection();
 
     try {
       await connection.beginTransaction();
 
-      const auction = await getAuction(connection, auctionId);
+      const [auctionRows] = await connection.execute(
+        `SELECT id, status, requires_deposit, deposit_amount, created_by FROM Auctions WHERE id = ? LIMIT 1 FOR UPDATE`,
+        [auctionId],
+      );
 
-      if (!auction) {
+      if (auctionRows.length === 0) {
         await connection.rollback();
         return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
       }
+
+      const auction = auctionRows[0];
 
       if (Number(auction.created_by) === Number(userId)) {
         await connection.rollback();
@@ -144,147 +94,164 @@ class DepositController {
 
       if (!["Scheduled", "Active", "Closing"].includes(auction.status)) {
         await connection.rollback();
-        return sendError(res, "ERR_DEPOSIT_NOT_ALLOWED", "Chỉ có thể đặt cọc cho phiên đã được duyệt.", 400);
-      }
-
-      if (!auction.requires_deposit) {
-        await connection.rollback();
-        return sendSuccess(
-          res,
-          {
-            requiresDeposit: false,
-            deposit: null,
-          },
-          "Phiên này không yêu cầu đặt cọc.",
-        );
+        return sendError(res, "ERR_DEPOSIT_NOT_ALLOWED", "Chỉ có thể đặt cọc cho phiên đang mở.", 400);
       }
 
       const amount = Number(auction.deposit_amount || 0);
 
-      if (!Number.isFinite(amount) || amount <= 0) {
+      if (!auction.requires_deposit || amount <= 0) {
         await connection.rollback();
-        return sendError(res, "ERR_INVALID_DEPOSIT_AMOUNT", "Số tiền cọc của phiên không hợp lệ.", 400);
+        return sendSuccess(res, { url: null }, "Phiên này không yêu cầu đặt cọc.");
       }
 
       const [existingRows] = await connection.execute(
+        `SELECT * FROM auction_deposits WHERE auction_id = ? AND user_id = ? LIMIT 1 FOR UPDATE`,
+        [auctionId, userId],
+      );
+
+      if (existingRows.length > 0 && existingRows[0].status === "SUCCEEDED") {
+        await connection.rollback();
+        return sendSuccess(res, { url: null }, "Bạn đã đặt cọc thành công trước đó.");
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Cọc tham gia phiên #${auctionId}`,
+              },
+              unit_amount: Math.round(amount * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${getClientUrl()}/auction-detail.html?id=${auctionId}&deposit=success`,
+        cancel_url: `${getClientUrl()}/auction-detail.html?id=${auctionId}&deposit=failed`,
+        metadata: {
+          type: "deposit",
+          payment_type: "deposit",
+          auction_id: String(auctionId),
+          user_id: String(userId),
+        },
+      });
+
+      await connection.execute(
         `
-          SELECT *
+          INSERT INTO auction_deposits (
+            auction_id,
+            user_id,
+            amount,
+            status,
+            payment_provider,
+            stripe_session_id
+          )
+          VALUES (?, ?, ?, 'PENDING', 'STRIPE', ?)
+          ON DUPLICATE KEY UPDATE
+            amount = VALUES(amount),
+            status = 'PENDING',
+            payment_provider = 'STRIPE',
+            stripe_session_id = VALUES(stripe_session_id),
+            updated_at = NOW()
+        `,
+        [auctionId, userId, amount, session.id],
+      );
+
+      await connection.commit();
+      return sendSuccess(res, { url: session.url }, "Đã tạo phiên thanh toán đặt cọc.");
+    } catch (error) {
+      await connection.rollback();
+      logger.error("[Place Deposit Error]:", error.message);
+      return sendError(res, "ERR_STRIPE", "Không thể tạo phiên thanh toán.", 500);
+    } finally {
+      connection.release();
+    }
+  }
+
+  static async payRemaining(req, res) {
+    const auctionId = Number(req.params.id);
+    const userId = req.user?.id;
+
+    if (!auctionId) return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên không hợp lệ.", 400);
+
+    const connection = await pool.getConnection();
+
+    try {
+      const [auctionRows] = await connection.execute(
+        `SELECT id, current_price, final_price, status, winner_id FROM Auctions WHERE id = ? LIMIT 1`,
+        [auctionId],
+      );
+
+      if (auctionRows.length === 0) return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy phiên.", 404);
+
+      const auction = auctionRows[0];
+
+      if (Number(auction.winner_id) !== Number(userId)) {
+        return sendError(res, "ERR_FORBIDDEN", "Bạn không phải người thắng.", 403);
+      }
+
+      if (auction.status === "Completed") {
+        return sendError(res, "ERR_ALREADY_PAID", "Đã thanh toán đủ.", 400);
+      }
+
+      const [depositRows] = await connection.execute(
+        `
+          SELECT amount
           FROM auction_deposits
-          WHERE auction_id = ? AND user_id = ?
+          WHERE auction_id = ?
+            AND user_id = ?
+            AND status IN ('SUCCEEDED', 'APPLIED_TO_WIN_PAYMENT')
           LIMIT 1
-          FOR UPDATE
         `,
         [auctionId, userId],
       );
 
-      let depositId;
+      const depositAmount = depositRows.length > 0 ? Number(depositRows[0].amount) : 0;
+      const finalPrice = Number(auction.final_price || auction.current_price || 0);
+      const remainingAmount = Math.max(0, finalPrice - depositAmount);
 
-      if (existingRows.length > 0) {
-        const existing = existingRows[0];
-
-        if (existing.status === "SUCCEEDED") {
-          await connection.commit();
-
-          return sendSuccess(
-            res,
-            {
-              deposit: mapDeposit(existing),
-            },
-            "Bạn đã đặt cọc thành công trước đó.",
-          );
-        }
-
-        await connection.execute(
-          `
-            UPDATE auction_deposits
-            SET
-              amount = ?,
-              status = 'SUCCEEDED',
-              paid_at = NOW(),
-              failed_at = NULL,
-              refunded_at = NULL,
-              applied_at = NULL,
-              payment_provider = 'WALLET'
-            WHERE id = ?
-          `,
-          [amount, existing.id],
+      if (remainingAmount <= 0) {
+        return sendSuccess(
+          res,
+          {
+            url: `${getFrontendRootUrl()}/index.html?payment=success&auction_id=${auctionId}`,
+          },
+          "Tiền cọc đã đủ bù giá thắng.",
         );
-
-        depositId = existing.id;
-      } else {
-        const [depositResult] = await connection.execute(
-          `
-            INSERT INTO auction_deposits
-              (auction_id, user_id, amount, status, payment_provider, paid_at)
-            VALUES
-              (?, ?, ?, 'SUCCEEDED', 'WALLET', NOW())
-          `,
-          [auctionId, userId, amount],
-        );
-
-        depositId = depositResult.insertId;
       }
 
-      const [transactionResult] = await connection.execute(
-        `
-          INSERT INTO Transactions
-            (
-              user_id,
-              auction_id,
-              deposit_id,
-              amount,
-              type,
-              status,
-              payment_provider,
-              wallet_delta,
-              metadata
-            )
-          VALUES
-            (?, ?, ?, ?, 'AUCTION_DEPOSIT', 'SUCCESS', 'WALLET', 0.00, JSON_OBJECT('source', 'dev_confirmed_deposit'))
-        `,
-        [userId, auctionId, depositId, amount],
-      );
-
-      await connection.execute(
-        `
-          INSERT INTO Notifications
-            (user_id, auction_id, type, title, message, action_url)
-          VALUES
-            (?, ?, 'DEPOSIT_SUCCEEDED', ?, ?, ?)
-        `,
-        [
-          userId,
-          auctionId,
-          "Đặt cọc thành công",
-          "Bạn đã đủ điều kiện tham gia trả giá trong phiên đấu giá này.",
-          `/pages/product-detail.html?id=${auctionId}`,
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Thanh toán phiên #${auctionId}`,
+              },
+              unit_amount: Math.round(remainingAmount * 100),
+            },
+            quantity: 1,
+          },
         ],
-      );
-
-      const [depositRows] = await connection.execute(
-        `
-          SELECT *
-          FROM auction_deposits
-          WHERE id = ?
-          LIMIT 1
-        `,
-        [depositId],
-      );
-
-      await connection.commit();
-
-      return sendSuccess(
-        res,
-        {
-          deposit: mapDeposit(depositRows[0]),
-          transactionId: transactionResult.insertId,
+        success_url: `${getFrontendRootUrl()}/index.html?payment=success&auction_id=${auctionId}`,
+        cancel_url: `${getClientUrl()}/auction-detail.html?id=${auctionId}&payment=failed`,
+        metadata: {
+          type: "win_payment",
+          payment_type: "win_payment",
+          auction_id: String(auctionId),
+          user_id: String(userId),
         },
-        "Đặt cọc thành công. Bạn đã có thể tham gia trả giá.",
-      );
+      });
+
+      return sendSuccess(res, { url: session.url }, "Đã tạo link thanh toán.");
     } catch (error) {
-      await connection.rollback();
-      logger.error("[Place Deposit Error]:", error);
-      return sendError(res, "ERR_PLACE_DEPOSIT", "Không thể đặt cọc lúc này.", 500);
+      logger.error("[Pay Remaining Error]:", error.message);
+      return sendError(res, "ERR_STRIPE", "Không tạo được link.", 500);
     } finally {
       connection.release();
     }

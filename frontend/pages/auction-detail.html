@@ -8,23 +8,8 @@
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/auction-detail.css" />
     <style>
-      /* Styles từ mã nguồn cũ cho Deposit flow */
-      .deposit-panel {
-        background: rgba(255, 171, 0, 0.1);
-        border: 1px solid var(--warning);
-        border-radius: 8px;
-        padding: 20px;
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      .winner-panel {
-        background: rgba(76, 175, 80, 0.1);
-        border: 1px solid var(--success);
-        border-radius: 8px;
-        padding: 20px;
-        text-align: center;
-        margin-bottom: 20px;
-      }
+      .deposit-panel { background: rgba(255, 171, 0, 0.1); border: 1px solid var(--warning); border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; }
+      .winner-panel { background: rgba(76, 175, 80, 0.1); border: 1px solid var(--success); border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; }
     </style>
   </head>
   <body>
@@ -49,15 +34,11 @@
 
             <div class="product-facts">
               <div>
-                <h3 style="color: var(--primary); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em">
-                  Provenance
-                </h3>
+                <h3 style="color: var(--primary); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em">Provenance</h3>
                 <p data-provenance>...</p>
               </div>
               <div>
-                <h3 style="color: var(--primary); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em">
-                  Condition
-                </h3>
+                <h3 style="color: var(--primary); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em">Condition</h3>
                 <p data-condition>...</p>
               </div>
             </div>
@@ -73,7 +54,6 @@
                   <span>Increment</span>
                   <strong data-increment>$0</strong>
                 </div>
-                <!-- Box thông tin đặt cọc từ mã nguồn cũ -->
                 <div data-deposit-info-box>
                   <span>Required Deposit</span>
                   <strong data-deposit-amount>$0</strong>
@@ -86,17 +66,7 @@
             <div class="bid-panel">
               <div class="bid-panel-top">
                 <div class="live-chip" data-status-label>Live Now</div>
-                <span
-                  data-active-bids
-                  style="
-                    color: var(--text-muted);
-                    font-size: 11px;
-                    font-weight: 800;
-                    text-transform: uppercase;
-                    letter-spacing: 0.1em;
-                  "
-                  >0 bids</span
-                >
+                <span data-active-bids style="color: var(--text-muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;">0 bids</span>
               </div>
 
               <strong class="current-bid" data-current-bid>$0</strong>
@@ -124,19 +94,29 @@
                 </div>
               </div>
 
-              <!-- DYNAMIC PANELS INJECTED HERE BY JS (Tích hợp từ mã nguồn cũ) -->
               <div data-dynamic-action-area>
-                <!-- DEPOSIT PANEL (Hidden by default) -->
-                <div class="deposit-panel" data-deposit-panel hidden>
-                  <p style="color: var(--warning); margin-bottom: 15px; font-weight: 600;">Bạn cần đặt cọc để tham gia trả giá.</p>
-                  <button type="button" class="button button-primary" data-deposit-action-btn style="width: 100%;">Thanh Toán Tiền Cọc</button>
+                <!-- 1. GUEST PANEL -->
+                <div class="deposit-panel" data-guest-panel style="display: none;">
+                  <p style="color: var(--text-muted); margin-bottom: 15px; font-weight: 600;">Bạn cần đăng nhập và đặt cọc để tham gia đấu giá.</p>
+                  <button type="button" class="button button-primary" onclick="window.location.href='./login.html'" style="width: 100%;">Đăng Nhập Để Tham Gia</button>
                 </div>
 
-                <!-- ENDED PANEL (Hidden by default) -->
-                <div class="winner-panel" data-winner-panel hidden></div>
+                <!-- 2. OWNER PANEL -->
+                <div class="deposit-panel" data-owner-panel style="display: none;">
+                  <p style="color: var(--warning); margin-bottom: 0; font-weight: 600;">Bạn là chủ phòng, không thể tự tham gia trả giá.</p>
+                </div>
 
-                <!-- BID FORM (Luồng cũ của bản mới được đưa vào bên trong data-dynamic-action-area) -->
-                <form class="bid-form" data-bid-form novalidate>
+                <!-- 3. DEPOSIT PANEL -->
+                <div class="deposit-panel" data-deposit-panel style="display: none;">
+                  <p style="color: var(--warning); margin-bottom: 15px; font-weight: 600;">Bạn cần đặt cọc để tham gia trả giá.</p>
+                  <button type="button" class="button button-primary" data-deposit-action-btn style="width: 100%;">Đặt Cọc Để Tham Gia Đấu Giá</button>
+                </div>
+
+                <!-- 4. WINNER / LOSER / ENDED PANEL -->
+                <div class="winner-panel" data-winner-panel style="display: none;"></div>
+
+                <!-- 5. BID FORM -->
+                <form class="bid-form" data-bid-form style="display: none;" novalidate>
                   <div class="bid-input-shell">
                     <span>$</span>
                     <input type="number" data-bid-input placeholder="Enter amount" required />
@@ -150,16 +130,10 @@
                       <input type="checkbox" data-proxy-toggle />
                       <div class="custom-checkbox"></div>
                       Proxy Bidding
-                      <button
-                        type="button"
-                        class="proxy-info-button"
-                        data-tooltip="Hệ thống tự động trả giá thay bạn cho đến hạn mức này."
-                      >
-                        ?
-                      </button>
+                      <button type="button" class="proxy-info-button" data-tooltip="Hệ thống tự động trả giá thay bạn cho đến hạn mức này.">?</button>
                     </label>
 
-                    <div class="proxy-settings" data-proxy-settings hidden style="margin-top: 16px">
+                    <div class="proxy-settings" data-proxy-settings style="display: none; margin-top: 16px;">
                       <label class="proxy-max-field">
                         <span>Max Budget</span>
                         <input type="number" data-proxy-max placeholder="Enter max amount" />
@@ -184,19 +158,11 @@
                 <div class="bid-history-list" data-bid-history></div>
               </div>
             </div>
-
-            <div class="simulation-panel" style="margin-top: 20px">
-              <h2>Test Controls</h2>
-              <div class="simulation-actions" style="margin-top: 15px">
-                <button type="button" class="button" data-simulate-bid>Simulate Other User Bid</button>
-                <button type="button" class="button" data-simulate-soft-close>Simulate Soft Close (+30s)</button>
-              </div>
-            </div>
           </section>
         </div>
       </main>
 
-      <div class="image-lightbox" data-image-lightbox hidden>
+      <div class="image-lightbox" data-image-lightbox style="display: none;">
         <button class="lightbox-close" data-lightbox-close>&times;</button>
         <div class="lightbox-content" style="position: relative; width: 100%; max-width: 1180px; margin: 0 auto">
           <button class="lightbox-nav prev" data-lightbox-prev>&#10094;</button>
@@ -216,8 +182,6 @@
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="../js/core/socket-client.js"></script>
-    <script src="../js/core/api-client.js"></script>
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>
     <script type="module" src="../js/modules/auction-detail.js"></script>
