@@ -177,4 +177,4 @@ online-auction-platform
         ├── product-detail.html
         ├── publish-lot.html
         ├── register.html
-        └── watchlist.html
+        └── watchlist.html 
