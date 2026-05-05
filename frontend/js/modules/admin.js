@@ -1,7 +1,14 @@
 import { initTheme } from "../core/theme.js";
 import apiClient from "../core/api-client.js";
 
-const FALLBACK_IMAGE = "../assets/images/mockdata/1.png";
+const API_ORIGIN = window.BROSGEM_API_ORIGIN || "http://localhost:3000";
+const EMPTY_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+    <rect width="900" height="700" fill="#151516"/>
+    <rect x="40" y="40" width="820" height="620" fill="none" stroke="#c5a059" stroke-opacity=".45"/>
+    <text x="450" y="350" text-anchor="middle" fill="#c5a059" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="8">DATABASE IMAGE</text>
+  </svg>
+`)}`;
 
 const TAB_COPY = {
   overview: {
@@ -38,6 +45,7 @@ const state = {
   currentUser: null,
   dashboard: null,
   auctions: [],
+  pendingAuctions: [],
   users: [],
   settlements: [],
   alerts: [],
@@ -47,6 +55,8 @@ const state = {
   auctionSearch: "",
   auctionStatus: "all",
   auctionSort: "pending-first",
+
+  searchTimer: null,
 };
 
 function injectAdminRuntimeStyles() {
@@ -63,6 +73,7 @@ function injectAdminRuntimeStyles() {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .admin-row-actions button,
@@ -93,6 +104,19 @@ function injectAdminRuntimeStyles() {
       transform: translateY(-1px);
     }
 
+    .admin-row-actions .is-danger {
+      border-color: rgba(225, 96, 96, 0.55);
+      color: #ff8f8f;
+    }
+
+    .admin-row-actions span {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     .admin-auction-table tbody tr {
       cursor: default;
     }
@@ -105,30 +129,16 @@ function injectAdminRuntimeStyles() {
         var(--surface);
       z-index: 2;
     }
+
+    .admin-data-error {
+      color: var(--danger);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
   `;
 
   document.head.appendChild(style);
-}
-
-function showToast(title, message, type = "info") {
-  const stack = document.querySelector("[data-toast-stack]");
-  if (!stack) return;
-
-  const toast = document.createElement("article");
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = `
-    <p class="toast-title">${escapeHtml(title)}</p>
-    <p class="toast-message">${escapeHtml(message)}</p>
-  `;
-
-  stack.appendChild(toast);
-
-  window.setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateY(-6px)";
-  }, 3200);
-
-  window.setTimeout(() => toast.remove(), 3800);
 }
 
 function escapeHtml(value) {
@@ -141,19 +151,55 @@ function escapeHtml(value) {
 }
 
 function setText(selector, value) {
-  const el = document.querySelector(selector);
-  if (el) el.textContent = value;
+  const element = document.querySelector(selector);
+  if (element) element.textContent = value;
+}
+
+function resolveImageUrl(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) return EMPTY_IMAGE;
+
+  if (raw.startsWith("data:") || raw.startsWith("blob:")) {
+    return raw;
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+
+  if (raw.startsWith("/uploads/")) {
+    return `${API_ORIGIN}${raw}`;
+  }
+
+  if (raw.startsWith("uploads/")) {
+    return `${API_ORIGIN}/${raw}`;
+  }
+
+  if (raw.startsWith("../") || raw.startsWith("./") || raw.startsWith("/")) {
+    return raw;
+  }
+
+  if (raw.includes("/") && !raw.includes(" ")) {
+    return `../${raw.replace(/^\/+/, "")}`;
+  }
+
+  return EMPTY_IMAGE;
 }
 
 function setImage(selector, value) {
-  const img = document.querySelector(selector);
-  if (!img) return;
+  const image = document.querySelector(selector);
+  if (!image) return;
 
-  img.src = value || FALLBACK_IMAGE;
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = FALLBACK_IMAGE;
+  image.src = resolveImageUrl(value);
+  image.onerror = () => {
+    image.onerror = null;
+    image.src = EMPTY_IMAGE;
   };
+}
+
+function imageMarkup(src, alt = "Ảnh tài sản") {
+  return `<img src="${escapeHtml(resolveImageUrl(src))}" alt="${escapeHtml(alt)}" onerror="this.onerror=null;this.src='${EMPTY_IMAGE}'" />`;
 }
 
 function formatMoney(value) {
@@ -187,7 +233,7 @@ function normalizeStatus(status) {
   return String(status || "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "_");
+    .replace(/[\s-]+/g, "_");
 }
 
 function getStatusLabel(status) {
@@ -212,9 +258,35 @@ function getStatusClass(status) {
   if (value === "active") return "is-active-status";
   if (value === "scheduled") return "is-scheduled-status";
   if (value === "completed") return "is-settled";
+  if (value === "closing") return "is-closing-status";
   if (["pending", "payment_pending"].includes(value)) return "is-pending";
 
   return "is-ended-status";
+}
+
+function getAuctionPublicHref(auctionId) {
+  return `./auction-detail.html?id=${encodeURIComponent(auctionId)}`;
+}
+
+function showToast(title, message, type = "info") {
+  const stack = document.querySelector("[data-toast-stack]");
+  if (!stack) return;
+
+  const toast = document.createElement("article");
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <p class="toast-title">${escapeHtml(title)}</p>
+    <p class="toast-message">${escapeHtml(message)}</p>
+  `;
+
+  stack.appendChild(toast);
+
+  window.setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-6px)";
+  }, 3200);
+
+  window.setTimeout(() => toast.remove(), 3800);
 }
 
 function requireAdmin() {
@@ -236,6 +308,20 @@ function requireAdmin() {
   return user;
 }
 
+async function apiGet(endpoint, query = null) {
+  return apiClient.get(endpoint, query, {
+    auth: true,
+    idempotency: false,
+    redirectOnUnauthorized: false,
+  });
+}
+
+async function apiPatch(endpoint, body = {}) {
+  return apiClient.patch(endpoint, body, {
+    auth: true,
+  });
+}
+
 function setActiveTab(tabName) {
   const safeTab = TAB_COPY[tabName] ? tabName : "overview";
   const copy = TAB_COPY[safeTab];
@@ -253,30 +339,11 @@ function setActiveTab(tabName) {
 
   window.history.replaceState(null, "", `#${safeTab}`);
 
+  if (safeTab === "verification" && state.pendingAuctions.length === 0) fetchPendingAuctions();
   if (safeTab === "users" && state.users.length === 0) fetchUsers();
   if (safeTab === "fraud" && state.alerts.length === 0) fetchFraudAlerts();
   if (safeTab === "settlements" && state.settlements.length === 0) fetchSettlements();
   if (safeTab === "logs" && state.logs.length === 0) fetchLogs();
-}
-
-async function apiGet(endpoint, query = null) {
-  return apiClient.get(endpoint, query, {
-    auth: true,
-    idempotency: false,
-    redirectOnUnauthorized: false,
-  });
-}
-
-async function apiPatch(endpoint, body = {}) {
-  if (typeof apiClient.patch === "function") {
-    return apiClient.patch(endpoint, body, { auth: true });
-  }
-
-  return apiClient.request(endpoint, {
-    method: "PATCH",
-    body,
-    auth: true,
-  });
 }
 
 function renderDashboard() {
@@ -297,7 +364,7 @@ function renderDashboard() {
     list.innerHTML = `
       <div class="admin-empty-mini">
         <span>◇</span>
-        <p>Chưa có phiên đấu giá nào.</p>
+        <p>Chưa có phiên đấu giá nào trong database.</p>
       </div>
     `;
     return;
@@ -307,7 +374,7 @@ function renderDashboard() {
     .map(
       (auction) => `
         <div class="admin-request-row">
-          <img src="${escapeHtml(auction.imageUrl || FALLBACK_IMAGE)}" alt="${escapeHtml(auction.title)}" />
+          ${imageMarkup(auction.imageUrl, auction.title)}
           <div>
             <strong>${escapeHtml(auction.title)}</strong>
             <span>${escapeHtml(auction.lot)} • ${getStatusLabel(auction.status)} • ${formatMoney(auction.currentPrice)}</span>
@@ -322,22 +389,20 @@ function renderDashboard() {
 async function fetchDashboard() {
   try {
     const response = await apiGet("/admin/dashboard");
-    state.dashboard = response.data;
+    state.dashboard = response.data || { stats: {}, topAuctions: [] };
 
     setText("[data-backend-status]", "OK");
     setText("[data-backend-status-copy]", "Backend admin đang hoạt động tốt.");
 
     renderDashboard();
   } catch (error) {
+    state.dashboard = { stats: {}, topAuctions: [] };
+
     setText("[data-backend-status]", "OFF");
     setText("[data-backend-status-copy]", error.message || "Không thể kết nối API admin.");
-    showToast(
-      "Không thể tải admin dashboard",
-      error.message || "Kiểm tra backend route /api/admin/dashboard.",
-      "error",
-    );
-  } finally {
-    state.isLoadingDashboard = false;
+
+    renderDashboard();
+    showToast("Không thể tải dashboard", error.message || "Kiểm tra backend route /api/admin/dashboard.", "error");
   }
 }
 
@@ -349,21 +414,24 @@ function buildAuctionQuery() {
   };
 }
 
-async function fetchAuctions() {
+function setAuctionTableLoading() {
   const table = document.querySelector("[data-admin-auction-table]");
+  if (!table) return;
 
-  if (table) {
-    table.innerHTML = `
-      <tr>
-        <td colspan="9">
-          <div class="admin-table-state">
-            <span>◇</span>
-            <p>Đang tải phiên đấu giá...</p>
-          </div>
-        </td>
-      </tr>
-    `;
-  }
+  table.innerHTML = `
+    <tr>
+      <td colspan="9">
+        <div class="admin-table-state">
+          <span>◇</span>
+          <p>Đang tải phiên đấu giá thật từ database...</p>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+async function fetchAuctions() {
+  setAuctionTableLoading();
 
   try {
     const response = await apiGet("/admin/auctions", buildAuctionQuery());
@@ -374,14 +442,42 @@ async function fetchAuctions() {
   }
 
   renderAuctionTable();
+}
+
+async function fetchPendingAuctions() {
+  const grid = document.querySelector("[data-verification-grid]");
+
+  if (grid) {
+    grid.innerHTML = `
+      <div class="admin-empty-mini">
+        <span>◇</span>
+        <p>Đang tải phiên chờ duyệt từ database...</p>
+      </div>
+    `;
+  }
+
+  try {
+    const response = await apiGet("/admin/auctions", {
+      status: "pending",
+      sort: "newest",
+    });
+    state.pendingAuctions = response.data?.auctions || [];
+  } catch (error) {
+    state.pendingAuctions = [];
+    showToast("Không thể tải hàng đợi duyệt", error.message || "API pending auctions chưa sẵn sàng.", "error");
+  }
+
   renderVerificationQueue();
 }
 
 function getAuctionActions(auction) {
   return `
     <button type="button" data-view-auction="${escapeHtml(auction.id)}">
-      Xem Chi Tiết
+      Chi tiết
     </button>
+    <a href="${getAuctionPublicHref(auction.id)}" target="_blank" rel="noopener noreferrer">
+      Mở
+    </a>
   `;
 }
 
@@ -398,7 +494,7 @@ function renderAuctionTable() {
         <td colspan="9">
           <div class="admin-table-state">
             <span>◇</span>
-            <p>Không có phiên đấu giá nào khớp bộ lọc.</p>
+            <p>Không có phiên đấu giá thật nào khớp bộ lọc.</p>
           </div>
         </td>
       </tr>
@@ -417,7 +513,7 @@ function renderAuctionTable() {
 
           <td>
             <div class="admin-auction-asset">
-              <img src="${escapeHtml(auction.imageUrl || FALLBACK_IMAGE)}" alt="${escapeHtml(auction.title)}" />
+              ${imageMarkup(auction.imageUrl, auction.title)}
               <div>
                 <strong>${escapeHtml(auction.title)}</strong>
                 <span>${escapeHtml(auction.category || "collectibles")}</span>
@@ -456,7 +552,7 @@ function renderAuctionTable() {
 
 function renderVerificationQueue() {
   const grid = document.querySelector("[data-verification-grid]");
-  const pending = state.auctions.filter((auction) => normalizeStatus(auction.status) === "pending");
+  const pending = state.pendingAuctions;
 
   setText("[data-verification-count]", `${pending.length} yêu cầu đang chờ`);
 
@@ -467,7 +563,7 @@ function renderVerificationQueue() {
       <div class="admin-empty-state" style="grid-column: 1 / -1;">
         <span>◇</span>
         <h4>Không có phiên chờ duyệt</h4>
-        <p>Khi user tạo cuộc đấu giá mới, phiên sẽ xuất hiện tại đây.</p>
+        <p>Khi user tạo cuộc đấu giá mới, dữ liệu thật từ database sẽ xuất hiện tại đây.</p>
       </div>
     `;
     return;
@@ -478,7 +574,7 @@ function renderVerificationQueue() {
       (auction) => `
         <article class="verification-card">
           <div class="verification-media">
-            <img src="${escapeHtml(auction.imageUrl || FALLBACK_IMAGE)}" alt="${escapeHtml(auction.title)}" />
+            ${imageMarkup(auction.imageUrl, auction.title)}
             <span>Chờ duyệt</span>
           </div>
 
@@ -505,7 +601,7 @@ function renderVerificationQueue() {
               </div>
             </dl>
 
-            <p class="verification-note">${escapeHtml(auction.description || "Không có mô tả.")}</p>
+            <p class="verification-note">${escapeHtml(auction.description || "Không có mô tả trong database.")}</p>
 
             <div class="verification-actions">
               <button type="button" class="button button-primary" data-view-auction="${escapeHtml(auction.id)}">
@@ -519,11 +615,15 @@ function renderVerificationQueue() {
     .join("");
 }
 
+function findAuctionById(auctionId) {
+  return [...state.auctions, ...state.pendingAuctions].find((item) => String(item.id) === String(auctionId));
+}
+
 function openReviewModal(auctionId) {
-  const auction = state.auctions.find((item) => String(item.id) === String(auctionId));
+  const auction = findAuctionById(auctionId);
 
   if (!auction) {
-    showToast("Không tìm thấy phiên", "Dữ liệu phiên chưa được tải.", "error");
+    showToast("Không tìm thấy phiên", "Dữ liệu phiên chưa được tải từ database.", "error");
     return;
   }
 
@@ -531,19 +631,23 @@ function openReviewModal(auctionId) {
 
   setText("[data-review-modal-lot]", auction.lot || `Lô #${auction.id}`);
   setText("[data-review-modal-title]", auction.title || "Chi tiết phiên");
-  setText("[data-review-modal-description]", auction.description || "Không có mô tả.");
+  setText("[data-review-modal-description]", auction.description || "Không có mô tả trong database.");
   setText("[data-review-modal-seller]", `${auction.sellerUsername || "Không rõ"} • ${auction.sellerEmail || ""}`);
   setText("[data-review-modal-category]", auction.category || "collectibles");
   setText("[data-review-modal-price]", formatMoney(auction.currentPrice));
   setText("[data-review-modal-step]", formatMoney(auction.stepPrice));
-  setText(
-    "[data-review-modal-deposit]",
-    auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu",
-  );
+  setText("[data-review-modal-deposit]", auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu");
   setText("[data-review-modal-status]", getStatusLabel(auction.status));
   setText("[data-review-modal-created]", formatDateTime(auction.createdAt));
   setText("[data-review-modal-end]", formatDateTime(auction.endTime));
-  setImage("[data-review-modal-image]", auction.imageUrl || FALLBACK_IMAGE);
+  setImage("[data-review-modal-image]", auction.imageUrl);
+
+  const approveButton = document.querySelector("[data-review-approve]");
+  const rejectButton = document.querySelector("[data-review-reject]");
+  const canReview = ["pending", "rejected", "scheduled"].includes(normalizeStatus(auction.status));
+
+  if (approveButton) approveButton.style.display = canReview ? "inline-flex" : "none";
+  if (rejectButton) rejectButton.style.display = canReview ? "inline-flex" : "none";
 
   const modal = document.querySelector("[data-review-modal]");
   if (modal) modal.hidden = false;
@@ -566,13 +670,10 @@ async function approveSelectedAuction() {
   try {
     await apiPatch(`/admin/auctions/${auction.id}/approve`);
 
-    showToast("Đã duyệt phiên", "Phiên đấu giá đã được thông qua và sẽ mở ở tab riêng.", "success");
+    showToast("Đã duyệt phiên", "Phiên đấu giá đã được thông qua bằng dữ liệu thật.", "success");
 
     closeReviewModal();
-
-    await Promise.all([fetchDashboard(), fetchAuctions()]);
-
-    window.open(`./product-detail.html?id=${auction.id}`, "_blank", "noopener,noreferrer");
+    await Promise.allSettled([fetchDashboard(), fetchAuctions(), fetchPendingAuctions()]);
   } catch (error) {
     showToast("Duyệt thất bại", error.message || "Không thể duyệt phiên đấu giá.", "error");
   }
@@ -591,19 +692,34 @@ async function rejectSelectedAuction() {
     showToast("Đã từ chối phiên", "Phiên đấu giá đã được chuyển sang trạng thái Rejected.", "success");
 
     closeReviewModal();
-
-    await Promise.all([fetchDashboard(), fetchAuctions()]);
+    await Promise.allSettled([fetchDashboard(), fetchAuctions(), fetchPendingAuctions()]);
   } catch (error) {
     showToast("Từ chối thất bại", error.message || "Không thể từ chối phiên đấu giá.", "error");
   }
 }
 
 async function fetchUsers() {
+  const table = document.querySelector("[data-user-table]");
+
+  if (table) {
+    table.innerHTML = `
+      <tr>
+        <td colspan="9">
+          <div class="admin-table-state">
+            <span>◇</span>
+            <p>Đang tải người dùng thật từ database...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   try {
     const response = await apiGet("/admin/users");
     state.users = response.data?.users || [];
-  } catch {
+  } catch (error) {
     state.users = [];
+    showToast("Không thể tải người dùng", error.message || "API users chưa sẵn sàng.", "error");
   }
 
   renderUsers();
@@ -619,7 +735,7 @@ function renderUsers() {
         <td colspan="9">
           <div class="admin-table-state">
             <span>◇</span>
-            <p>Không có dữ liệu người dùng.</p>
+            <p>Không có dữ liệu người dùng trong database.</p>
           </div>
         </td>
       </tr>
@@ -667,18 +783,29 @@ async function updateUserStatus(userId, action) {
   try {
     await apiPatch(`/admin/users/${userId}/${action}`);
     showToast("Cập nhật thành công", action === "lock" ? "Đã khóa tài khoản." : "Đã mở khóa tài khoản.", "success");
-    await fetchUsers();
+    await Promise.allSettled([fetchUsers(), fetchDashboard()]);
   } catch (error) {
     showToast("Cập nhật thất bại", error.message || "Không thể cập nhật trạng thái người dùng.", "error");
   }
 }
 
 async function fetchFraudAlerts() {
+  const list = document.getElementById("ai-fraud-list");
+  if (list) {
+    list.innerHTML = `
+      <div class="admin-empty-mini" style="text-align: center; padding: 40px">
+        <span>◇</span>
+        <p>Đang tải cảnh báo thật từ database...</p>
+      </div>
+    `;
+  }
+
   try {
     const response = await apiGet("/admin/fraud-alerts");
     state.alerts = response.data?.alerts || [];
-  } catch {
+  } catch (error) {
     state.alerts = [];
+    showToast("Không thể tải cảnh báo gian lận", error.message || "API fraud alerts chưa sẵn sàng.", "error");
   }
 
   renderFraudAlerts();
@@ -696,7 +823,7 @@ function renderFraudAlerts() {
     list.innerHTML = `
       <div class="admin-empty-mini" style="text-align: center; padding: 40px">
         <span>◇</span>
-        <p>Chưa có cảnh báo gian lận nào.</p>
+        <p>Chưa có cảnh báo gian lận nào trong database.</p>
       </div>
     `;
     return;
@@ -716,7 +843,7 @@ function renderFraudAlerts() {
             <small>Điểm rủi ro</small>
           </div>
           <div>
-            <h4>${escapeHtml(alert.username)} → Phiên #${escapeHtml(alert.auctionId)}</h4>
+            <h4>${escapeHtml(alert.username || "Người dùng")} → Phiên #${escapeHtml(alert.auctionId)}</h4>
             <p>${escapeHtml(reasons)}</p>
           </div>
           <time>${formatDateTime(alert.createdAt)}</time>
@@ -727,11 +854,27 @@ function renderFraudAlerts() {
 }
 
 async function fetchSettlements() {
+  const table = document.querySelector("[data-settlement-table]");
+
+  if (table) {
+    table.innerHTML = `
+      <tr>
+        <td colspan="7">
+          <div class="admin-table-state">
+            <span>◇</span>
+            <p>Đang tải dữ liệu đối soát thật...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   try {
     const response = await apiGet("/admin/settlements");
     state.settlements = response.data?.settlements || [];
-  } catch {
+  } catch (error) {
     state.settlements = [];
+    showToast("Không thể tải đối soát", error.message || "API settlements chưa sẵn sàng.", "error");
   }
 
   renderSettlements();
@@ -747,7 +890,7 @@ function renderSettlements() {
         <td colspan="7">
           <div class="admin-table-state">
             <span>◇</span>
-            <p>Chưa có dữ liệu đối soát.</p>
+            <p>Chưa có dữ liệu đối soát trong database.</p>
           </div>
         </td>
       </tr>
@@ -773,11 +916,27 @@ function renderSettlements() {
 }
 
 async function fetchLogs() {
+  const table = document.querySelector("[data-admin-log-table]");
+
+  if (table) {
+    table.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="admin-table-state">
+            <span>◇</span>
+            <p>Đang tải nhật ký thật từ database...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   try {
     const response = await apiGet("/admin/logs");
     state.logs = response.data?.logs || [];
-  } catch {
+  } catch (error) {
     state.logs = [];
+    showToast("Không thể tải nhật ký", error.message || "API logs chưa sẵn sàng.", "error");
   }
 
   renderLogs();
@@ -793,7 +952,7 @@ function renderLogs() {
         <td colspan="5">
           <div class="admin-table-state">
             <span>◇</span>
-            <p>Chưa có nhật ký quản trị.</p>
+            <p>Chưa có nhật ký quản trị trong database.</p>
           </div>
         </td>
       </tr>
@@ -837,7 +996,9 @@ function bindFilters() {
   if (search) {
     search.addEventListener("input", () => {
       state.auctionSearch = search.value;
-      fetchAuctions();
+
+      window.clearTimeout(state.searchTimer);
+      state.searchTimer = window.setTimeout(fetchAuctions, 280);
     });
   }
 
@@ -939,6 +1100,18 @@ function bindSocketEvents() {
     fetchAuctions();
   });
 
+  window.socketClient.on("auction_winner", () => {
+    fetchDashboard();
+    fetchAuctions();
+    fetchSettlements();
+  });
+
+  window.socketClient.on("auction_finalized", () => {
+    fetchDashboard();
+    fetchAuctions();
+    fetchSettlements();
+  });
+
   window.socketClient.on("fraud_detected", () => {
     fetchFraudAlerts();
     fetchDashboard();
@@ -949,6 +1122,7 @@ async function refreshAll() {
   await Promise.allSettled([
     fetchDashboard(),
     fetchAuctions(),
+    fetchPendingAuctions(),
     fetchFraudAlerts(),
     fetchSettlements(),
     fetchUsers(),
@@ -973,6 +1147,8 @@ function initAdminPage() {
   initTheme();
   hydrateAdminSession();
 
+  setImage("[data-review-modal-image]", null);
+
   bindTabs();
   bindFilters();
   bindRefreshButtons();
@@ -981,8 +1157,7 @@ function initAdminPage() {
   bindLogout();
   bindSocketEvents();
 
-  fetchDashboard();
-  fetchAuctions();
+  refreshAll();
 }
 
 document.addEventListener("DOMContentLoaded", initAdminPage);
