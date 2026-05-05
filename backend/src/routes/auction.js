@@ -3,6 +3,7 @@ const express = require("express");
 const AuctionController = require("../controllers/auction");
 const BiddingController = require("../controllers/bidding");
 const checkIdempotency = require("../middlewares/idempotency");
+const { validateBidRequirements } = require("../middlewares/validateBid"); // Bổ sung import bị thiếu
 const { sendError } = require("../utils/response");
 
 const authModule = require("../middlewares/auth");
@@ -78,6 +79,8 @@ const updateAuctionStatus = safeController(
   "updateAuctionStatus",
   "Cập nhật trạng thái phiên đấu giá",
 );
+const approveAuction = safeController(AuctionController, "approveAuction", "Duyệt phiên đấu giá");
+const rejectAuction = safeController(AuctionController, "rejectAuction", "Từ chối phiên đấu giá");
 
 const approveAuction = safeController(AuctionController, "approveAuction", "Duyệt phiên đấu giá");
 const rejectAuction = safeController(AuctionController, "rejectAuction", "Từ chối phiên đấu giá");
