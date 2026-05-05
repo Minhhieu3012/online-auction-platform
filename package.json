@@ -1,0 +1,27 @@
+{
+  "name": "online-auction-platform",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:fe": "npx http-server ./frontend -p 5500 -c-1",
+    "start:be": "cd backend && npm run dev",
+    "dev": "concurrently \"npm run start:be\" \"npm run start:fe\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Minhhieu3012/online-auction-platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Minhhieu3012/online-auction-platform/issues"
+  },
+  "homepage": "https://github.com/Minhhieu3012/online-auction-platform#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
