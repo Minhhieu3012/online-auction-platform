@@ -71,9 +71,15 @@ function maskBidder(username, email) {
 // BẢN VÁ: Hàm ép chuỗi MySQL DATETIME thành UTC Timestamp tuyệt đối
 function parseDbTimeToUTC(timeStr) {
   if (!timeStr) return 0;
+
   let str = String(timeStr);
-  if (str.includes('GMT') || str.includes('Z')) return new Date(timeStr).getTime();
-  str = str.replace(' ', 'T') + 'Z';
+
+  if (str.includes("GMT") || str.includes("Z")) {
+    return new Date(timeStr).getTime();
+  }
+
+  str = str.replace(" ", "T") + "Z";
+
   return new Date(str).getTime();
 }
 
@@ -112,18 +118,70 @@ function getClientUrl() {
   return String(process.env.CLIENT_URL || "http://127.0.0.1:5500/frontend/pages").replace(/\/$/, "");
 }
 
+function normalizeImageList(value) {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    const text = value.trim();
+
+    if (!text) return [];
+
+    try {
+      const parsed = JSON.parse(text);
+
+      if (Array.isArray(parsed)) {
+        return normalizeImageList(parsed);
+      }
+    } catch {
+      return [text];
+    }
+
+    return [text];
+  }
+
+  return [];
+}
+
+function uniqueImageList(images = []) {
+  const seen = new Set();
+
+  return images
+    .map((image) => String(image || "").trim())
+    .filter(Boolean)
+    .filter((image) => {
+      if (seen.has(image)) return false;
+      seen.add(image);
+      return true;
+    });
+}
+
 function mapAuctionRow(row) {
+  const images = uniqueImageList(normalizeImageList(row.images));
+  const primaryImage = row.image_url || images[0] || null;
+  const normalizedImages = uniqueImageList([primaryImage, ...images]);
+
   return {
     id: row.id,
     lot: `Lô #${String(row.id).padStart(3, "0")}`,
     productId: row.product_id,
+    product_id: row.product_id,
     title: row.product_name,
     name: row.product_name,
     productName: row.product_name,
+    product_name: row.product_name,
     description: row.description || "",
     category: row.category || "collectibles",
-    imageUrl: row.image_url || null,
-    image_url: row.image_url || null,
+    imageUrl: primaryImage,
+    image_url: primaryImage,
+    images: normalizedImages,
+    productImages: normalizedImages,
+    product_images: normalizedImages,
     status: row.status,
     currentPrice: Number(row.current_price || 0),
     current_price: Number(row.current_price || 0),
@@ -140,17 +198,22 @@ function mapAuctionRow(row) {
     createdAt: formatUTC(row.created_at),
     created_at: formatUTC(row.created_at),
     updatedAt: formatUTC(row.updated_at),
+    updated_at: formatUTC(row.updated_at),
     bidCount: Number(row.bid_count || 0),
     bid_count: Number(row.bid_count || 0),
     depositCount: Number(row.deposit_count || 0),
+    deposit_count: Number(row.deposit_count || 0),
     createdBy: row.created_by,
     created_by: row.created_by,
     sellerUsername: row.seller_username || null,
+    seller_username: row.seller_username || null,
     sellerEmail: row.seller_email || null,
+    seller_email: row.seller_email || null,
     winnerId: row.winner_id || null,
     winner_id: row.winner_id || null,
     finalPrice: row.final_price === null || row.final_price === undefined ? null : Number(row.final_price),
-    version: Number(row.version || 0)
+    final_price: row.final_price === null || row.final_price === undefined ? null : Number(row.final_price),
+    version: Number(row.version || 0),
   };
 }
 
@@ -203,6 +266,7 @@ function getAuctionSelectSql(whereSql = "") {
       a.final_price,
       a.created_at,
       a.updated_at,
+      a.version,
       p.name,
       p.description,
       p.category,
@@ -210,6 +274,106 @@ function getAuctionSelectSql(whereSql = "") {
       u.username,
       u.email
   `;
+}
+
+async function tryLoadProductImagesMap(productIds = []) {
+  const ids = [...new Set(productIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  try {
+    const placeholders = ids.map(() => "?").join(", ");
+
+    const [rows] = await pool.execute(
+      `
+        SELECT
+          product_id,
+          CONCAT('[', GROUP_CONCAT(JSON_QUOTE(image_url) ORDER BY sort_order ASC SEPARATOR ','), ']') AS images
+        FROM Product_Images
+        WHERE product_id IN (${placeholders})
+          AND image_url IS NOT NULL
+          AND image_url <> ''
+        GROUP BY product_id
+      `,
+      ids,
+    );
+
+    const map = new Map();
+
+    rows.forEach((row) => {
+      map.set(Number(row.product_id), normalizeImageList(row.images));
+    });
+
+    return map;
+  } catch (error) {
+    const message = String(error?.message || "");
+
+    if (
+      error?.code === "ER_NO_SUCH_TABLE" ||
+      error?.errno === 1146 ||
+      message.includes("Product_Images") ||
+      message.includes("doesn't exist")
+    ) {
+      logger.warn("[Product Images Warning]: Bảng Product_Images chưa tồn tại, fallback về Products.image_url.");
+      return new Map();
+    }
+
+    logger.error("[Product Images Load Error]:", error);
+    return new Map();
+  }
+}
+
+async function hydrateAuctionRowsWithImages(rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return rows;
+  }
+
+  const productIds = rows.map((row) => row.product_id);
+  const imageMap = await tryLoadProductImagesMap(productIds);
+
+  return rows.map((row) => {
+    const extraImages = imageMap.get(Number(row.product_id)) || [];
+    return {
+      ...row,
+      images: uniqueImageList([row.image_url, ...extraImages]),
+    };
+  });
+}
+
+async function tryInsertProductImages(connection, productId, images = []) {
+  const normalizedImages = uniqueImageList(images);
+
+  if (!productId || normalizedImages.length === 0) {
+    return;
+  }
+
+  try {
+    const values = normalizedImages.map((imageUrl, index) => [productId, imageUrl, index + 1]);
+
+    await connection.query(
+      `
+        INSERT INTO Product_Images (product_id, image_url, sort_order)
+        VALUES ?
+      `,
+      [values],
+    );
+  } catch (error) {
+    const message = String(error?.message || "");
+
+    if (
+      error?.code === "ER_NO_SUCH_TABLE" ||
+      error?.errno === 1146 ||
+      message.includes("Product_Images") ||
+      message.includes("doesn't exist")
+    ) {
+      logger.warn("[Product Images Warning]: Bảng Product_Images chưa tồn tại, bỏ qua lưu ảnh phụ.");
+      return;
+    }
+
+    logger.error("[Product Images Insert Error]:", error);
+  }
 }
 
 async function trySyncAuctionToRedis(auction) {
@@ -349,7 +513,13 @@ class AuctionController {
         params,
       );
 
-      return sendSuccess(res, { auctions: rows.map(mapAuctionRow) }, "Lấy danh sách phiên đấu giá thành công.");
+      const hydratedRows = await hydrateAuctionRowsWithImages(rows);
+
+      return sendSuccess(
+        res,
+        { auctions: hydratedRows.map(mapAuctionRow) },
+        "Lấy danh sách phiên đấu giá thành công.",
+      );
     } catch (error) {
       logger.error("[Auction List Error]:", error);
       return sendError(res, "ERR_SERVER", "Không thể tải danh sách phiên đấu giá.", 500);
@@ -365,7 +535,13 @@ class AuctionController {
         [userId],
       );
 
-      return sendSuccess(res, { auctions: rows.map(mapAuctionRow) }, "Lấy danh sách phiên của bạn thành công.");
+      const hydratedRows = await hydrateAuctionRowsWithImages(rows);
+
+      return sendSuccess(
+        res,
+        { auctions: hydratedRows.map(mapAuctionRow) },
+        "Lấy danh sách phiên của bạn thành công.",
+      );
     } catch (error) {
       logger.error("[Auction Mine Error]:", error);
       return sendError(res, "ERR_SERVER", "Không thể tải phiên của bạn.", 500);
@@ -382,10 +558,13 @@ class AuctionController {
         return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
       }
 
+      const hydratedRows = await hydrateAuctionRowsWithImages(rows);
+
       const [bids] = await pool.execute(
         `
           SELECT
             b.id,
+            b.user_id,
             b.bid_amount,
             b.created_at,
             u.username,
@@ -399,21 +578,33 @@ class AuctionController {
         [auctionId],
       );
 
-      const auction = mapAuctionRow(rows[0]);
+      const auction = mapAuctionRow(hydratedRows[0]);
 
       auction.bidHistory = bids.map((bid, index) => ({
         id: bid.id,
+        bidId: bid.id,
+        bid_id: bid.id,
+        userId: bid.user_id,
+        user_id: bid.user_id,
         bidder: maskBidder(bid.username, bid.email),
         amount: Number(bid.bid_amount || 0),
+        bidAmount: Number(bid.bid_amount || 0),
+        bid_amount: Number(bid.bid_amount || 0),
+        createdAt: formatUTC(bid.created_at),
+        created_at: formatUTC(bid.created_at),
         time: formatUTC(bid.created_at),
         highlight: index === 0,
       }));
 
       // BẢN VÁ: Gửi kèm server_time để Frontend bù trừ lệch múi giờ
-      return sendSuccess(res, { 
-        auction,
-        server_time: new Date().toISOString()
-      }, "Lấy chi tiết phiên đấu giá thành công.");
+      return sendSuccess(
+        res,
+        {
+          auction,
+          server_time: new Date().toISOString(),
+        },
+        "Lấy chi tiết phiên đấu giá thành công.",
+      );
     } catch (error) {
       logger.error("[Auction Detail Error]:", error);
       return sendError(res, "ERR_SERVER", "Không thể tải chi tiết phiên đấu giá.", 500);
@@ -426,7 +617,15 @@ class AuctionController {
     const productName = String(req.body?.productName || req.body?.title || req.body?.name || "").trim();
     const description = String(req.body?.description || "").trim();
     const category = String(req.body?.category || "Collectibles").trim();
-    const imageUrl = req.body?.imageUrl || req.body?.image_url || null;
+
+    const submittedImages = uniqueImageList([
+      req.body?.imageUrl || req.body?.image_url || null,
+      ...normalizeImageList(req.body?.images),
+      ...normalizeImageList(req.body?.productImages),
+      ...normalizeImageList(req.body?.product_images),
+    ]);
+
+    const imageUrl = submittedImages[0] || null;
 
     const startingPrice = parsePositiveNumber(
       req.body?.startingPrice || req.body?.currentPrice || req.body?.startingBid,
@@ -477,6 +676,8 @@ class AuctionController {
         `,
         [productName, description, category, imageUrl],
       );
+
+      await tryInsertProductImages(connection, productResult.insertId, submittedImages);
 
       const [auctionResult] = await connection.execute(
         `
@@ -637,7 +838,7 @@ class AuctionController {
           type: "AUCTION_APPROVED",
           title: "Phiên đấu giá đã được thông qua",
           message: `Phiên "${auction.product_name}" đã được admin duyệt.`,
-          actionUrl: `/pages/product-detail.html?id=${auctionId}`,
+          actionUrl: `/pages/auction-detail.html?id=${auctionId}`,
         });
       }
 
