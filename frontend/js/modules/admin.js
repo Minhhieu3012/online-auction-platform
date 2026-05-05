@@ -331,7 +331,13 @@ async function fetchDashboard() {
   } catch (error) {
     setText("[data-backend-status]", "OFF");
     setText("[data-backend-status-copy]", error.message || "Không thể kết nối API admin.");
-    showToast("Không thể tải admin dashboard", error.message || "Kiểm tra backend route /api/admin/dashboard.", "error");
+    showToast(
+      "Không thể tải admin dashboard",
+      error.message || "Kiểm tra backend route /api/admin/dashboard.",
+      "error",
+    );
+  } finally {
+    state.isLoadingDashboard = false;
   }
 }
 
@@ -530,7 +536,10 @@ function openReviewModal(auctionId) {
   setText("[data-review-modal-category]", auction.category || "collectibles");
   setText("[data-review-modal-price]", formatMoney(auction.currentPrice));
   setText("[data-review-modal-step]", formatMoney(auction.stepPrice));
-  setText("[data-review-modal-deposit]", auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu");
+  setText(
+    "[data-review-modal-deposit]",
+    auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu",
+  );
   setText("[data-review-modal-status]", getStatusLabel(auction.status));
   setText("[data-review-modal-created]", formatDateTime(auction.createdAt));
   setText("[data-review-modal-end]", formatDateTime(auction.endTime));

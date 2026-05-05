@@ -89,6 +89,66 @@ function isAdminUser() {
 }
 
 function injectCommandPaletteStyles(basePath) {
+// Hàm lấy Role để phân luồng Admin / User
+function getUserRole() {
+  const user = apiClient.getAuthUser();
+  return user?.role || "user";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatRelativeTime(value) {
+  if (!value) {
+    return "Vừa xong";
+  }
+
+  const time = new Date(value).getTime();
+
+  if (Number.isNaN(time)) {
+    return "Vừa xong";
+  }
+
+  const diffMs = Math.max(0, Date.now() - time);
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} ngày trước`;
+}
+
+function loadRuntimeNotifications() {
+  try {
+    const rawValue = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+    const parsed = rawValue ? JSON.parse(rawValue) : [];
+
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_NOTIFICATIONS) : [];
+  } catch (error) {
+    console.warn("[Header] Không thể đọc notification store:", error);
+    return [];
+  }
+}
+
+function saveRuntimeNotifications(notifications) {
+  try {
+    window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifications.slice(0, MAX_NOTIFICATIONS)));
+  } catch (error) {
+    console.warn("[Header] Không thể lưu notification store:", error);
+  }
+}
+
+function getNotificationHref(basePath, notification = {}) {
   const normalizedBasePath = normalizeBasePath(basePath);
   const href =
     normalizedBasePath === "." ? "./css/command-palette.css" : `${normalizedBasePath}/css/command-palette.css`;
@@ -335,6 +395,7 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   const isRoot = normalizedBasePath === ".";
   const authenticated = isAuthenticated();
   const adminUser = authenticated && isAdminUser();
+  const role = getUserRole(); // Nhận diện quyền
 
   const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
   const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
@@ -352,11 +413,36 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
     : loginHref;
   const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
-  const actionHref = authenticated ? (adminUser ? adminHref : accountHref) : loginHref;
-  const actionText = authenticated ? (adminUser ? "QUẢN TRỊ" : "TÀI KHOẢN") : "ĐĂNG NHẬP";
-  const actionTargetAttrs = adminUser
-    ? 'target="_blank" rel="noopener noreferrer"'
-    : "";
+  // Điều hướng thông minh dựa trên Role
+  const actionHref = authenticated ? (role === "admin" ? adminHref : accountHref) : loginHref;
+
+  const actionText = authenticated ? (role === "admin" ? "QUẢN TRỊ VIÊN" : "TÀI KHOẢN") : "ĐĂNG NHẬP";
+
+  const authenticatedMenu = authenticated
+    ? `
+        <a class="home-settings-item home-settings-item-minimal" href="${notificationsHref}" title="Thông báo">
+          <span class="home-settings-item-value">◇</span>
+        </a>
+        <a class="home-settings-item home-settings-item-minimal" href="${publishHref}" title="Đăng lô đấu giá">
+          <span class="home-settings-item-value">▣</span>
+        </a>
+        ${
+          role === "admin"
+            ? `
+              <a class="home-settings-item home-settings-item-minimal" href="${adminHref}" title="Quản trị">
+                <span class="home-settings-item-value">△</span>
+                </a>`
+            : ""
+        }
+        <button class="home-settings-item home-settings-item-minimal" type="button" data-logout-btn title="Đăng xuất">
+          <span class="home-settings-item-value" style="color: #ef4444;">⎋</span>
+        </button>
+      `
+    : `
+        <a class="home-settings-item home-settings-item-minimal" href="${loginHref}" title="Đăng nhập">
+          <span class="home-settings-item-value">◎</span>
+        </a>
+      `;
 
   return `
     <header class="site-header home-luxury-header" data-header>
@@ -376,8 +462,10 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
         <a href="${liveAuctionsHref}" class="nav-link ${activePage === "live-auctions" ? "is-active" : ""}">
           Đấu Giá Trực Tiếp
         </a>
-
-        <a href="${protocolHref}" class="nav-link">
+        <a href="${publishHref}" class="nav-link ${activePage === "publish" ? "is-active" : ""}">
+          Đăng Bán
+        </a>
+        <a href="${protocolUrl}" class="nav-link">
           Giao Thức Tin Cậy
         </a>
       </nav>
@@ -644,6 +732,131 @@ async function fetchHeaderNotifications() {
     return;
   }
 
+  saveRuntimeNotifications(nextNotifications);
+  renderNotificationList(basePath);
+
+  const bell = document.getElementById("global-notification-bell");
+
+  if (bell) {
+    bell.classList.remove("shake-animation");
+    void bell.offsetWidth;
+    bell.classList.add("shake-animation");
+  }
+}
+
+function bindHeaderActions(basePath = ".") {
+  document.querySelectorAll("[data-auction-search-shortcut]").forEach((button) => {
+    button.addEventListener("click", () => {
+      window.location.href = pageHref(basePath, "live-auctions.html");
+    });
+  });
+
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      toggleTheme();
+    });
+  });
+
+  // HỆ THỐNG ĐĂNG XUẤT "BẤT TỬ" ĐÃ ĐƯỢC TÍCH HỢP
+  document.addEventListener("click", (event) => {
+    const logoutButton =
+      event.target.closest("[data-logout-btn]") ||
+      event.target.closest(".dashboard-logout-button") ||
+      (event.target.closest("[data-auth-btn]") &&
+        event.target.closest("[data-auth-btn]").textContent.trim().toUpperCase() === "ĐĂNG XUẤT");
+
+    if (!logoutButton) {
+      return;
+    }
+
+    event.preventDefault();
+
+    // 1. Dọn dẹp thủ công toàn bộ storage để đảm bảo an toàn
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("user_info");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.clear();
+
+    // 2. Cố gắng gọi hàm clearAuth của apiClient nếu có
+    try {
+      apiClient.clearAuth();
+    } catch (e) {
+      console.warn("apiClient.clearAuth() failed", e);
+    }
+
+    // 3. Chuyển hướng về trang chủ
+    window.location.replace(homeHref(basePath));
+  });
+
+  const bell = document.getElementById("global-notification-bell");
+  const dropdown = document.getElementById("global-notification-dropdown");
+  const list = document.getElementById("global-notification-list");
+  const markReadButton = document.getElementById("mark-all-read-btn");
+
+  if (bell && dropdown) {
+    bell.addEventListener("click", (event) => {
+      event.stopPropagation();
+      dropdown.hidden = !dropdown.hidden;
+    });
+
+    dropdown.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+      dropdown.hidden = true;
+    });
+  }
+
+  if (markReadButton) {
+    markReadButton.addEventListener("click", () => {
+      const notifications = loadRuntimeNotifications().map((notification) => ({
+        ...notification,
+        read: true,
+      }));
+
+      saveRuntimeNotifications(notifications);
+      renderNotificationList(basePath);
+    });
+  }
+
+  if (list) {
+    list.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-notification-id]");
+
+      if (!item) {
+        return;
+      }
+
+      const notificationId = item.dataset.notificationId;
+      const notifications = loadRuntimeNotifications().map((notification) => {
+        if (notification.id !== notificationId) {
+          return notification;
+        }
+
+        return {
+          ...notification,
+          read: true,
+        };
+      });
+
+      saveRuntimeNotifications(notifications);
+      renderNotificationList(basePath);
+
+      const href = item.dataset.notificationHref;
+      if (href) {
+        window.location.href = href;
+      }
+    });
+  }
+}
+
+function bindSocketNotifications(basePath = ".") {
+  if (!window.socketClient) {
+    return;
+  }
+
   list.innerHTML = `
     <div class="notification-dropdown-state">
       <span>◇</span>
@@ -788,3 +1001,4 @@ if (document.readyState === "loading") {
 export {
   renderSiteHeaders,
 };
+}

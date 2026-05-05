@@ -24,7 +24,13 @@ function normalizeStatusForSql(status) {
     completed: "Completed",
     payment_pending: "Payment Pending",
   };
-  return statusMap[String(status || "").trim().toLowerCase()] || null;
+  return (
+    statusMap[
+      String(status || "")
+        .trim()
+        .toLowerCase()
+    ] || null
+  );
 }
 
 function normalizeSort(sort) {
@@ -75,7 +81,7 @@ function mapAuctionRow(row) {
     bidCount: Number(row.bid_count || 0),
     createdBy: row.created_by,
     sellerUsername: row.seller_username || null,
-    winnerId: row.winner_id || null
+    winnerId: row.winner_id || null,
   };
 }
 
@@ -133,30 +139,65 @@ function resolveApprovedEndTime(currentEndTime, requestedEndTime) {
 
 class AuctionController {
   static async listAuctions(req, res) {
-    const { status, category, q, sort = "ending-soon", limit = 100, offset = 0 } = req.query;
+    const { status, category, q, sort = "ending-soon", limit = 100, offset = 0, createdBy, scope } = req.query;
+
+    const adminMode = scope === "admin";
+
+    if (adminMode && !isAdmin(req)) {
+      return sendError(res, "ERR_FORBIDDEN", "Chỉ admin được xem toàn bộ phiên đấu giá.", 403);
+    }
+
     try {
       const sqlParams = [];
       const whereClauses = [];
       const normalizedStatus = normalizeStatusForSql(status);
-      if (normalizedStatus) { whereClauses.push("a.status = ?"); sqlParams.push(normalizedStatus); }
-      if (category && category !== "all") { whereClauses.push("LOWER(p.category) = LOWER(?)"); sqlParams.push(category); }
+      if (normalizedStatus) {
+        where.push("a.status = ?");
+        params.push(normalizedStatus);
+      } else if (!adminMode) {
+        where.push(`a.status IN (${PUBLIC_STATUSES.map(() => "?").join(", ")})`);
+        params.push(...PUBLIC_STATUSES);
+      }
+
+      if (category && category !== "all") {
+        where.push("LOWER(COALESCE(p.category, 'collectibles')) = LOWER(?)");
+        params.push(category);
+      }
+
+      if (createdBy) {
+        where.push("a.created_by = ?");
+        params.push(Number(createdBy));
+      }
+
       if (q && q.trim()) {
         whereClauses.push("(p.name LIKE ? OR p.description LIKE ? OR CAST(a.id AS CHAR) LIKE ?)");
-        const keyword = `%${q.trim()}%`; sqlParams.push(keyword, keyword, keyword);
+        const keyword = `%${q.trim()}%`;
+        sqlParams.push(keyword, keyword, keyword);
       }
       const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
       const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-      const [rows] = await pool.execute(`${getAuctionSelectSql(whereSql)} ORDER BY ${getSortClause(normalizeSort(sort))} LIMIT ${safeLimit} OFFSET ${Number(offset) || 0}`, sqlParams);
+      const [rows] = await pool.execute(
+        `${getAuctionSelectSql(whereSql)} ORDER BY ${getSortClause(normalizeSort(sort))} LIMIT ${safeLimit} OFFSET ${Number(offset) || 0}`,
+        sqlParams,
+      );
       return sendSuccess(res, { auctions: rows.map(mapAuctionRow) }, "Thành công.");
-    } catch (e) { logger.error(e); return sendError(res, "ERR_SERVER", "Lỗi server.", 500); }
+    } catch (e) {
+      logger.error(e);
+      return sendError(res, "ERR_SERVER", "Lỗi server.", 500);
+    }
   }
 
   static async listMyAuctions(req, res) {
     const userId = req.user?.id;
     try {
-      const [rows] = await pool.execute(`${getAuctionSelectSql("WHERE a.created_by = ?")} ORDER BY a.created_at DESC`, [userId]);
+      const [rows] = await pool.execute(`${getAuctionSelectSql("WHERE a.created_by = ?")} ORDER BY a.created_at DESC`, [
+        userId,
+      ]);
       return sendSuccess(res, { auctions: rows.map(mapAuctionRow) }, "Thành công.");
-    } catch (e) { logger.error(e); return sendError(res, "ERR_SERVER", "Lỗi server.", 500); }
+    } catch (e) {
+      logger.error(e);
+      return sendError(res, "ERR_SERVER", "Lỗi server.", 500);
+    }
   }
 
   static async getAuctionById(req, res) {
@@ -164,11 +205,23 @@ class AuctionController {
     try {
       const [rows] = await pool.execute(`${getAuctionSelectSql("WHERE a.id = ?")} LIMIT 1`, [auctionId]);
       if (rows.length === 0) return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy.", 404);
-      const [bids] = await pool.execute(`SELECT b.id, b.bid_amount, b.created_at, u.username, u.email FROM Bids b INNER JOIN Users u ON u.id = b.user_id WHERE b.auction_id = ? ORDER BY b.created_at DESC LIMIT 10`, [auctionId]);
+      const [bids] = await pool.execute(
+        `SELECT b.id, b.bid_amount, b.created_at, u.username, u.email FROM Bids b INNER JOIN Users u ON u.id = b.user_id WHERE b.auction_id = ? ORDER BY b.created_at DESC LIMIT 10`,
+        [auctionId],
+      );
       const auction = mapAuctionRow(rows[0]);
-      auction.bidHistory = bids.map((b, i) => ({ id: b.id, bidder: maskBidder(b.username, b.email), amount: Number(b.bid_amount), time: formatUTC(b.created_at), highlight: i === 0 }));
+      auction.bidHistory = bids.map((b, i) => ({
+        id: b.id,
+        bidder: maskBidder(b.username, b.email),
+        amount: Number(b.bid_amount),
+        time: formatUTC(b.created_at),
+        highlight: i === 0,
+      }));
       return sendSuccess(res, { auction }, "Thành công.");
-    } catch (e) { logger.error(e); return sendError(res, "ERR_SERVER", "Lỗi server.", 500); }
+    } catch (e) {
+      logger.error(e);
+      return sendError(res, "ERR_SERVER", "Lỗi server.", 500);
+    }
   }
 
   static async createAuction(req, res) {
@@ -177,13 +230,25 @@ class AuctionController {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
-      const [p] = await connection.execute("INSERT INTO Products (name, description, category, image_url) VALUES (?, ?, ?, ?)", [productName, description, category, imageUrl]);
+      const [p] = await connection.execute(
+        "INSERT INTO Products (name, description, category, image_url) VALUES (?, ?, ?, ?)",
+        [productName, description, category, imageUrl],
+      );
       const endTime = new Date(Date.now() + durationMinutes * 60000);
       const deposit = Number(startingPrice) * 0.1;
-      const [a] = await connection.execute(`INSERT INTO Auctions (product_id, created_by, status, current_price, step_price, requires_deposit, deposit_amount, end_time) VALUES (?, ?, 'Scheduled', ?, ?, 1, ?, ?)`, [p.insertId, userId, startingPrice, stepPrice, deposit, toMysqlDatetime(endTime)]);
+      const [a] = await connection.execute(
+        `INSERT INTO Auctions (product_id, created_by, status, current_price, step_price, requires_deposit, deposit_amount, end_time) VALUES (?, ?, 'Scheduled', ?, ?, 1, ?, ?)`,
+        [p.insertId, userId, startingPrice, stepPrice, deposit, toMysqlDatetime(endTime)],
+      );
       await connection.commit();
       return sendSuccess(res, { auctionId: a.insertId }, "Đã tạo phiên, chờ duyệt.", 201);
-    } catch (e) { await connection.rollback(); logger.error(e); return sendError(res, "ERR_SERVER", "Lỗi server.", 500); } finally { connection.release(); }
+    } catch (e) {
+      await connection.rollback();
+      logger.error(e);
+      return sendError(res, "ERR_SERVER", "Lỗi server.", 500);
+    } finally {
+      connection.release();
+    }
   }
 
   // --- HÀM QUAN TRỌNG ĐANG BỊ THIẾU ---
@@ -195,17 +260,30 @@ class AuctionController {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
-      const [rows] = await connection.execute(`SELECT a.*, p.name AS product_name FROM Auctions a INNER JOIN Products p ON p.id = a.product_id WHERE a.id = ? FOR UPDATE`, [auctionId]);
-      if (rows.length === 0) { await connection.rollback(); return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy.", 404); }
+      const [rows] = await connection.execute(
+        `SELECT a.*, p.name AS product_name FROM Auctions a INNER JOIN Products p ON p.id = a.product_id WHERE a.id = ? FOR UPDATE`,
+        [auctionId],
+      );
+      if (rows.length === 0) {
+        await connection.rollback();
+        return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy.", 404);
+      }
 
       const auction = rows[0];
       let finalEndTime = new Date(auction.end_time);
 
       if (requestedStatus === "Active") {
         finalEndTime = resolveApprovedEndTime(auction.end_time, req.body?.endTime);
-        await connection.execute(`UPDATE Auctions SET status = ?, end_time = ?, version = version + 1 WHERE id = ?`, [requestedStatus, toMysqlDatetime(finalEndTime), auctionId]);
+        await connection.execute(`UPDATE Auctions SET status = ?, end_time = ?, version = version + 1 WHERE id = ?`, [
+          requestedStatus,
+          toMysqlDatetime(finalEndTime),
+          auctionId,
+        ]);
       } else {
-        await connection.execute(`UPDATE Auctions SET status = ?, version = version + 1 WHERE id = ?`, [requestedStatus, auctionId]);
+        await connection.execute(`UPDATE Auctions SET status = ?, version = version + 1 WHERE id = ?`, [
+          requestedStatus,
+          auctionId,
+        ]);
       }
       await connection.commit();
 
@@ -213,35 +291,141 @@ class AuctionController {
         await syncApprovedAuctionToRedis({ ...auction, status: requestedStatus, end_time: finalEndTime });
       }
       return sendSuccess(res, { status: requestedStatus }, "Duyệt thành công.");
-    } catch (e) { await connection.rollback(); logger.error(e); return sendError(res, "ERR_SERVER", "Lỗi server.", 500); } finally { connection.release(); }
+    } catch (e) {
+      await connection.rollback();
+      logger.error(e);
+      return sendError(res, "ERR_SERVER", "Lỗi server.", 500);
+    } finally {
+      connection.release();
+    }
   }
 
   static async getDepositStatus(req, res) {
     const userId = req.user.id;
     const auctionId = Number(req.params.id);
     try {
-      const [rows] = await pool.execute(`SELECT status, amount FROM auction_deposits WHERE auction_id = ? AND user_id = ?`, [auctionId, userId]);
+      const [rows] = await pool.execute(
+        `SELECT status, amount FROM auction_deposits WHERE auction_id = ? AND user_id = ?`,
+        [auctionId, userId],
+      );
       return sendSuccess(res, rows[0] || { status: "NONE", amount: 0 });
-    } catch (e) { return sendError(res, "ERR_SERVER", "Lỗi.", 500); }
+    } catch (e) {
+      return sendError(res, "ERR_SERVER", "Lỗi.", 500);
+    }
   }
 
   static async createDeposit(req, res) {
     const userId = req.user.id;
     const auctionId = Number(req.params.id);
     try {
-      const [aucs] = await pool.execute("SELECT status, requires_deposit, deposit_amount FROM Auctions WHERE id = ?", [auctionId]);
+      const [aucs] = await pool.execute("SELECT status, requires_deposit, deposit_amount FROM Auctions WHERE id = ?", [
+        auctionId,
+      ]);
       if (aucs.length === 0) return sendError(res, "ERR_NOT_FOUND", "Không thấy.", 404);
       const auc = aucs[0];
       const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"], mode: "payment",
-        line_items: [{ price_data: { currency: "usd", product_data: { name: `Cọc phiên #${auctionId}` }, unit_amount: Math.round(auc.deposit_amount * 100) }, quantity: 1 }],
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: { name: `Cọc phiên #${auctionId}` },
+              unit_amount: Math.round(auc.deposit_amount * 100),
+            },
+            quantity: 1,
+          },
+        ],
         success_url: `${process.env.CLIENT_URL}/auction-detail.html?id=${auctionId}&deposit=success`,
         cancel_url: `${process.env.CLIENT_URL}/auction-detail.html?id=${auctionId}&deposit=failed`,
         metadata: { type: "deposit", auction_id: auctionId.toString(), user_id: userId.toString() },
       });
-      await pool.execute("INSERT INTO auction_deposits (auction_id, user_id, amount, status, stripe_session_id) VALUES (?, ?, ?, 'PENDING', ?) ON DUPLICATE KEY UPDATE stripe_session_id = VALUES(stripe_session_id)", [auctionId, userId, auc.deposit_amount, session.id]);
+      await pool.execute(
+        "INSERT INTO auction_deposits (auction_id, user_id, amount, status, stripe_session_id) VALUES (?, ?, ?, 'PENDING', ?) ON DUPLICATE KEY UPDATE stripe_session_id = VALUES(stripe_session_id)",
+        [auctionId, userId, auc.deposit_amount, session.id],
+      );
       return sendSuccess(res, { url: session.url });
-    } catch (e) { logger.error(e); return sendError(res, "ERR_SERVER", "Lỗi Stripe.", 500); }
+    } catch (e) {
+      logger.error(e);
+      return sendError(res, "ERR_SERVER", "Lỗi Stripe.", 500);
+    }
+  }
+
+  // ==========================================
+  // CÁC HÀM CỦA ADMIN (Tích hợp Redis + BullMQ)
+  // ==========================================
+
+  static async approveAuction(req, res) {
+    const auctionId = Number(req.params.id);
+    const adminId = req.user.id;
+
+    try {
+      const [rows] = await pool.execute('SELECT * FROM Auctions WHERE id = ? AND status = "Pending"', [auctionId]);
+      if (rows.length === 0) return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy lô hợp lệ để duyệt.", 404);
+
+      const auction = rows[0];
+
+      // 1. Cập nhật trạng thái SQL
+      await pool.execute(
+        'UPDATE Auctions SET status = "Scheduled", approved_by = ?, approved_at = NOW() WHERE id = ?',
+        [adminId, auctionId],
+      );
+
+      // 2. Đồng bộ lên Redis Cache cho Realtime
+      await redisClient.hSet(redisKeys.auctionInfo(auctionId), {
+        current_price: String(auction.current_price),
+        step_price: String(auction.step_price),
+        status: "Scheduled",
+        version: "0",
+        highest_bidder: "",
+        end_time: String(new Date(auction.end_time).getTime()),
+        extension_count: "0",
+      });
+
+      // 3. Đưa vào hàng đợi BullMQ để tự động kết thúc phiên
+      await scheduleAuctionClose(auctionId, new Date(auction.end_time));
+
+      // 4. Bắn thông báo cho người bán
+      await pool.execute(
+        `INSERT INTO Notifications (user_id, auction_id, type, title, message, action_url)
+         VALUES (?, ?, 'AUCTION_APPROVED', 'Lô hàng đã được duyệt', 'Phiên đấu giá của bạn đã được admin phê duyệt và lên lịch!', '/pages/product-detail.html?id=${auctionId}')`,
+        [auction.created_by, auctionId],
+      );
+
+      logger.success(`[Admin Action] Đã duyệt lô ${auctionId}. Đẩy thành công lên Sàn và Redis.`);
+      return sendSuccess(res, null, "Phê duyệt thành công! Phiên đã lên sàn.");
+    } catch (error) {
+      logger.error(error);
+      return sendError(res, "ERR_SERVER", "Lỗi khi phê duyệt.", 500);
+    }
+  }
+
+  static async rejectAuction(req, res) {
+    const auctionId = Number(req.params.id);
+    const adminId = req.user.id;
+    try {
+      // Lấy id người tạo để gửi thông báo
+      const [rows] = await pool.execute('SELECT created_by FROM Auctions WHERE id = ? AND status = "Pending"', [
+        auctionId,
+      ]);
+      if (rows.length === 0) return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy lô hợp lệ.", 404);
+
+      await pool.execute('UPDATE Auctions SET status = "Rejected", rejected_by = ?, rejected_at = NOW() WHERE id = ?', [
+        adminId,
+        auctionId,
+      ]);
+
+      // Bắn thông báo cho người bán
+      await pool.execute(
+        `INSERT INTO Notifications (user_id, auction_id, type, title, message)
+         VALUES (?, ?, 'AUCTION_REJECTED', 'Lô hàng bị từ chối', 'Phiên đấu giá của bạn không vượt qua được bước kiểm duyệt.')`,
+        [rows[0].created_by, auctionId],
+      );
+
+      return sendSuccess(res, null, "Đã từ chối lô hàng này.");
+    } catch (error) {
+      return sendError(res, "ERR_SERVER", "Lỗi server.", 500);
+    }
   }
 }
 

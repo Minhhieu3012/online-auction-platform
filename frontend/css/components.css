@@ -245,11 +245,13 @@
 }
 
 .home-settings-menu-minimal {
-  width: 58px;
-  padding: 5px;
+  /* Đổi từ width: 58px sang min-width để tự động giãn theo chữ */
+  min-width: 150px;
+  padding: 8px;
   display: grid;
   grid-template-columns: 1fr;
   gap: 5px;
+  white-space: nowrap; /* Tránh rớt dòng chữ */
 }
 
 .home-settings-item {
@@ -657,7 +659,7 @@
   }
 
   .home-settings-menu-minimal {
-    width: 58px;
+    min-width: 150px;
   }
 
   .home-settings-trigger span {

@@ -1,3 +1,6 @@
+DROP DATABASE IF EXISTS auction_db;
+
+UPDATE Users SET role = 'admin' WHERE username = 'admin123';
 CREATE DATABASE IF NOT EXISTS auction_db
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
@@ -5,20 +8,6 @@ CREATE DATABASE IF NOT EXISTS auction_db
 USE auction_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
-
-DROP TABLE IF EXISTS Admin_Action_Logs;
-DROP TABLE IF EXISTS Notifications;
-DROP TABLE IF EXISTS Watchlists;
-DROP TABLE IF EXISTS Fraud_Alerts;
-DROP TABLE IF EXISTS Transactions;
-DROP TABLE IF EXISTS auction_settlements;
-DROP TABLE IF EXISTS auction_deposits;
-DROP TABLE IF EXISTS AutoBids;
-DROP TABLE IF EXISTS Bids;
-DROP TABLE IF EXISTS Auctions;
-DROP TABLE IF EXISTS Products;
-DROP TABLE IF EXISTS Users;
-
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE Users (

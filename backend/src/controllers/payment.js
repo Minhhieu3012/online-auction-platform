@@ -6,14 +6,11 @@ class PaymentController {
   static async handleStripeWebhook(req, res) {
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
     let event;
 
-    // 1. Xác thực tính toàn vẹn của dữ liệu từ Stripe
+    // 1. Xác thực bảo mật với Stripe
     try {
-      if (!endpointSecret) {
-        throw new Error("STRIPE_WEBHOOK_SECRET chưa được cấu hình trong biến môi trường.");
-      }
+      if (!endpointSecret) throw new Error("Thiếu STRIPE_WEBHOOK_SECRET");
       event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
       logger.error(`[Webhook Error] Xác thực thất bại: ${err.message}`);
@@ -26,26 +23,55 @@ class PaymentController {
       const type = session.metadata?.type;
       const auctionId = session.metadata?.auction_id;
 
-      if (!auctionId) {
-        logger.warn("[Webhook] Nhận session thành công nhưng thiếu metadata auction_id");
+      // Lấy loại giao dịch từ metadata do Frontend cấu hình lúc gọi Stripe
+      const paymentType = session.metadata?.payment_type; // 'deposit' hoặc 'settlement'
+      const auctionId = session.metadata?.auction_id;
+      const userId = session.metadata?.user_id;
+
+      if (!auctionId || !userId) {
+        logger.warn("[Webhook] Thiếu metadata auction_id hoặc user_id. Bỏ qua.");
         return res.status(200).json({ received: true });
       }
 
-      // ----------------------------------------------------
-      // XỬ LÝ THANH TOÁN ĐẶT CỌC (DEPOSIT)
-      // ----------------------------------------------------
-      if (type === "deposit") {
-        try {
-          // Lưu payment_intent để Worker xử lý refund sau này
-          await pool.execute(
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+
+        if (paymentType === "deposit") {
+          // Nghiệp vụ 1: User thanh toán TIỀN CỌC ĐẤU GIÁ
+          await connection.execute(
             `UPDATE auction_deposits 
-             SET status = 'SUCCEEDED', provider_payment_id = ?, paid_at = NOW() 
-             WHERE stripe_session_id = ?`,
-            [session.payment_intent, session.id]
+                 SET status = 'SUCCEEDED', stripe_session_id = ?, paid_at = NOW() 
+                 WHERE auction_id = ? AND user_id = ? AND status = 'PENDING'`,
+            [session.id, auctionId, userId],
           );
-          logger.success(`[Webhook] User đã đặt cọc thành công cho phiên ${auctionId}`);
-        } catch (e) {
-          logger.error(`[Webhook Deposit Lỗi DB]: ${e.message}`);
+
+          // Lưu lịch sử Giao dịch
+          await connection.execute(
+            `INSERT INTO Transactions (user_id, auction_id, amount, type, status, provider_session_id) 
+                 VALUES (?, ?, ?, 'AUCTION_DEPOSIT', 'SUCCESS', ?)`,
+            [userId, auctionId, session.amount_total / 100, session.id],
+          );
+          logger.success(`[Payment] User #${userId} nạp Cọc thành công cho Lô #${auctionId}`);
+        } else if (paymentType === "settlement") {
+          // Nghiệp vụ 2: Winner THANH TOÁN TIỀN THẮNG CUỘC
+          await connection.execute(
+            `UPDATE auction_settlements 
+                 SET status = 'PAID', stripe_session_id = ?, paid_at = NOW() 
+                 WHERE auction_id = ? AND winner_id = ?`,
+            [session.id, auctionId, userId],
+          );
+
+          // Cập nhật trạng thái Lô hàng thành Hoàn Tất
+          await connection.execute(`UPDATE Auctions SET status = 'Completed' WHERE id = ?`, [auctionId]);
+
+          // Lưu lịch sử Giao dịch
+          await connection.execute(
+            `INSERT INTO Transactions (user_id, auction_id, amount, type, status, provider_session_id) 
+                 VALUES (?, ?, ?, 'WIN_FULL_PAYMENT', 'SUCCESS', ?)`,
+            [userId, auctionId, session.amount_total / 100, session.id],
+          );
+          logger.success(`[Payment] Winner #${userId} đã thanh toán chốt đơn Lô #${auctionId}`);
         }
         return res.status(200).json({ received: true });
       }
@@ -94,7 +120,7 @@ class PaymentController {
       }
     }
 
-    // Luôn trả về 200 để Stripe không gửi lại webhook
+    // Phải trả về 200 để Stripe không gọi lại liên tục
     res.status(200).json({ received: true });
   }
 }
