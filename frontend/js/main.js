@@ -1,6 +1,78 @@
 // frontend/js/main.js
 import { initTheme } from "./core/theme.js";
 import { initSiteHeader } from "./core/header.js";
+import apiClient from "./core/api-client.js";
+import "./core/socket-client.js";
+
+const API_ORIGIN = window.BROSGEM_API_ORIGIN || "http://localhost:3000";
+
+const PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+    <rect width="900" height="700" fill="#151516"/>
+    <rect x="42" y="42" width="816" height="616" fill="none" stroke="#c5a059" stroke-opacity=".5"/>
+    <text x="450" y="330" text-anchor="middle" fill="#c5a059" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="7">BROSGEM</text>
+    <text x="450" y="380" text-anchor="middle" fill="#aeb6c2" font-family="Arial, sans-serif" font-size="18" letter-spacing="4">DATABASE IMAGE</text>
+  </svg>
+`)}`;
+
+let featuredAuctions = [];
+let featuredCountdownTimer = null;
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function getRawValue(object, keys, fallback = null) {
+  for (const key of keys) {
+    if (object && object[key] !== undefined && object[key] !== null) {
+      return object[key];
+    }
+  }
+
+  return fallback;
+}
+
+function toNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function normalizeStatus(status) {
+  return String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+function parseTimeMs(value) {
+  if (!value) return 0;
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const text = String(value).trim();
+
+  if (/^\d+$/.test(text)) {
+    return Number(text);
+  }
+
+  const parsed = new Date(text).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
 
 function formatCountdownParts(distanceMs) {
   const totalSeconds = Math.max(0, Math.floor(distanceMs / 1000));
@@ -11,36 +83,318 @@ function formatCountdownParts(distanceMs) {
   const seconds = totalSeconds % 60;
 
   if (days > 0) {
-    return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
   }
 
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function initCountdowns() {
-  const countdownElements = Array.from(document.querySelectorAll("[data-countdown]"));
+function formatCountdown(endTime) {
+  const endTimeMs = parseTimeMs(endTime);
 
-  if (countdownElements.length === 0) {
+  if (!endTimeMs) {
+    return "Đang cập nhật";
+  }
+
+  const distance = endTimeMs - Date.now();
+
+  if (distance <= 0) {
+    return "Đã kết thúc";
+  }
+
+  return formatCountdownParts(distance);
+}
+
+function getStatusLabel(status) {
+  const map = {
+    active: "Đang Diễn Ra",
+    closing: "Sắp Đóng",
+    scheduled: "Đã Lên Lịch",
+    ended: "Đã Kết Thúc",
+    payment_pending: "Chờ Thanh Toán",
+    completed: "Hoàn Tất",
+    cancelled: "Đã Hủy",
+  };
+
+  return map[normalizeStatus(status)] || "Đang Cập Nhật";
+}
+
+function getStatusClass(status) {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "closing") return "status-closing";
+  if (normalized === "scheduled") return "status-scheduled";
+  if (normalized === "ended") return "status-ended";
+  if (normalized === "completed") return "status-completed";
+
+  return "status-active";
+}
+
+function resolveImageUrl(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return PLACEHOLDER_IMAGE;
+  }
+
+  if (raw.startsWith("data:") || raw.startsWith("blob:")) {
+    return raw;
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+
+  if (raw.startsWith("/uploads/")) {
+    return `${API_ORIGIN}${raw}`;
+  }
+
+  if (raw.startsWith("uploads/")) {
+    return `${API_ORIGIN}/${raw}`;
+  }
+
+  if (raw.startsWith("./") || raw.startsWith("../") || raw.startsWith("/")) {
+    return raw;
+  }
+
+  return `./${raw.replace(/^\/+/, "")}`;
+}
+
+function getAuctionsFromPayload(payload) {
+  const candidates = [
+    payload?.data?.auctions,
+    payload?.data?.items,
+    payload?.data?.results,
+    payload?.data,
+    payload?.auctions,
+    payload?.items,
+    payload,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
+function normalizeAuction(rawAuction = {}) {
+  const id = toNumber(getRawValue(rawAuction, ["id", "auction_id", "auctionId"]), 0);
+  const status = getRawValue(rawAuction, ["status"], "Active");
+  const currentPrice = toNumber(getRawValue(rawAuction, ["currentPrice", "current_price", "price"], 0), 0);
+  const imageUrl = getRawValue(rawAuction, ["imageUrl", "image_url", "productImage", "product_image"], null);
+  const rawBids = getRawValue(rawAuction, ["bidHistory", "bid_history", "bids"], []);
+  const bidCount = toNumber(getRawValue(rawAuction, ["bidCount", "bid_count", "bidsCount"], Array.isArray(rawBids) ? rawBids.length : 0), 0);
+  const endTime = getRawValue(rawAuction, ["endTime", "end_time", "endsAt", "ends_at"], null);
+
+  return {
+    id,
+    lot: getRawValue(rawAuction, ["lot"], `Lô #${String(id).padStart(3, "0")}`),
+    title: getRawValue(rawAuction, ["title", "product_name", "productName", "name"], "Vật phẩm đấu giá"),
+    description: getRawValue(rawAuction, ["description", "product_description"], "Đang cập nhật mô tả tài sản từ database."),
+    status,
+    currentPrice,
+    bidCount,
+    endTime,
+    imageUrl: resolveImageUrl(imageUrl),
+  };
+}
+
+function renderFeaturedLoading() {
+  const grid = document.querySelector("[data-featured-auctions]");
+
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <article class="auction-card" style="min-height: 320px; display: grid; place-items: center;">
+      <div style="text-align: center; padding: 32px;">
+        <span style="color: var(--primary); font-size: 28px;">◇</span>
+        <p style="margin-top: 12px; color: var(--text-muted); font-weight: 800; letter-spacing: .14em; text-transform: uppercase;">
+          Đang tải phiên đấu giá thật từ database...
+        </p>
+      </div>
+    </article>
+  `;
+}
+
+function renderFeaturedEmpty() {
+  const grid = document.querySelector("[data-featured-auctions]");
+
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <article class="auction-card" style="grid-column: 1 / -1; min-height: 320px; display: grid; place-items: center; border: 1px dashed var(--border);">
+      <div style="text-align: center; max-width: 620px; padding: 38px;">
+        <span style="color: var(--primary); font-size: 30px;">◇</span>
+        <h3 style="margin-top: 16px; color: var(--text); text-transform: uppercase; letter-spacing: .08em;">
+          Chưa có phiên đấu giá đang mở
+        </h3>
+        <p style="margin-top: 10px; color: var(--text-muted); line-height: 1.7;">
+          Khi admin duyệt phiên đấu giá từ database, các lô đang mở sẽ tự động xuất hiện tại đây.
+        </p>
+        <a href="./pages/live-auctions.html" class="button button-outline" style="margin-top: 22px;">
+          Kiểm Tra Trang Đấu Giá
+        </a>
+      </div>
+    </article>
+  `;
+}
+
+function renderFeaturedError(message) {
+  const grid = document.querySelector("[data-featured-auctions]");
+
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <article class="auction-card" style="grid-column: 1 / -1; min-height: 320px; display: grid; place-items: center; border: 1px solid rgba(225,96,96,.5);">
+      <div style="text-align: center; max-width: 620px; padding: 38px;">
+        <span style="color: #ff8f8f; font-size: 30px;">!</span>
+        <h3 style="margin-top: 16px; color: var(--text); text-transform: uppercase; letter-spacing: .08em;">
+          Không thể tải dữ liệu đấu giá
+        </h3>
+        <p style="margin-top: 10px; color: var(--text-muted); line-height: 1.7;">
+          ${escapeHtml(message || "Kiểm tra backend API /api/auctions.")}
+        </p>
+        <button type="button" class="button button-outline" data-retry-featured style="margin-top: 22px;">
+          Thử Lại
+        </button>
+      </div>
+    </article>
+  `;
+
+  grid.querySelector("[data-retry-featured]")?.addEventListener("click", loadFeaturedAuctions);
+}
+
+function renderFeaturedCard(auction) {
+  return `
+    <article class="auction-card" data-featured-auction-id="${escapeHtml(auction.id)}">
+      <a href="./pages/auction-detail.html?id=${encodeURIComponent(auction.id)}" style="color: inherit; text-decoration: none;">
+        <div class="auction-card-media">
+          <img
+            src="${escapeHtml(auction.imageUrl)}"
+            alt="${escapeHtml(auction.title)}"
+            loading="lazy"
+            data-real-auction-image
+          />
+          <span class="status-badge ${getStatusClass(auction.status)}">${getStatusLabel(auction.status)}</span>
+        </div>
+
+        <div class="auction-card-body">
+          <div class="auction-card-meta">
+            <span>${escapeHtml(auction.lot)}</span>
+            <span>${auction.bidCount} lượt giá</span>
+          </div>
+
+          <h3>${escapeHtml(auction.title)}</h3>
+          <p>${escapeHtml(auction.description)}</p>
+
+          <div class="auction-card-divider"></div>
+
+          <div class="auction-card-bottom">
+            <div>
+              <span class="field-label">Giá Hiện Tại</span>
+              <strong>${formatMoney(auction.currentPrice)}</strong>
+            </div>
+            <div>
+              <span class="field-label">Kết Thúc Trong</span>
+              <strong data-featured-countdown="${escapeHtml(auction.id)}">${formatCountdown(auction.endTime)}</strong>
+            </div>
+          </div>
+        </div>
+      </a>
+    </article>
+  `;
+}
+
+function attachImageFallbacks(root = document) {
+  root.querySelectorAll("[data-real-auction-image]").forEach((image) => {
+    image.addEventListener(
+      "error",
+      () => {
+        image.src = PLACEHOLDER_IMAGE;
+      },
+      { once: true },
+    );
+  });
+}
+
+function renderFeaturedAuctions() {
+  const grid = document.querySelector("[data-featured-auctions]");
+
+  if (!grid) return;
+
+  const visibleAuctions = featuredAuctions
+    .filter((auction) => ["active", "closing"].includes(normalizeStatus(auction.status)))
+    .sort((left, right) => parseTimeMs(left.endTime) - parseTimeMs(right.endTime))
+    .slice(0, 3);
+
+  if (visibleAuctions.length === 0) {
+    renderFeaturedEmpty();
     return;
   }
 
-  const updateCountdowns = () => {
-    const now = Date.now();
+  grid.innerHTML = visibleAuctions.map(renderFeaturedCard).join("");
+  attachImageFallbacks(grid);
+  refreshFeaturedCountdowns();
+}
 
-    countdownElements.forEach((element) => {
-      const targetDate = new Date(element.dataset.countdown).getTime();
+function refreshFeaturedCountdowns() {
+  document.querySelectorAll("[data-featured-countdown]").forEach((element) => {
+    const auctionId = Number(element.dataset.featuredCountdown);
+    const auction = featuredAuctions.find((item) => Number(item.id) === auctionId);
 
-      if (Number.isNaN(targetDate)) {
-        return;
-      }
+    if (!auction) return;
 
-      const distance = targetDate - now;
-      element.textContent = formatCountdownParts(distance);
-    });
-  };
+    element.textContent = formatCountdown(auction.endTime);
+  });
+}
 
-  updateCountdowns();
-  window.setInterval(updateCountdowns, 1000);
+async function loadFeaturedAuctions() {
+  renderFeaturedLoading();
+
+  try {
+    const response = await apiClient.get(
+      "/auctions",
+      {
+        status: "active",
+      },
+      {
+        auth: false,
+        redirectOnUnauthorized: false,
+        idempotency: false,
+      },
+    );
+
+    featuredAuctions = getAuctionsFromPayload(response)
+      .map(normalizeAuction)
+      .filter((auction) => auction.id > 0);
+
+    renderFeaturedAuctions();
+  } catch (error) {
+    featuredAuctions = [];
+    renderFeaturedError(error.message || "Backend chưa trả dữ liệu đấu giá.");
+  }
+}
+
+function startFeaturedCountdownTicker() {
+  if (featuredCountdownTimer) {
+    window.clearInterval(featuredCountdownTimer);
+  }
+
+  featuredCountdownTimer = window.setInterval(refreshFeaturedCountdowns, 1000);
+}
+
+function bindFeaturedSocketEvents() {
+  if (!window.socketClient) return;
+
+  window.socketClient.connect("global");
+
+  window.socketClient.on("new_bid", loadFeaturedAuctions);
+  window.socketClient.on("auction_winner", loadFeaturedAuctions);
+  window.socketClient.on("auction_finalized", loadFeaturedAuctions);
+  window.socketClient.on("auction_extended", loadFeaturedAuctions);
 }
 
 function injectPaymentSuccessStyles() {
@@ -269,8 +623,10 @@ function initHomePage() {
     topRevealOffset: 12,
   });
 
-  initCountdowns();
   initPaymentReturnNotice();
+  loadFeaturedAuctions();
+  startFeaturedCountdownTicker();
+  bindFeaturedSocketEvents();
 }
 
 document.addEventListener("DOMContentLoaded", initHomePage);
