@@ -416,21 +416,23 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   const loginHref = isRoot ? "./pages/login.html" : "./login.html";
   const accountHref = isRoot ? "./pages/account.html" : "./account.html";
   const adminHref = isRoot ? "./pages/admin.html" : "./admin.html";
-  const publishHref = isRoot ? "./pages/publish-lot.html" : "./publish-lot.html";
+  const publishHref = isRoot ? "./pages/account.html#publish" : "./account.html#publish";
   const notificationsHref = isRoot ? "./pages/notifications.html" : "./notifications.html";
   const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
   const settingsHref = authenticated
-    ? adminUser
-      ? adminHref
-      : isRoot
-        ? "./pages/account.html#settings"
-        : "./account.html#settings"
-    : loginHref;
+  ? adminUser
+    ? adminHref
+    : isRoot
+      ? "./pages/account.html#settings"
+      : "./account.html#settings"
+  : loginHref;
 
-  const actionHref = authenticated ? (adminUser ? adminHref : accountHref) : loginHref;
-  const actionText = authenticated ? (adminUser ? "QUẢN TRỊ" : "TÀI KHOẢN") : "ĐĂNG NHẬP";
-  const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noopener noreferrer"' : "";
+const logoutHref = loginHref;
+
+const actionHref = authenticated ? (adminUser ? adminHref : accountHref) : loginHref;
+const actionText = authenticated ? (adminUser ? "QUẢN TRỊ" : "TÀI KHOẢN") : "ĐĂNG NHẬP";
+const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noopener noreferrer"' : "";
 
   return `
     <header class="site-header home-luxury-header" data-header>
@@ -442,7 +444,6 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
         <a href="${homeHref}" class="nav-link ${activePage === "home" ? "is-active" : ""}">Trang Chủ</a>
         <a href="${collectionsHref}" class="nav-link ${activePage === "collections" ? "is-active" : ""}">Bộ Sưu Tập</a>
         <a href="${liveAuctionsHref}" class="nav-link ${activePage === "live-auctions" ? "is-active" : ""}">Đấu Giá Trực Tiếp</a>
-        <a href="${publishHref}" class="nav-link ${activePage === "publish" ? "is-active" : ""}">Đăng Bán</a>
         <a href="${protocolHref}" class="nav-link">Giao Thức Tin Cậy</a>
       </nav>
 
@@ -508,26 +509,43 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
           </button>
 
           <div class="home-settings-menu home-settings-menu-minimal" data-home-settings-menu hidden>
-            <button
-              class="home-settings-item home-settings-icon-only"
-              type="button"
-              data-theme-toggle
-              aria-label="Đổi giao diện"
-              title="Đổi giao diện"
-            >
-              <span data-theme-icon aria-hidden="true">☾</span>
-            </button>
+  <button
+    class="home-settings-item home-settings-icon-only"
+    type="button"
+    data-theme-toggle
+    aria-label="Đổi giao diện"
+    title="Đổi giao diện"
+  >
+    <span data-theme-icon aria-hidden="true">☾</span>
+  </button>
 
-            <a
-              class="home-settings-item home-settings-icon-only"
-              href="${settingsHref}"
-              aria-label="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
-              title="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
-              ${adminUser ? 'target="_blank" rel="noopener noreferrer"' : ""}
-            >
-              <span aria-hidden="true">⚙</span>
-            </a>
-          </div>
+  <a
+    class="home-settings-item home-settings-icon-only"
+    href="${settingsHref}"
+    aria-label="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
+    title="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
+    ${adminUser ? 'target="_blank" rel="noopener noreferrer"' : ""}
+  >
+    <span aria-hidden="true">⚙</span>
+  </a>
+
+  ${
+    authenticated
+      ? `
+        <button
+          class="home-settings-item home-settings-icon-only"
+          type="button"
+          data-logout-btn
+          data-logout-redirect="${logoutHref}"
+          aria-label="Đăng xuất"
+          title="Đăng xuất"
+        >
+          <span aria-hidden="true">⎋</span>
+        </button>
+      `
+      : ""
+  }
+</div>
         </div>
       </div>
 
@@ -709,8 +727,13 @@ function bindNotificationDropdown() {
 function bindLogoutButtons() {
   document.querySelectorAll("[data-logout-btn]").forEach((button) => {
     button.addEventListener("click", () => {
+      const redirectHref = button.dataset.logoutRedirect || "./login.html";
+
       apiClient.clearAuth();
-      window.location.href = joinPath(".", "pages/login.html");
+      closeHeaderPopovers?.();
+      closeSettingsMenus?.();
+
+      window.location.href = redirectHref;
     });
   });
 }
