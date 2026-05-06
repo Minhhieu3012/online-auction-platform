@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const { sendSuccess, sendError } = require("../utils/response");
 const logger = require("../utils/logger");
+const DEFAULT_APPROVED_DURATION_MINUTES = 24 * 60;
 
 function toMysqlDatetime(date) {
   if (!date) return null;
@@ -430,7 +431,7 @@ class AdminController {
     }
   }
 
-  static async approveAuction(req, res) {
+    static async approveAuction(req, res) {
     const auctionId = Number(req.params.id);
     const { startTime, endTime } = req.body || {};
 
@@ -455,14 +456,96 @@ class AdminController {
       }
 
       const now = new Date();
-      const parsedStartTime = startTime ? new Date(startTime) : now;
-      const parsedEndTime = endTime ? new Date(endTime) : new Date(auction.end_time);
-      const nextStatus = parsedStartTime.getTime() > Date.now() ? "Scheduled" : "Active";
+      const nowMs = now.getTime();
 
-      if (Number.isNaN(parsedEndTime.getTime()) || parsedEndTime.getTime() <= Date.now()) {
+      const hasManualStartTime = Boolean(startTime);
+      const hasManualEndTime = Boolean(endTime);
+
+      let parsedStartTime = hasManualStartTime
+        ? new Date(startTime)
+        : auction.start_time
+          ? new Date(auction.start_time)
+          : now;
+
+      let parsedEndTime = hasManualEndTime
+        ? new Date(endTime)
+        : auction.end_time
+          ? new Date(auction.end_time)
+          : null;
+
+      if (Number.isNaN(parsedStartTime.getTime())) {
+        await connection.rollback();
+        return sendError(res, "ERR_INVALID_START_TIME", "Thời gian bắt đầu không hợp lệ.", 400);
+      }
+
+      const originalStartTime = auction.start_time ? new Date(auction.start_time) : null;
+      const originalEndTime = auction.end_time ? new Date(auction.end_time) : null;
+
+      let durationMs =
+        originalStartTime &&
+        originalEndTime &&
+        !Number.isNaN(originalStartTime.getTime()) &&
+        !Number.isNaN(originalEndTime.getTime())
+          ? originalEndTime.getTime() - originalStartTime.getTime()
+          : 0;
+
+      if (!Number.isFinite(durationMs) || durationMs <= 0) {
+        durationMs = DEFAULT_APPROVED_DURATION_MINUTES * 60000;
+      }
+
+      if (!parsedEndTime || Number.isNaN(parsedEndTime.getTime())) {
+        if (hasManualEndTime) {
+          await connection.rollback();
+          return sendError(res, "ERR_INVALID_END_TIME", "Thời gian kết thúc không hợp lệ.", 400);
+        }
+
+        parsedEndTime = new Date(parsedStartTime.getTime() + durationMs);
+      }
+
+      if (parsedEndTime.getTime() <= parsedStartTime.getTime()) {
+        if (hasManualStartTime || hasManualEndTime) {
+          await connection.rollback();
+          return sendError(
+            res,
+            "ERR_INVALID_AUCTION_WINDOW",
+            "Thời gian kết thúc phải lớn hơn thời gian bắt đầu.",
+            400,
+          );
+        }
+
+        parsedEndTime = new Date(parsedStartTime.getTime() + durationMs);
+      }
+
+      if (parsedEndTime.getTime() <= nowMs) {
+        if (hasManualStartTime || hasManualEndTime) {
+          await connection.rollback();
+          return sendError(res, "ERR_INVALID_END_TIME", "Thời gian kết thúc phải nằm trong tương lai.", 400);
+        }
+
+        if (parsedStartTime.getTime() <= nowMs) {
+          parsedStartTime = now;
+          parsedEndTime = new Date(nowMs + durationMs);
+        } else {
+          parsedEndTime = new Date(parsedStartTime.getTime() + durationMs);
+        }
+      }
+
+      if (parsedEndTime.getTime() <= parsedStartTime.getTime()) {
+        await connection.rollback();
+        return sendError(
+          res,
+          "ERR_INVALID_AUCTION_WINDOW",
+          "Thời gian kết thúc phải lớn hơn thời gian bắt đầu.",
+          400,
+        );
+      }
+
+      if (parsedEndTime.getTime() <= nowMs) {
         await connection.rollback();
         return sendError(res, "ERR_INVALID_END_TIME", "Thời gian kết thúc phải nằm trong tương lai.", 400);
       }
+
+      const nextStatus = parsedStartTime.getTime() > nowMs ? "Scheduled" : "Active";
 
       await connection.execute(
         `
@@ -496,8 +579,16 @@ class AdminController {
         targetType: "auction",
         targetId: auctionId,
         action: "APPROVE_AUCTION",
-        oldValue: { status: auction.status },
-        newValue: { status: nextStatus },
+        oldValue: {
+          status: auction.status,
+          start_time: auction.start_time,
+          end_time: auction.end_time,
+        },
+        newValue: {
+          status: nextStatus,
+          start_time: toMysqlDatetime(parsedStartTime),
+          end_time: toMysqlDatetime(parsedEndTime),
+        },
         note: "Admin duyệt phiên đấu giá.",
       });
 
@@ -508,6 +599,8 @@ class AdminController {
         {
           auctionId,
           status: nextStatus,
+          startTime: formatUTC(parsedStartTime),
+          endTime: formatUTC(parsedEndTime),
         },
         "Đã duyệt phiên đấu giá.",
       );
