@@ -28,7 +28,14 @@ function normalizeStatusForSql(status) {
     cancelled: "Cancelled",
   };
 
-  return statusMap[String(status || "").trim().toLowerCase().replace(/\s+/g, "_")] || null;
+  return (
+    statusMap[
+      String(status || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+    ] || null
+  );
 }
 
 function normalizeSort(sort) {
@@ -122,9 +129,7 @@ function normalizeImageList(value) {
   if (!value) return [];
 
   if (Array.isArray(value)) {
-    return value
-      .map((item) => String(item || "").trim())
-      .filter(Boolean);
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
   }
 
   if (typeof value === "string") {
@@ -445,16 +450,7 @@ async function tryInsertAdminLog(connection, payload) {
 
 class AuctionController {
   static async listAuctions(req, res) {
-    const {
-      status,
-      category,
-      q,
-      sort = "ending-soon",
-      limit = 100,
-      offset = 0,
-      createdBy,
-      scope,
-    } = req.query;
+    const { status, category, q, sort = "ending-soon", limit = 100, offset = 0, createdBy, scope } = req.query;
 
     const adminMode = scope === "admin" || isAdmin(req);
 
@@ -515,11 +511,7 @@ class AuctionController {
 
       const hydratedRows = await hydrateAuctionRowsWithImages(rows);
 
-      return sendSuccess(
-        res,
-        { auctions: hydratedRows.map(mapAuctionRow) },
-        "Lấy danh sách phiên đấu giá thành công.",
-      );
+      return sendSuccess(res, { auctions: hydratedRows.map(mapAuctionRow) }, "Lấy danh sách phiên đấu giá thành công.");
     } catch (error) {
       logger.error("[Auction List Error]:", error);
       return sendError(res, "ERR_SERVER", "Không thể tải danh sách phiên đấu giá.", 500);
@@ -530,18 +522,13 @@ class AuctionController {
     const userId = req.user?.id;
 
     try {
-      const [rows] = await pool.execute(
-        `${getAuctionSelectSql("WHERE a.created_by = ?")} ORDER BY a.created_at DESC`,
-        [userId],
-      );
+      const [rows] = await pool.execute(`${getAuctionSelectSql("WHERE a.created_by = ?")} ORDER BY a.created_at DESC`, [
+        userId,
+      ]);
 
       const hydratedRows = await hydrateAuctionRowsWithImages(rows);
 
-      return sendSuccess(
-        res,
-        { auctions: hydratedRows.map(mapAuctionRow) },
-        "Lấy danh sách phiên của bạn thành công.",
-      );
+      return sendSuccess(res, { auctions: hydratedRows.map(mapAuctionRow) }, "Lấy danh sách phiên của bạn thành công.");
     } catch (error) {
       logger.error("[Auction Mine Error]:", error);
       return sendError(res, "ERR_SERVER", "Không thể tải phiên của bạn.", 500);
@@ -639,7 +626,6 @@ class AuctionController {
     const durationMinutes = requestedDurationMinutes || durationHours * 60;
 
     const requestedStatus = normalizeStatusForSql(req.body?.status);
-    const initialStatus = isAdmin(req) && requestedStatus ? requestedStatus : "Pending";
 
     const depositAmount = parsePositiveNumber(req.body?.depositAmount, Math.round(startingPrice * 0.1 * 100) / 100);
     const requiresDeposit = req.body?.requiresDeposit === false || req.body?.requires_deposit === false ? 0 : 1;
@@ -663,6 +649,8 @@ class AuctionController {
     if (Number.isNaN(endTime.getTime()) || endTime.getTime() <= Date.now()) {
       return sendError(res, "ERR_INVALID_TIME", "Thời gian kết thúc phiên đấu giá không hợp lệ.", 400);
     }
+
+    const initialStatus = isAdmin(req) && requestedStatus ? requestedStatus : "Pending";
 
     const connection = await pool.getConnection();
 
@@ -728,9 +716,7 @@ class AuctionController {
           auctionId,
           status: initialStatus,
         },
-        initialStatus === "Pending"
-          ? "Đã gửi phiên đấu giá, chờ admin duyệt."
-          : "Đã tạo phiên đấu giá thành công.",
+        initialStatus === "Pending" ? "Đã gửi phiên đấu giá, chờ admin duyệt." : "Đã tạo phiên đấu giá thành công.",
         201,
       );
     } catch (error) {
