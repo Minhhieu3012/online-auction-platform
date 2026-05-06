@@ -1,4 +1,4 @@
-const pool = require("../config/db");
+﻿const pool = require("../config/db");
 const { sendSuccess, sendError } = require("../utils/response");
 const logger = require("../utils/logger");
 
@@ -78,7 +78,7 @@ function parseJson(value, fallback = []) {
 function mapAuction(row) {
   return {
     id: row.id,
-    lot: `Lô #${String(row.id).padStart(3, "0")}`,
+    lot: `LÃ´ #${String(row.id).padStart(3, "0")}`,
     productId: row.product_id,
     title: row.product_name,
     description: row.description || "",
@@ -402,11 +402,11 @@ class AdminController {
           },
           topAuctions,
         },
-        "Lấy tổng quan quản trị thành công.",
+        "Láº¥y tá»•ng quan quáº£n trá»‹ thÃ nh cÃ´ng.",
       );
     } catch (error) {
       logger.error("[Admin Dashboard Error]:", error);
-      return sendError(res, "ERR_ADMIN_DASHBOARD", "Không thể tải dữ liệu tổng quan admin.", 500);
+      return sendError(res, "ERR_ADMIN_DASHBOARD", "KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u tá»•ng quan admin.", 500);
     }
   }
 
@@ -422,11 +422,11 @@ class AdminController {
             count: auctions.length,
           },
         },
-        "Lấy danh sách phiên đấu giá cho admin thành công.",
+        "Láº¥y danh sÃ¡ch phiÃªn Ä‘áº¥u giÃ¡ cho admin thÃ nh cÃ´ng.",
       );
     } catch (error) {
       logger.error("[Admin List Auctions Error]:", error);
-      return sendError(res, "ERR_ADMIN_AUCTIONS", "Không thể tải danh sách phiên đấu giá.", 500);
+      return sendError(res, "ERR_ADMIN_AUCTIONS", "KhÃ´ng thá»ƒ táº£i danh sÃ¡ch phiÃªn Ä‘áº¥u giÃ¡.", 500);
     }
   }
 
@@ -435,7 +435,7 @@ class AdminController {
     const { startTime, endTime } = req.body || {};
 
     if (!auctionId) {
-      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
+      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiÃªn Ä‘áº¥u giÃ¡ khÃ´ng há»£p lá»‡.", 400);
     }
 
     const connection = await pool.getConnection();
@@ -446,12 +446,12 @@ class AdminController {
       const auction = await getAuctionForUpdate(connection, auctionId);
       if (!auction) {
         await connection.rollback();
-        return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
+        return sendError(res, "ERR_AUCTION_NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y phiÃªn Ä‘áº¥u giÃ¡.", 404);
       }
 
       if (!["Pending", "Rejected", "Scheduled"].includes(auction.status)) {
         await connection.rollback();
-        return sendError(res, "ERR_INVALID_STATUS", "Chỉ có thể duyệt phiên đang chờ hoặc đã bị từ chối.", 400);
+        return sendError(res, "ERR_INVALID_STATUS", "Chá»‰ cÃ³ thá»ƒ duyá»‡t phiÃªn Ä‘ang chá» hoáº·c Ä‘Ã£ bá»‹ tá»« chá»‘i.", 400);
       }
 
       const now = new Date();
@@ -461,7 +461,7 @@ class AdminController {
 
       if (Number.isNaN(parsedEndTime.getTime()) || parsedEndTime.getTime() <= Date.now()) {
         await connection.rollback();
-        return sendError(res, "ERR_INVALID_END_TIME", "Thời gian kết thúc phải nằm trong tương lai.", 400);
+        return sendError(res, "ERR_INVALID_END_TIME", "Thá»i gian káº¿t thÃºc pháº£i náº±m trong tÆ°Æ¡ng lai.", 400);
       }
 
       await connection.execute(
@@ -487,8 +487,8 @@ class AdminController {
         userId: auction.created_by,
         auctionId,
         type: "AUCTION_APPROVED",
-        title: "Phiên đấu giá đã được duyệt",
-        message: `Phiên "${auction.product_name}" đã được admin thông qua.`,
+        title: "PhiÃªn Ä‘áº¥u giÃ¡ Ä‘Ã£ Ä‘Æ°á»£c duyá»‡t",
+        message: `PhiÃªn "${auction.product_name}" Ä‘Ã£ Ä‘Æ°á»£c admin thÃ´ng qua.`,
         actionUrl: `/pages/auction-detail.html?id=${auctionId}`,
       });
 
@@ -498,7 +498,7 @@ class AdminController {
         action: "APPROVE_AUCTION",
         oldValue: { status: auction.status },
         newValue: { status: nextStatus },
-        note: "Admin duyệt phiên đấu giá.",
+        note: "Admin duyá»‡t phiÃªn Ä‘áº¥u giÃ¡.",
       });
 
       await connection.commit();
@@ -509,12 +509,12 @@ class AdminController {
           auctionId,
           status: nextStatus,
         },
-        "Đã duyệt phiên đấu giá.",
+        "ÄÃ£ duyá»‡t phiÃªn Ä‘áº¥u giÃ¡.",
       );
     } catch (error) {
       await connection.rollback();
       logger.error("[Admin Approve Auction Error]:", error);
-      return sendError(res, "ERR_APPROVE_AUCTION", "Không thể duyệt phiên đấu giá.", 500);
+      return sendError(res, "ERR_APPROVE_AUCTION", "KhÃ´ng thá»ƒ duyá»‡t phiÃªn Ä‘áº¥u giÃ¡.", 500);
     } finally {
       connection.release();
     }
@@ -525,7 +525,7 @@ class AdminController {
     const reason = String(req.body?.reason || "").trim();
 
     if (!auctionId) {
-      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
+      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiÃªn Ä‘áº¥u giÃ¡ khÃ´ng há»£p lá»‡.", 400);
     }
 
     const connection = await pool.getConnection();
@@ -536,12 +536,12 @@ class AdminController {
       const auction = await getAuctionForUpdate(connection, auctionId);
       if (!auction) {
         await connection.rollback();
-        return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
+        return sendError(res, "ERR_AUCTION_NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y phiÃªn Ä‘áº¥u giÃ¡.", 404);
       }
 
       if (!["Pending", "Scheduled", "Rejected"].includes(auction.status)) {
         await connection.rollback();
-        return sendError(res, "ERR_INVALID_STATUS", "Chỉ có thể từ chối phiên đang chờ duyệt hoặc đã lên lịch.", 400);
+        return sendError(res, "ERR_INVALID_STATUS", "Chá»‰ cÃ³ thá»ƒ tá»« chá»‘i phiÃªn Ä‘ang chá» duyá»‡t hoáº·c Ä‘Ã£ lÃªn lá»‹ch.", 400);
       }
 
       await connection.execute(
@@ -556,15 +556,15 @@ class AdminController {
             updated_at = NOW()
           WHERE id = ?
         `,
-        [req.user.id, reason || "Không đạt yêu cầu duyệt.", auctionId],
+        [req.user.id, reason || "KhÃ´ng Ä‘áº¡t yÃªu cáº§u duyá»‡t.", auctionId],
       );
 
       await createNotification(connection, {
         userId: auction.created_by,
         auctionId,
         type: "AUCTION_REJECTED",
-        title: "Phiên đấu giá bị từ chối",
-        message: reason || `Phiên "${auction.product_name}" chưa được thông qua.`,
+        title: "PhiÃªn Ä‘áº¥u giÃ¡ bá»‹ tá»« chá»‘i",
+        message: reason || `PhiÃªn "${auction.product_name}" chÆ°a Ä‘Æ°á»£c thÃ´ng qua.`,
         actionUrl: `/pages/account.html#selling`,
       });
 
@@ -574,7 +574,7 @@ class AdminController {
         action: "REJECT_AUCTION",
         oldValue: { status: auction.status },
         newValue: { status: "Rejected", reason },
-        note: reason || "Admin từ chối phiên đấu giá.",
+        note: reason || "Admin tá»« chá»‘i phiÃªn Ä‘áº¥u giÃ¡.",
       });
 
       await connection.commit();
@@ -585,12 +585,12 @@ class AdminController {
           auctionId,
           status: "Rejected",
         },
-        "Đã từ chối phiên đấu giá.",
+        "ÄÃ£ tá»« chá»‘i phiÃªn Ä‘áº¥u giÃ¡.",
       );
     } catch (error) {
       await connection.rollback();
       logger.error("[Admin Reject Auction Error]:", error);
-      return sendError(res, "ERR_REJECT_AUCTION", "Không thể từ chối phiên đấu giá.", 500);
+      return sendError(res, "ERR_REJECT_AUCTION", "KhÃ´ng thá»ƒ tá»« chá»‘i phiÃªn Ä‘áº¥u giÃ¡.", 500);
     } finally {
       connection.release();
     }
@@ -601,7 +601,7 @@ class AdminController {
     const reason = String(req.body?.reason || "").trim();
 
     if (!auctionId) {
-      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
+      return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiÃªn Ä‘áº¥u giÃ¡ khÃ´ng há»£p lá»‡.", 400);
     }
 
     const connection = await pool.getConnection();
@@ -612,12 +612,12 @@ class AdminController {
       const auction = await getAuctionForUpdate(connection, auctionId);
       if (!auction) {
         await connection.rollback();
-        return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá.", 404);
+        return sendError(res, "ERR_AUCTION_NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y phiÃªn Ä‘áº¥u giÃ¡.", 404);
       }
 
       if (["Completed", "Cancelled"].includes(auction.status)) {
         await connection.rollback();
-        return sendError(res, "ERR_INVALID_STATUS", "Không thể hủy phiên đã hoàn tất hoặc đã hủy.", 400);
+        return sendError(res, "ERR_INVALID_STATUS", "KhÃ´ng thá»ƒ há»§y phiÃªn Ä‘Ã£ hoÃ n táº¥t hoáº·c Ä‘Ã£ há»§y.", 400);
       }
 
       await connection.execute(
@@ -632,15 +632,15 @@ class AdminController {
             updated_at = NOW()
           WHERE id = ?
         `,
-        [req.user.id, reason || "Admin hủy phiên đấu giá.", auctionId],
+        [req.user.id, reason || "Admin há»§y phiÃªn Ä‘áº¥u giÃ¡.", auctionId],
       );
 
       await createNotification(connection, {
         userId: auction.created_by,
         auctionId,
         type: "AUCTION_ENDED",
-        title: "Phiên đấu giá đã bị hủy",
-        message: reason || `Phiên "${auction.product_name}" đã bị admin hủy.`,
+        title: "PhiÃªn Ä‘áº¥u giÃ¡ Ä‘Ã£ bá»‹ há»§y",
+        message: reason || `PhiÃªn "${auction.product_name}" Ä‘Ã£ bá»‹ admin há»§y.`,
         actionUrl: `/pages/account.html#selling`,
       });
 
@@ -650,7 +650,7 @@ class AdminController {
         action: "CANCEL_AUCTION",
         oldValue: { status: auction.status },
         newValue: { status: "Cancelled", reason },
-        note: reason || "Admin hủy phiên đấu giá.",
+        note: reason || "Admin há»§y phiÃªn Ä‘áº¥u giÃ¡.",
       });
 
       await connection.commit();
@@ -661,12 +661,12 @@ class AdminController {
           auctionId,
           status: "Cancelled",
         },
-        "Đã hủy phiên đấu giá.",
+        "ÄÃ£ há»§y phiÃªn Ä‘áº¥u giÃ¡.",
       );
     } catch (error) {
       await connection.rollback();
       logger.error("[Admin Cancel Auction Error]:", error);
-      return sendError(res, "ERR_CANCEL_AUCTION", "Không thể hủy phiên đấu giá.", 500);
+      return sendError(res, "ERR_CANCEL_AUCTION", "KhÃ´ng thá»ƒ há»§y phiÃªn Ä‘áº¥u giÃ¡.", 500);
     } finally {
       connection.release();
     }
@@ -741,11 +741,11 @@ class AdminController {
         {
           users: rows.map(mapUser),
         },
-        "Lấy danh sách người dùng thành công.",
+        "Láº¥y danh sÃ¡ch ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng.",
       );
     } catch (error) {
       logger.error("[Admin List Users Error]:", error);
-      return sendError(res, "ERR_ADMIN_USERS", "Không thể tải danh sách người dùng.", 500);
+      return sendError(res, "ERR_ADMIN_USERS", "KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ngÆ°á»i dÃ¹ng.", 500);
     }
   }
 
@@ -761,11 +761,11 @@ class AdminController {
     const userId = Number(req.params.id);
 
     if (!userId) {
-      return sendError(res, "ERR_INVALID_USER_ID", "ID người dùng không hợp lệ.", 400);
+      return sendError(res, "ERR_INVALID_USER_ID", "ID ngÆ°á»i dÃ¹ng khÃ´ng há»£p lá»‡.", 400);
     }
 
     if (userId === Number(req.user.id)) {
-      return sendError(res, "ERR_SELF_LOCK", "Admin không thể tự khóa chính mình.", 400);
+      return sendError(res, "ERR_SELF_LOCK", "Admin khÃ´ng thá»ƒ tá»± khÃ³a chÃ­nh mÃ¬nh.", 400);
     }
 
     const connection = await pool.getConnection();
@@ -780,14 +780,14 @@ class AdminController {
 
       if (rows.length === 0) {
         await connection.rollback();
-        return sendError(res, "ERR_USER_NOT_FOUND", "Không tìm thấy người dùng.", 404);
+        return sendError(res, "ERR_USER_NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng.", 404);
       }
 
       const user = rows[0];
 
       if (user.role === "admin") {
         await connection.rollback();
-        return sendError(res, "ERR_LOCK_ADMIN", "Không thể khóa tài khoản admin khác tại giao diện này.", 400);
+        return sendError(res, "ERR_LOCK_ADMIN", "KhÃ´ng thá»ƒ khÃ³a tÃ i khoáº£n admin khÃ¡c táº¡i giao diá»‡n nÃ y.", 400);
       }
 
       await connection.execute("UPDATE Users SET account_status = ?, updated_at = NOW() WHERE id = ?", [status, userId]);
@@ -809,12 +809,12 @@ class AdminController {
           userId,
           status,
         },
-        status === "locked" ? "Đã khóa tài khoản người dùng." : "Đã mở khóa tài khoản người dùng.",
+        status === "locked" ? "ÄÃ£ khÃ³a tÃ i khoáº£n ngÆ°á»i dÃ¹ng." : "ÄÃ£ má»Ÿ khÃ³a tÃ i khoáº£n ngÆ°á»i dÃ¹ng.",
       );
     } catch (error) {
       await connection.rollback();
       logger.error("[Admin User Status Error]:", error);
-      return sendError(res, "ERR_USER_STATUS", "Không thể cập nhật trạng thái người dùng.", 500);
+      return sendError(res, "ERR_USER_STATUS", "KhÃ´ng thá»ƒ cáº­p nháº­t tráº¡ng thÃ¡i ngÆ°á»i dÃ¹ng.", 500);
     } finally {
       connection.release();
     }
@@ -871,11 +871,11 @@ class AdminController {
         {
           alerts: rows.map(mapFraudAlert),
         },
-        "Lấy danh sách cảnh báo gian lận thành công.",
+        "Láº¥y danh sÃ¡ch cáº£nh bÃ¡o gian láº­n thÃ nh cÃ´ng.",
       );
     } catch (error) {
       logger.error("[Admin Fraud Alerts Error]:", error);
-      return sendError(res, "ERR_FRAUD_ALERTS", "Không thể tải cảnh báo gian lận.", 500);
+      return sendError(res, "ERR_FRAUD_ALERTS", "KhÃ´ng thá»ƒ táº£i cáº£nh bÃ¡o gian láº­n.", 500);
     }
   }
 
@@ -885,11 +885,11 @@ class AdminController {
     const note = String(req.body?.note || "").trim();
 
     if (!alertId) {
-      return sendError(res, "ERR_INVALID_ALERT_ID", "ID cảnh báo không hợp lệ.", 400);
+      return sendError(res, "ERR_INVALID_ALERT_ID", "ID cáº£nh bÃ¡o khÃ´ng há»£p lá»‡.", 400);
     }
 
     if (!["OPEN", "REVIEWING", "RESOLVED", "DISMISSED"].includes(status)) {
-      return sendError(res, "ERR_INVALID_ALERT_STATUS", "Trạng thái cảnh báo không hợp lệ.", 400);
+      return sendError(res, "ERR_INVALID_ALERT_STATUS", "Tráº¡ng thÃ¡i cáº£nh bÃ¡o khÃ´ng há»£p lá»‡.", 400);
     }
 
     const connection = await pool.getConnection();
@@ -901,7 +901,7 @@ class AdminController {
 
       if (rows.length === 0) {
         await connection.rollback();
-        return sendError(res, "ERR_ALERT_NOT_FOUND", "Không tìm thấy cảnh báo.", 404);
+        return sendError(res, "ERR_ALERT_NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y cáº£nh bÃ¡o.", 404);
       }
 
       const alert = rows[0];
@@ -937,12 +937,12 @@ class AdminController {
           alertId,
           status,
         },
-        "Cập nhật cảnh báo gian lận thành công.",
+        "Cáº­p nháº­t cáº£nh bÃ¡o gian láº­n thÃ nh cÃ´ng.",
       );
     } catch (error) {
       await connection.rollback();
       logger.error("[Admin Update Fraud Alert Error]:", error);
-      return sendError(res, "ERR_UPDATE_FRAUD_ALERT", "Không thể cập nhật cảnh báo.", 500);
+      return sendError(res, "ERR_UPDATE_FRAUD_ALERT", "KhÃ´ng thá»ƒ cáº­p nháº­t cáº£nh bÃ¡o.", 500);
     } finally {
       connection.release();
     }
@@ -981,11 +981,11 @@ class AdminController {
         {
           settlements: rows.map(mapSettlement),
         },
-        "Lấy danh sách đối soát thành công.",
+        "Láº¥y danh sÃ¡ch Ä‘á»‘i soÃ¡t thÃ nh cÃ´ng.",
       );
     } catch (error) {
       logger.error("[Admin Settlements Error]:", error);
-      return sendError(res, "ERR_SETTLEMENTS", "Không thể tải dữ liệu đối soát.", 500);
+      return sendError(res, "ERR_SETTLEMENTS", "KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u Ä‘á»‘i soÃ¡t.", 500);
     }
   }
 
@@ -1032,11 +1032,11 @@ class AdminController {
             createdAt: formatUTC(row.created_at),
           })),
         },
-        "Lấy nhật ký quản trị thành công.",
+        "Láº¥y nháº­t kÃ½ quáº£n trá»‹ thÃ nh cÃ´ng.",
       );
     } catch (error) {
       logger.error("[Admin Action Logs Error]:", error);
-      return sendError(res, "ERR_ADMIN_LOGS", "Không thể tải nhật ký quản trị.", 500);
+      return sendError(res, "ERR_ADMIN_LOGS", "KhÃ´ng thá»ƒ táº£i nháº­t kÃ½ quáº£n trá»‹.", 500);
     }
   }
 }

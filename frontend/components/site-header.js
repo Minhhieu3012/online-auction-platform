@@ -12,6 +12,8 @@ const HEADER_CONFIG = {
 const NOTIFICATION_LIMIT = 6;
 
 let isNotificationDropdownBound = false;
+let currentNotifications = [];
+let isMarkingAllNotifications = false;
 
 function normalizeBasePath(basePath) {
   return !basePath || basePath === "." ? "." : basePath.replace(/\/$/, "");
@@ -108,6 +110,83 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+const WINDOWS_1252_REVERSE_MAP = new Map([
+  ["€", 0x80],
+  ["‚", 0x82],
+  ["ƒ", 0x83],
+  ["„", 0x84],
+  ["…", 0x85],
+  ["†", 0x86],
+  ["‡", 0x87],
+  ["ˆ", 0x88],
+  ["‰", 0x89],
+  ["Š", 0x8a],
+  ["‹", 0x8b],
+  ["Œ", 0x8c],
+  ["Ž", 0x8e],
+  ["‘", 0x91],
+  ["’", 0x92],
+  ["“", 0x93],
+  ["”", 0x94],
+  ["•", 0x95],
+  ["–", 0x96],
+  ["—", 0x97],
+  ["˜", 0x98],
+  ["™", 0x99],
+  ["š", 0x9a],
+  ["›", 0x9b],
+  ["œ", 0x9c],
+  ["ž", 0x9e],
+  ["Ÿ", 0x9f],
+]);
+
+function looksLikeMojibake(value) {
+  return /Ã|Â|Ä|Å|Æ|áº|á»|â€|â€™|â€œ|â€|�/.test(String(value ?? ""));
+}
+
+function toWindows1252Bytes(text) {
+  const bytes = [];
+
+  for (const char of String(text ?? "")) {
+    const code = char.charCodeAt(0);
+
+    if (code <= 0xff) {
+      bytes.push(code);
+      continue;
+    }
+
+    if (WINDOWS_1252_REVERSE_MAP.has(char)) {
+      bytes.push(WINDOWS_1252_REVERSE_MAP.get(char));
+      continue;
+    }
+
+    return null;
+  }
+
+  return Uint8Array.from(bytes);
+}
+
+function decodeMojibake(value) {
+  const text = String(value ?? "");
+
+  if (!text || !looksLikeMojibake(text)) {
+    return text;
+  }
+
+  const bytes = toWindows1252Bytes(text);
+
+  if (!bytes) {
+    return text;
+  }
+
+  try {
+    const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    return decoded.includes("�") ? text : decoded;
+  } catch {
+    return text;
+  }
+}
+
 function formatNotificationTime(value) {
   if (!value) return "Vừa xong";
 
@@ -149,8 +228,8 @@ function normalizeActionUrl(url) {
 function normalizeNotification(raw) {
   return {
     id: raw.id || raw.notificationId || `${Date.now()}-${Math.random()}`,
-    title: raw.title || "Thông báo",
-    message: raw.message || raw.content || "Bạn có một cập nhật mới.",
+    title: decodeMojibake(raw.title || "Thông báo"),
+    message: decodeMojibake(raw.message || raw.content || "Bạn có một cập nhật mới."),
     isRead: Boolean(raw.isRead ?? raw.is_read),
     actionUrl: raw.actionUrl || raw.action_url || "",
     createdAt: raw.createdAt || raw.created_at || raw.time || null,
@@ -294,15 +373,11 @@ function injectHeaderDropdownStyles() {
     }
 
     .notification-dropdown-head strong,
-    .notification-dropdown-head a {
+    .notification-mark-all {
       font-size: 11px;
       font-weight: 900;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-    }
-
-    .notification-dropdown-head a {
-      color: var(--primary);
     }
 
     .notification-dropdown-list {
@@ -312,15 +387,49 @@ function injectHeaderDropdownStyles() {
     }
 
     .notification-dropdown-item {
+      width: 100%;
       display: grid;
       gap: 6px;
       padding: 12px;
       border: 1px solid transparent;
+      background: transparent;
+      text-align: left;
       color: var(--text-soft);
+      cursor: pointer;
       transition:
         border-color var(--transition-fast),
         background-color var(--transition-fast),
         color var(--transition-fast);
+    }
+
+    .notification-dropdown-item-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .notification-unread-dot {
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      margin-top: 5px;
+      border-radius: 999px;
+      background: #ef4444;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.18);
+    }
+
+    .notification-mark-all {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .notification-mark-all[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .notification-dropdown-item:hover {
@@ -416,23 +525,21 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   const loginHref = isRoot ? "./pages/login.html" : "./login.html";
   const accountHref = isRoot ? "./pages/account.html" : "./account.html";
   const adminHref = isRoot ? "./pages/admin.html" : "./admin.html";
-  const publishHref = isRoot ? "./pages/account.html#publish" : "./account.html#publish";
-  const notificationsHref = isRoot ? "./pages/notifications.html" : "./notifications.html";
   const protocolHref = isRoot ? "#protocol" : `${normalizedBasePath}/index.html#protocol`;
 
   const settingsHref = authenticated
-  ? adminUser
-    ? adminHref
-    : isRoot
-      ? "./pages/account.html#settings"
-      : "./account.html#settings"
-  : loginHref;
+    ? adminUser
+      ? adminHref
+      : isRoot
+        ? "./pages/account.html#settings"
+        : "./account.html#settings"
+    : loginHref;
 
-const logoutHref = loginHref;
+  const logoutHref = loginHref;
 
-const actionHref = authenticated ? (adminUser ? adminHref : accountHref) : loginHref;
-const actionText = authenticated ? (adminUser ? "QUẢN TRỊ" : "TÀI KHOẢN") : "ĐĂNG NHẬP";
-const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noopener noreferrer"' : "";
+  const actionHref = authenticated ? (adminUser ? adminHref : accountHref) : loginHref;
+  const actionText = authenticated ? (adminUser ? "QUẢN TRỊ" : "TÀI KHOẢN") : "ĐĂNG NHẬP";
+  const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noopener noreferrer"' : "";
 
   return `
     <header class="site-header home-luxury-header" data-header>
@@ -478,7 +585,9 @@ const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noo
           <section class="notification-dropdown" data-notification-dropdown hidden aria-label="Thông báo gần đây">
             <div class="notification-dropdown-head">
               <strong>Thông báo</strong>
-              <a href="${notificationsHref}" data-open-full-notifications>Xem tất cả</a>
+              <button type="button" class="notification-mark-all" data-mark-all-notifications-read>
+                Đánh dấu đã đọc
+              </button>
             </div>
 
             <div class="notification-dropdown-list" data-notification-list>
@@ -509,43 +618,43 @@ const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noo
           </button>
 
           <div class="home-settings-menu home-settings-menu-minimal" data-home-settings-menu hidden>
-  <button
-    class="home-settings-item home-settings-icon-only"
-    type="button"
-    data-theme-toggle
-    aria-label="Đổi giao diện"
-    title="Đổi giao diện"
-  >
-    <span data-theme-icon aria-hidden="true">☾</span>
-  </button>
+            <button
+              class="home-settings-item home-settings-icon-only"
+              type="button"
+              data-theme-toggle
+              aria-label="Đổi giao diện"
+              title="Đổi giao diện"
+            >
+              <span data-theme-icon aria-hidden="true">☾</span>
+            </button>
 
-  <a
-    class="home-settings-item home-settings-icon-only"
-    href="${settingsHref}"
-    aria-label="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
-    title="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
-    ${adminUser ? 'target="_blank" rel="noopener noreferrer"' : ""}
-  >
-    <span aria-hidden="true">⚙</span>
-  </a>
+            <a
+              class="home-settings-item home-settings-icon-only"
+              href="${settingsHref}"
+              aria-label="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
+              title="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
+              ${adminUser ? 'target="_blank" rel="noopener noreferrer"' : ""}
+            >
+              <span aria-hidden="true">⚙</span>
+            </a>
 
-  ${
-    authenticated
-      ? `
-        <button
-          class="home-settings-item home-settings-icon-only"
-          type="button"
-          data-logout-btn
-          data-logout-redirect="${logoutHref}"
-          aria-label="Đăng xuất"
-          title="Đăng xuất"
-        >
-          <span aria-hidden="true">⎋</span>
-        </button>
-      `
-      : ""
-  }
-</div>
+            ${
+              authenticated
+                ? `
+                  <button
+                    class="home-settings-item home-settings-icon-only"
+                    type="button"
+                    data-logout-btn
+                    data-logout-redirect="${logoutHref}"
+                    aria-label="Đăng xuất"
+                    title="Đăng xuất"
+                  >
+                    <span aria-hidden="true">⎋</span>
+                  </button>
+                `
+                : ""
+            }
+          </div>
         </div>
       </div>
 
@@ -566,7 +675,6 @@ const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noo
       <a href="${homeHref}" class="mobile-nav-link">Trang Chủ</a>
       <a href="${collectionsHref}" class="mobile-nav-link">Bộ Sưu Tập</a>
       <a href="${liveAuctionsHref}" class="mobile-nav-link">Đấu Giá Trực Tiếp</a>
-      <a href="${publishHref}" class="mobile-nav-link">Đăng Bán</a>
       <a href="${protocolHref}" class="mobile-nav-link">Giao Thức Tin Cậy</a>
       <a href="${actionHref}" class="mobile-nav-link mobile-nav-cta" ${actionTargetAttrs}>${actionText}</a>
     </nav>
@@ -599,53 +707,113 @@ function renderNotificationState(message) {
   `;
 }
 
+function updateNotificationBadge(notifications = []) {
+  const badge = document.querySelector("#global-notification-bell .bell-badge");
+
+  if (!badge) return;
+
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+  badge.style.display = unreadCount > 0 ? "block" : "none";
+}
+
 function renderNotifications(notifications) {
   const list = document.querySelector("[data-notification-list]");
-  const badge = document.querySelector("#global-notification-bell .bell-badge");
 
   if (!list) return;
 
-  if (notifications.length === 0) {
-    if (badge) badge.style.display = "none";
+  currentNotifications = notifications.slice(0, NOTIFICATION_LIMIT);
+  updateNotificationBadge(currentNotifications);
+
+  if (currentNotifications.length === 0) {
     renderNotificationState("Chưa có thông báo mới.");
     return;
   }
 
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+  list.innerHTML = currentNotifications
+    .map(
+      (notification) => `
+        <button
+          type="button"
+          class="notification-dropdown-item ${notification.isRead ? "" : "is-unread"}"
+          data-notification-id="${escapeHtml(notification.id)}"
+        >
+          <div class="notification-dropdown-item-head">
+            <strong>${escapeHtml(notification.title)}</strong>
+            ${notification.isRead ? "" : '<span class="notification-unread-dot" aria-label="Chưa đọc"></span>'}
+          </div>
+          <p>${escapeHtml(notification.message)}</p>
+          <time>${formatNotificationTime(notification.createdAt)}</time>
+        </button>
+      `,
+    )
+    .join("");
+}
 
-  if (badge) {
-    badge.style.display = unreadCount > 0 ? "block" : "none";
+async function markNotificationAsRead(notificationId) {
+  const targetId = String(notificationId);
+  const targetNotification = currentNotifications.find((notification) => String(notification.id) === targetId);
+
+  if (!targetNotification || targetNotification.isRead) {
+    return;
   }
 
-  list.innerHTML = notifications
-    .slice(0, NOTIFICATION_LIMIT)
-    .map((notification) => {
-      const href = normalizeActionUrl(notification.actionUrl);
-      const content = `
-        <strong>${escapeHtml(notification.title)}</strong>
-        <p>${escapeHtml(notification.message)}</p>
-        <time>${formatNotificationTime(notification.createdAt)}</time>
-      `;
+  targetNotification.isRead = true;
+  renderNotifications(currentNotifications);
 
-      if (href) {
-        return `
-          <a class="notification-dropdown-item ${notification.isRead ? "" : "is-unread"}" href="${href}">
-            ${content}
-          </a>
-        `;
-      }
+  try {
+    await apiClient.patch(
+      `/notifications/${encodeURIComponent(targetNotification.id)}/read`,
+      null,
+      {
+        auth: true,
+        idempotency: false,
+        redirectOnUnauthorized: false,
+      },
+    );
+  } catch (error) {
+    console.warn("[Header] Không thể cập nhật trạng thái đã đọc:", error);
+  }
+}
 
-      return `
-        <article class="notification-dropdown-item ${notification.isRead ? "" : "is-unread"}">
-          ${content}
-        </article>
-      `;
-    })
-    .join("");
+async function markAllNotificationsAsRead() {
+  if (isMarkingAllNotifications || currentNotifications.length === 0) {
+    return;
+  }
+
+  const hasUnread = currentNotifications.some((notification) => !notification.isRead);
+
+  if (!hasUnread) {
+    return;
+  }
+
+  isMarkingAllNotifications = true;
+  currentNotifications = currentNotifications.map((notification) => ({
+    ...notification,
+    isRead: true,
+  }));
+  renderNotifications(currentNotifications);
+
+  try {
+    await apiClient.patch(
+      "/notifications/read-all",
+      null,
+      {
+        auth: true,
+        idempotency: false,
+        redirectOnUnauthorized: false,
+      },
+    );
+  } catch (error) {
+    console.warn("[Header] Không thể đánh dấu tất cả thông báo là đã đọc:", error);
+  } finally {
+    isMarkingAllNotifications = false;
+  }
 }
 
 async function loadNotifications() {
   if (!isAuthenticated()) {
+    currentNotifications = [];
+    updateNotificationBadge([]);
     renderNotificationState("Đăng nhập để xem thông báo đấu giá.");
     return;
   }
@@ -668,6 +836,8 @@ async function loadNotifications() {
     renderNotifications(normalizeNotificationsResponse(response));
   } catch (error) {
     console.warn("[Header] Không thể tải thông báo:", error);
+    currentNotifications = [];
+    updateNotificationBadge([]);
     renderNotificationState("Chưa kết nối được API thông báo. Thử lại sau nhé.");
   }
 }
@@ -680,6 +850,8 @@ function bindNotificationDropdown() {
   document.addEventListener("click", (event) => {
     const toggle = event.target.closest("[data-notification-toggle]");
     const dropdown = event.target.closest("[data-notification-dropdown]");
+    const markAllButton = event.target.closest("[data-mark-all-notifications-read]");
+    const notificationItem = event.target.closest("[data-notification-id]");
 
     if (toggle) {
       event.preventDefault();
@@ -699,6 +871,19 @@ function bindNotificationDropdown() {
         loadNotifications();
       }
 
+      return;
+    }
+
+    if (markAllButton) {
+      event.preventDefault();
+      markAllNotificationsAsRead();
+      return;
+    }
+
+    if (notificationItem) {
+      event.preventDefault();
+      event.stopPropagation();
+      markNotificationAsRead(notificationItem.dataset.notificationId);
       return;
     }
 
@@ -732,6 +917,7 @@ function bindLogoutButtons() {
       apiClient.clearAuth();
       closeHeaderPopovers?.();
       closeSettingsMenus?.();
+      closeNotificationDropdown();
 
       window.location.href = redirectHref;
     });
@@ -763,6 +949,10 @@ function renderSiteHeaders() {
   initCommandPalette?.();
   bindNotificationDropdown();
   bindLogoutButtons();
+
+  if (isAuthenticated()) {
+    loadNotifications();
+  }
 }
 
 document.addEventListener("DOMContentLoaded", renderSiteHeaders);
