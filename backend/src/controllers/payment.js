@@ -1,6 +1,7 @@
 const logger = require("../utils/logger");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const pool = require("../config/db");
+const NotificationService = require("../services/notificationService");
 
 function getSessionAmount(session) {
   return Number(session.amount_total || 0) / 100;
@@ -150,13 +151,14 @@ class PaymentController {
           },
         });
 
-        await connection.execute(
-          `
-            INSERT INTO Notifications (user_id, auction_id, type, title, message, action_url)
-            VALUES (?, ?, 'DEPOSIT_SUCCEEDED', 'Đặt cọc thành công', 'Bạn đã đặt cọc thành công và có thể tham gia phiên đấu giá.', ?)
-          `,
-          [userId, auctionId, `/pages/product-detail.html?id=${auctionId}`],
-        );
+        try {
+          await NotificationService.notifyDepositSucceeded(connection, {
+            userId,
+            auctionId,
+          });
+        } catch (notificationError) {
+          logger.warn(`[Payment] Không thể tạo thông báo đặt cọc: ${notificationError.message}`);
+        }
 
         await connection.commit();
 
@@ -217,13 +219,15 @@ class PaymentController {
           },
         });
 
-        await connection.execute(
-          `
-            INSERT INTO Notifications (user_id, auction_id, type, title, message, action_url)
-            VALUES (?, ?, 'PAYMENT_SUCCESS', 'Thanh toán thành công', 'Bạn đã hoàn tất thanh toán phiên đấu giá.', ?)
-          `,
-          [userId, auctionId, `/pages/product-detail.html?id=${auctionId}`],
-        );
+        try {
+          await NotificationService.notifyPaymentSuccess(connection, {
+            userId,
+            winnerId: userId,
+            auctionId,
+          });
+        } catch (notificationError) {
+          logger.warn(`[Payment] Không thể tạo thông báo thanh toán: ${notificationError.message}`);
+        }
 
         await connection.commit();
 

@@ -53,17 +53,38 @@ function decodeMojibake(value) {
 }
 
 function normalizeNotificationRow(row) {
+  const notificationId = Number(row.id);
+  const userId = Number(row.user_id);
+  const auctionId = row.auction_id === null || row.auction_id === undefined ? null : Number(row.auction_id);
+  const isRead = Boolean(row.is_read);
+  const actionUrl = row.action_url || "";
+
   return {
-    id: row.id,
-    userId: row.user_id,
-    auctionId: row.auction_id,
+    id: notificationId,
+    notificationId,
+    notification_id: notificationId,
+
+    userId,
+    user_id: userId,
+
+    auctionId,
+    auction_id: auctionId,
+
     type: row.type || "SYSTEM",
     title: decodeMojibake(row.title || "Thông báo"),
     message: decodeMojibake(row.message || "Bạn có một cập nhật mới."),
-    isRead: Boolean(row.is_read),
-    actionUrl: row.action_url || "",
+
+    isRead,
+    is_read: isRead,
+
+    actionUrl,
+    action_url: actionUrl,
+
     createdAt: row.created_at,
+    created_at: row.created_at,
+
     readAt: row.read_at,
+    read_at: row.read_at,
   };
 }
 
@@ -95,7 +116,7 @@ router.get("/", authMiddleware, async (req, res) => {
           read_at
         FROM Notifications
         WHERE user_id = ?
-        ORDER BY created_at DESC, id DESC
+        ORDER BY is_read ASC, created_at DESC, id DESC
         LIMIT ${limit}
       `,
       [userId],
@@ -111,11 +132,14 @@ router.get("/", authMiddleware, async (req, res) => {
       [userId],
     );
 
+    const unreadCount = Number(countRows[0]?.unread_count || 0);
+
     return sendSuccess(
       res,
       {
         notifications: notificationRows.map(normalizeNotificationRow),
-        unreadCount: Number(countRows[0]?.unread_count || 0),
+        unreadCount,
+        unread_count: unreadCount,
       },
       "Lấy danh sách thông báo thành công.",
     );
@@ -149,10 +173,15 @@ router.patch("/read-all", authMiddleware, async (req, res) => {
       [userId],
     );
 
+    const updatedCount = result.affectedRows || 0;
+
     return sendSuccess(
       res,
       {
-        updatedCount: result.affectedRows || 0,
+        updatedCount,
+        updated_count: updatedCount,
+        affectedRows: updatedCount,
+        affected_rows: updatedCount,
       },
       "Đã đánh dấu tất cả thông báo là đã đọc.",
     );
@@ -199,6 +228,10 @@ router.patch("/:id/read", authMiddleware, async (req, res) => {
       res,
       {
         id: notificationId,
+        notificationId,
+        notification_id: notificationId,
+        affectedRows: result.affectedRows || 0,
+        affected_rows: result.affectedRows || 0,
       },
       "Đã đánh dấu thông báo là đã đọc.",
     );

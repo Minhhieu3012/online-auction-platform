@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const { sendSuccess, sendError } = require("../utils/response");
 const redisClient = require("../config/redis");
 const redisKeys = require("../utils/redis-keys");
+const NotificationService = require("../services/notificationService");
 
 /**
  * Ép chuỗi MySQL DATETIME thành UTC timestamp tuyệt đối.
@@ -108,6 +109,25 @@ class BiddingController {
         return sendError(res, "ERR_BID_TOO_LOW", `Giá đặt phải tối thiểu là ${minBid}`, 400);
       }
 
+      const [previousBidRows] = await connection.execute(
+        `
+          SELECT
+            b.id,
+            b.user_id,
+            b.bid_amount,
+            b.created_at,
+            u.username,
+            u.email
+          FROM Bids b
+          INNER JOIN Users u ON u.id = b.user_id
+          WHERE b.auction_id = ?
+          ORDER BY b.bid_amount DESC, b.created_at ASC, b.id ASC
+          LIMIT 1
+        `,
+        [auctionId],
+      );
+
+      const previousHighestBid = previousBidRows[0] || null;
       const nextVersion = Number(auction.version || 0) + 1;
 
       const [insertResult] = await connection.execute(
@@ -126,6 +146,23 @@ class BiddingController {
         `,
         [bidAmount, nextVersion, auctionId],
       );
+
+      if (
+        previousHighestBid &&
+        Number(previousHighestBid.user_id) !== Number(userId) &&
+        Number(bidAmount) > Number(previousHighestBid.bid_amount || 0)
+      ) {
+        try {
+          await NotificationService.notifyOutbid(connection, {
+            userId: previousHighestBid.user_id,
+            auctionId,
+            previousBidAmount: previousHighestBid.bid_amount,
+            newBidAmount: bidAmount,
+          });
+        } catch (notificationError) {
+          console.warn("[Bidding Notification Warning]:", notificationError.message);
+        }
+      }
 
       const [createdBidRows] = await connection.execute(
         `

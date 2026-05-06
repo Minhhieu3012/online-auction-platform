@@ -6,12 +6,14 @@ const redisClient = require("../config/redis");
 const pool = require("../config/db");
 const { producer } = require("../config/kafka");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const NotificationService = require("../services/notificationService");
 
 const auctionQueue = new Queue("auction-lifecycle", { connection });
 
 const LOCK_TTL = 30000;
 const CLOSE_JOB_SWEEP_INTERVAL_MS = 10000;
 const CLOSE_JOB_SWEEP_LIMIT = 200;
+const CLOSING_SOON_WINDOW_MS = 5 * 60 * 1000;
 
 async function acquireLock(redis, lockKey) {
   return await redis.set(lockKey, "1", {
@@ -149,7 +151,7 @@ async function publishAuctionFinalized(payload) {
   }
 }
 
-async function refundLoserDeposits(deposits, winnerId) {
+async function refundLoserDeposits(deposits, winnerId, auctionId) {
   for (const deposit of deposits) {
     if (Number(deposit.user_id) === Number(winnerId)) continue;
 
@@ -170,6 +172,17 @@ async function refundLoserDeposits(deposits, winnerId) {
       logger.info(`[Worker] Đã hoàn cọc $${deposit.amount} cho user ${deposit.user_id}`);
     } catch (refundErr) {
       logger.error(`[Worker] Lỗi hoàn tiền user ${deposit.user_id}: ${refundErr.message}`);
+      continue;
+    }
+
+    try {
+      await NotificationService.notifyDepositRefunded(pool, {
+        userId: deposit.user_id,
+        auctionId,
+        amount: deposit.amount,
+      });
+    } catch (notificationError) {
+      logger.warn(`[Worker] Không thể tạo thông báo hoàn cọc user ${deposit.user_id}: ${notificationError.message}`);
     }
   }
 }
@@ -243,6 +256,17 @@ async function finalizeAuction(job) {
 
     if (latestEndTimeMs > Date.now()) {
       const delay = latestEndTimeMs - Date.now();
+
+      if (delay <= CLOSING_SOON_WINDOW_MS) {
+        try {
+          await NotificationService.notifyAuctionClosingSoon(pool, {
+            auctionId,
+          });
+        } catch (notificationError) {
+          logger.warn(`[Worker] Không thể tạo thông báo sắp kết thúc phiên ${auctionId}: ${notificationError.message}`);
+        }
+      }
+
       logger.info(`[Worker] Phiên ${auctionId} chưa tới hạn đóng hoặc đã được gia hạn. Hẹn lại sau ${delay}ms.`);
       await rescheduleCloseJob(auctionId, delay, "auction-not-due-yet");
       return;
@@ -410,6 +434,47 @@ async function finalizeAuction(job) {
       );
 
       settlementId = settlementRows[0]?.id || null;
+
+      try {
+        await NotificationService.notifyAuctionWon(dbConnection, {
+          auctionId,
+          userId: winnerId,
+          winnerId,
+          finalPrice,
+        });
+      } catch (notificationError) {
+        logger.warn(`[Worker] Không thể tạo thông báo thắng phiên ${auctionId}: ${notificationError.message}`);
+      }
+
+      try {
+        await NotificationService.notifyAuctionLostToParticipants(dbConnection, {
+          auctionId,
+          winnerId,
+        });
+      } catch (notificationError) {
+        logger.warn(`[Worker] Không thể tạo thông báo thua phiên ${auctionId}: ${notificationError.message}`);
+      }
+
+      if (remainingAmount > 0) {
+        try {
+          await NotificationService.notifyPaymentRequired(dbConnection, {
+            auctionId,
+            userId: winnerId,
+            winnerId,
+            remainingAmount,
+          });
+        } catch (notificationError) {
+          logger.warn(`[Worker] Không thể tạo thông báo yêu cầu thanh toán phiên ${auctionId}: ${notificationError.message}`);
+        }
+      }
+    } else {
+      try {
+        await NotificationService.notifyAuctionNoWinner(dbConnection, {
+          auctionId,
+        });
+      } catch (notificationError) {
+        logger.warn(`[Worker] Không thể tạo thông báo phiên không có người thắng ${auctionId}: ${notificationError.message}`);
+      }
     }
 
     await dbConnection.execute(
@@ -435,7 +500,7 @@ async function finalizeAuction(job) {
     transactionStarted = false;
 
     if (hasWinner) {
-      await refundLoserDeposits(deposits, winnerId);
+      await refundLoserDeposits(deposits, winnerId, auctionId);
     }
 
     const nextVersion = Number(auction.version || 0) + 1;
@@ -537,6 +602,17 @@ async function sweepAuctionCloseJobs() {
       }
 
       const delay = Math.max(0, endTimeMs - nowMs);
+
+      if (delay > 0 && delay <= CLOSING_SOON_WINDOW_MS) {
+        try {
+          await NotificationService.notifyAuctionClosingSoon(pool, {
+            auctionId,
+          });
+        } catch (notificationError) {
+          logger.warn(`[Worker] Không thể tạo thông báo sắp kết thúc phiên ${auctionId}: ${notificationError.message}`);
+        }
+      }
+
       await rescheduleCloseJob(auctionId, delay, "db-sweep");
     }
 
