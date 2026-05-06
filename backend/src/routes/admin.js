@@ -1,6 +1,7 @@
 const express = require("express");
 
 const AdminController = require("../controllers/admin");
+const AuctionController = require("../controllers/auction");
 const authModule = require("../middlewares/auth");
 const { sendError } = require("../utils/response");
 
@@ -100,5 +101,11 @@ router.patch(
 router.get("/settlements", safeController("listSettlements", "Đối soát thanh toán"));
 
 router.get("/logs", safeController("listActionLogs", "Nhật ký quản trị"));
+
+router.post(
+  "/auctions/:id/force-end",
+  validateIdParam("id", "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ."),
+  AuctionController.forceEndAuction,
+);
 
 module.exports = router;

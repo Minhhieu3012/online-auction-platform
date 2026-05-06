@@ -572,6 +572,11 @@ async function fetchPendingAuctions() {
 }
 
 function getAuctionActions(auction) {
+  const canForceEnd = ["active", "closing"].includes(normalizeStatus(auction.status));
+  const forceEndBtn = canForceEnd
+    ? `<button type="button" class="is-danger" data-force-end-auction="${escapeHtml(auction.id)}">Kết thúc</button>`
+    : "";
+
   return `
     <button type="button" data-view-auction="${escapeHtml(auction.id)}">
       Chi tiết
@@ -579,6 +584,7 @@ function getAuctionActions(auction) {
     <a href="${getAuctionPublicHref(auction.id)}" target="_blank" rel="noopener noreferrer">
       Mở
     </a>
+    ${forceEndBtn}
   `;
 }
 
@@ -761,7 +767,10 @@ function openReviewModal(auctionId) {
   setText("[data-review-modal-category]", auction.category || "collectibles");
   setText("[data-review-modal-price]", formatMoney(auction.currentPrice));
   setText("[data-review-modal-step]", formatMoney(auction.stepPrice));
-  setText("[data-review-modal-deposit]", auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu");
+  setText(
+    "[data-review-modal-deposit]",
+    auction.requiresDeposit ? formatMoney(auction.depositAmount) : "Không yêu cầu",
+  );
   setText("[data-review-modal-status]", getStatusLabel(auction.status));
   setText("[data-review-modal-created]", formatDateTime(auction.createdAt));
   setText("[data-review-modal-end]", formatDateTime(auction.endTime));
@@ -1169,7 +1178,7 @@ function bindRefreshButtons() {
 }
 
 function bindDelegatedActions() {
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const viewButton = event.target.closest("[data-view-auction]");
     if (viewButton) {
       event.preventDefault();
@@ -1188,6 +1197,27 @@ function bindDelegatedActions() {
     if (unlockButton) {
       event.preventDefault();
       updateUserStatus(unlockButton.dataset.unlockUser, "unlock");
+      return;
+    }
+
+    // NÚT KẾT THÚC NGAY LẬP TỨC
+    const forceEndButton = event.target.closest("[data-force-end-auction]");
+    if (forceEndButton) {
+      event.preventDefault();
+      const auctionId = forceEndButton.dataset.forceEndAuction;
+
+      if (
+        window.confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn kết thúc ngay lập tức phiên đấu giá #${auctionId} không?`)
+      ) {
+        try {
+          await apiClient.post(`/admin/auctions/${auctionId}/force-end`, {}, { auth: true });
+          showToast("Thành công", "Đã ra lệnh đóng phiên đấu giá.", "success");
+          refreshAll();
+        } catch (error) {
+          showToast("Lỗi", error.message || "Không thể kết thúc phiên.", "error");
+        }
+      }
+      return;
     }
   });
 }

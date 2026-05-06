@@ -876,6 +876,66 @@ class AuctionController {
     req.body.status = "Rejected";
     return AuctionController.updateAuctionStatus(req, res);
   }
+
+  static async forceEndAuction(req, res) {
+    const auctionId = Number(req.params.id);
+    const adminId = req.user?.id;
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [rows] = await connection.execute("SELECT id, status, version FROM Auctions WHERE id = ? FOR UPDATE", [
+        auctionId,
+      ]);
+
+      if (rows.length === 0) throw new Error("ERR_NOT_FOUND");
+      const auction = rows[0];
+
+      if (!["Active", "Closing", "Scheduled"].includes(auction.status)) {
+        throw new Error("ERR_INVALID_STATUS");
+      }
+
+      // 1. Cập nhật thời gian kết thúc về hiện tại (Tua nhanh)
+      const now = new Date();
+      await connection.execute(
+        `UPDATE Auctions SET end_time = ?, status = 'Closing', version = version + 1 WHERE id = ?`,
+        [toMysqlDatetime(now), auctionId],
+      );
+
+      // 2. Ghi log hành động của Admin
+      await tryInsertAdminLog(connection, {
+        adminId,
+        targetType: "auction",
+        targetId: auctionId,
+        action: "FORCE_END_AUCTION",
+        note: "Admin ra lệnh kết thúc sớm.",
+      });
+
+      await connection.commit();
+
+      // 3. Cập nhật Redis và ép Queue đóng ngay lập tức
+      await redisClient.hSet(redisKeys.auctionInfo(auctionId), { end_time: now.toISOString() });
+      await scheduleAuctionClose(auctionId, now);
+
+      // 4. Phát tín hiệu Socket cho các client đang xem để cập nhật đồng hồ
+      const io = req.app.get("io");
+      if (io) {
+        io.to(String(auctionId)).emit("auction_extended", { auctionId, newEndTime: now.toISOString() });
+      }
+
+      return sendSuccess(res, { auctionId }, "Đã ra lệnh kết thúc phiên đấu giá.");
+    } catch (error) {
+      await connection.rollback();
+      logger.error("[Force End Error]:", error);
+      if (error.message === "ERR_NOT_FOUND") return sendError(res, "ERR_NOT_FOUND", "Không tìm thấy phiên.", 404);
+      if (error.message === "ERR_INVALID_STATUS")
+        return sendError(res, "ERR_STATUS", "Phiên không ở trạng thái mở.", 400);
+      return sendError(res, "ERR_SERVER", "Lỗi máy chủ.", 500);
+    } finally {
+      connection.release();
+    }
+  }
 }
 
 module.exports = AuctionController;
