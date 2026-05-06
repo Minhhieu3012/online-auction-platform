@@ -632,19 +632,6 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
       </nav>
 
       <div class="header-actions home-header-actions">
-        <button
-          class="home-search-trigger"
-          type="button"
-          data-command-palette-open
-          aria-label="Tìm kiếm"
-          title="Tìm kiếm"
-        >
-          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
-            <circle cx="10.5" cy="10.5" r="5.5" stroke="currentColor" stroke-width="2" fill="none"></circle>
-            <path d="M15 15L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-          </svg>
-        </button>
-
         <div class="notification-shell" data-notification-shell>
           <button
             type="button"
