@@ -539,25 +539,39 @@ function injectHeaderDropdownStyles() {
     }
 
     .home-settings-menu-minimal {
-      width: 70px;
-      min-width: auto;
-      padding: 6px;
+      width: 210px;
+      min-width: 210px;
+      padding: 8px;
       display: grid;
       gap: 6px;
     }
 
-    .home-settings-icon-only {
-      width: 56px;
-      height: 46px;
-      display: grid;
-      place-items: center;
-      padding: 0;
-      font-size: 18px;
+    .home-settings-text-link {
+      width: 100%;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding: 0 14px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
       line-height: 1;
+      text-decoration: none;
     }
 
-    .home-settings-icon-only span {
+    .home-settings-text-link span {
       margin: 0;
+    }
+
+    .home-settings-text-link.is-danger {
+      color: var(--text-soft);
+    }
+
+    .home-settings-text-link.is-danger:hover {
+      color: var(--text);
     }
 
     @media (max-width: 720px) {
@@ -600,8 +614,8 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   const logoutHref = loginHref;
 
   const actionHref = authenticated ? (adminUser ? adminHref : accountHref) : loginHref;
-  const actionText = authenticated ? userLabel : "ĐĂNG NHẬP";
-  const actionTitle = authenticated ? `Tài khoản ${userLabel}` : "Đăng nhập";
+  const actionText = authenticated ? (adminUser ? `Admin: ${userLabel}` : userLabel) : "ĐĂNG NHẬP";
+  const actionTitle = authenticated ? `Tài khoản ${actionText}` : "Đăng nhập";
   const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noopener noreferrer"' : "";
 
   return `
@@ -688,30 +702,32 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
 
           <div class="home-settings-menu home-settings-menu-minimal" data-home-settings-menu hidden>
             <button
-              class="home-settings-item home-settings-icon-only"
+              class="home-settings-item home-settings-text-link"
               type="button"
               data-theme-toggle
               aria-label="Đổi giao diện"
               title="Đổi giao diện"
             >
               <span data-theme-icon aria-hidden="true">☾</span>
+              Đổi giao diện
             </button>
-
-            <a
-              class="home-settings-item home-settings-icon-only"
-              href="${settingsHref}"
-              aria-label="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
-              title="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
-              ${adminUser ? 'target="_blank" rel="noopener noreferrer"' : ""}
-            >
-              <span aria-hidden="true">⚙</span>
-            </a>
 
             ${
               authenticated
                 ? `
+                  <a
+                    class="home-settings-item home-settings-text-link"
+                    href="${settingsHref}"
+                    aria-label="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
+                    title="${adminUser ? "Mở trang quản trị" : "Cài đặt tài khoản"}"
+                    ${adminUser ? 'target="_blank" rel="noopener noreferrer"' : ""}
+                  >
+                    <span aria-hidden="true">⚙</span>
+                    ${adminUser ? "Quản trị" : "Cài đặt"}
+                  </a>
+
                   <button
-                    class="home-settings-item home-settings-icon-only"
+                    class="home-settings-item home-settings-text-link is-danger"
                     type="button"
                     data-logout-btn
                     data-logout-redirect="${logoutHref}"
@@ -719,9 +735,15 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
                     title="Đăng xuất"
                   >
                     <span aria-hidden="true">⎋</span>
+                    Đăng xuất
                   </button>
                 `
-                : ""
+                : `
+                  <a class="home-settings-item home-settings-text-link" href="${loginHref}">
+                    <span aria-hidden="true">↪</span>
+                    Đăng nhập
+                  </a>
+                `
             }
           </div>
         </div>
