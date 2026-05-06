@@ -6,7 +6,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const PAID_DEPOSIT_STATUSES = new Set(["SUCCEEDED", "APPLIED_TO_WIN_PAYMENT"]);
 
 function getClientUrl() {
-  return String(process.env.CLIENT_URL || "http://127.0.0.1:5500/frontend/pages").replace(/\/$/, "");
+  return String(process.env.CLIENT_URL || "http://127.0.0.1:5500/pages").replace(/\/$/, "");
 }
 
 /**
@@ -36,10 +36,7 @@ function isPaidDepositStatus(status) {
 
 function isStripeSessionPaid(session) {
   return (
-    session &&
-    (session.payment_status === "paid" ||
-      session.status === "complete" ||
-      session.status === "completed")
+    session && (session.payment_status === "paid" || session.status === "complete" || session.status === "completed")
   );
 }
 
@@ -169,7 +166,9 @@ class DepositController {
             status,
             requires_deposit,
             deposit_amount,
-            created_by
+            created_by,
+            winner_id,
+            stripe_session_id
           FROM Auctions
           WHERE id = ?
           LIMIT 1
@@ -180,6 +179,32 @@ class DepositController {
       if (auctionRows.length === 0) {
         await connection.rollback();
         return sendError(res, "ERR_AUCTION_NOT_FOUND", "Không tìm thấy.", 404);
+      }
+
+      let auction = auctionRows[0];
+
+      // --- XỬ LÝ LAZY CONFIRM CHO WIN PAYMENT (LOCAL FIX) ---
+      if (
+        auction.status === "Payment Pending" &&
+        auction.stripe_session_id &&
+        Number(auction.winner_id) === Number(userId)
+      ) {
+        try {
+          const session = await stripe.checkout.sessions.retrieve(auction.stripe_session_id);
+          if (isStripeSessionPaid(session)) {
+            await connection.execute(`UPDATE Auctions SET status = 'Completed', updated_at = NOW() WHERE id = ?`, [
+              auctionId,
+            ]);
+            await connection.execute(
+              `UPDATE auction_settlements SET status = 'PAID', stripe_session_id = ?, paid_at = NOW() WHERE auction_id = ?`,
+              [session.id, auctionId],
+            );
+            auction.status = "Completed";
+            logger.success(`[Lazy Confirm] Đã xác nhận thanh toán thành công cho phiên #${auctionId}`);
+          }
+        } catch (err) {
+          logger.warn(`[Lazy Confirm Error]: ${err.message}`);
+        }
       }
 
       const [depositRows] = await connection.execute(
@@ -461,6 +486,8 @@ class DepositController {
           user_id: String(userId),
         },
       });
+
+      await connection.execute(`UPDATE Auctions SET stripe_session_id = ? WHERE id = ?`, [session.id, auctionId]);
 
       return sendSuccess(res, { url: session.url }, "Đã tạo link thanh toán.");
     } catch (error) {
