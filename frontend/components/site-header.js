@@ -55,6 +55,29 @@ function parseMaybeJson(value) {
   }
 }
 
+function decodeBase64UrlJson(value) {
+  try {
+    const normalized = String(value || "")
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+    return JSON.parse(decodeURIComponent(escape(window.atob(padded))));
+  } catch {
+    return null;
+  }
+}
+
+function getUserFromToken() {
+  const token = getStoredToken();
+
+  if (!token || !String(token).includes(".")) {
+    return null;
+  }
+
+  const payload = String(token).split(".")[1];
+  return decodeBase64UrlJson(payload);
+}
+
 function getStoredUser() {
   const apiUser = typeof apiClient.getAuthUser === "function" ? apiClient.getAuthUser() : null;
 
@@ -88,7 +111,7 @@ function getStoredUser() {
     }
   }
 
-  return null;
+  return getUserFromToken();
 }
 
 function isAuthenticated() {
@@ -99,6 +122,44 @@ function isAuthenticated() {
 function isAdminUser() {
   const user = getStoredUser();
   return String(user?.role || "").toLowerCase() === "admin";
+}
+
+function normalizeUserLabel(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function getEmailPrefix(email) {
+  const value = normalizeUserLabel(email);
+
+  if (!value || !value.includes("@")) {
+    return "";
+  }
+
+  return value.split("@")[0];
+}
+
+function getHeaderUserLabel() {
+  const user = getStoredUser();
+
+  if (!user) {
+    return "TÀI KHOẢN";
+  }
+
+  const label =
+    normalizeUserLabel(user.username) ||
+    normalizeUserLabel(user.fullName) ||
+    normalizeUserLabel(user.full_name) ||
+    normalizeUserLabel(user.name) ||
+    normalizeUserLabel(user.displayName) ||
+    normalizeUserLabel(user.display_name) ||
+    getEmailPrefix(user.email) ||
+    getEmailPrefix(user.emailAddress) ||
+    getEmailPrefix(user.email_address) ||
+    normalizeUserLabel(user.sub);
+
+  return label ? label.toUpperCase() : "TÀI KHOẢN";
 }
 
 function escapeHtml(value) {
@@ -518,6 +579,7 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   const isRoot = normalizedBasePath === ".";
   const authenticated = isAuthenticated();
   const adminUser = authenticated && isAdminUser();
+  const userLabel = getHeaderUserLabel();
 
   const homeHref = isRoot ? "./index.html" : `${normalizedBasePath}/index.html`;
   const collectionsHref = isRoot ? "./pages/collections.html" : "./collections.html";
@@ -538,7 +600,8 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
   const logoutHref = loginHref;
 
   const actionHref = authenticated ? (adminUser ? adminHref : accountHref) : loginHref;
-  const actionText = authenticated ? (adminUser ? "QUẢN TRỊ" : "TÀI KHOẢN") : "ĐĂNG NHẬP";
+  const actionText = authenticated ? userLabel : "ĐĂNG NHẬP";
+  const actionTitle = authenticated ? `Tài khoản ${userLabel}` : "Đăng nhập";
   const actionTargetAttrs = authenticated && adminUser ? 'target="_blank" rel="noopener noreferrer"' : "";
 
   return `
@@ -599,8 +662,14 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
           </section>
         </div>
 
-        <a href="${actionHref}" class="button button-primary button-compact home-register-button" data-auth-btn ${actionTargetAttrs}>
-          ${actionText}
+        <a
+          href="${actionHref}"
+          class="button button-primary button-compact home-register-button"
+          data-auth-btn
+          title="${escapeHtml(actionTitle)}"
+          ${actionTargetAttrs}
+        >
+          ${escapeHtml(actionText)}
         </a>
 
         <div class="home-settings">
@@ -676,7 +745,7 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
       <a href="${collectionsHref}" class="mobile-nav-link">Bộ Sưu Tập</a>
       <a href="${liveAuctionsHref}" class="mobile-nav-link">Đấu Giá Trực Tiếp</a>
       <a href="${protocolHref}" class="mobile-nav-link">Giao Thức Tin Cậy</a>
-      <a href="${actionHref}" class="mobile-nav-link mobile-nav-cta" ${actionTargetAttrs}>${actionText}</a>
+      <a href="${actionHref}" class="mobile-nav-link mobile-nav-cta" ${actionTargetAttrs}>${escapeHtml(actionText)}</a>
     </nav>
   `;
 }

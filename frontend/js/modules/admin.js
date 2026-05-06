@@ -130,11 +130,48 @@ function injectAdminRuntimeStyles() {
       z-index: 2;
     }
 
+    .verification-time-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 16px 0 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .verification-time-grid div {
+      min-width: 0;
+    }
+
+    .verification-time-grid span {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .verification-time-grid strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
     .admin-data-error {
       color: var(--danger);
       font-weight: 900;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    @media (max-width: 720px) {
+      .verification-time-grid {
+        grid-template-columns: 1fr;
+      }
     }
   `;
 
@@ -227,6 +264,70 @@ function formatDateTime(value) {
     month: "2-digit",
     year: "numeric",
   }).format(date);
+}
+
+function parseAuctionDate(value) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateOnly(value) {
+  const date = parseAuctionDate(value);
+
+  if (!date) return "Chưa đặt";
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatTimeOnly(value) {
+  const date = parseAuctionDate(value);
+
+  if (!date) return "Chưa đặt";
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatAuctionDuration(startValue, endValue) {
+  const startDate = parseAuctionDate(startValue);
+  const endDate = parseAuctionDate(endValue);
+
+  if (!startDate || !endDate) return "Không rõ";
+
+  const totalSeconds = Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / 1000));
+
+  if (totalSeconds <= 0) return "0 giây";
+
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const parts = [];
+
+  if (days > 0) parts.push(`${days} ngày`);
+  if (hours > 0) parts.push(`${hours} giờ`);
+  if (minutes > 0) parts.push(`${minutes} phút`);
+  if (seconds > 0 && days === 0) parts.push(`${seconds} giây`);
+
+  return parts.slice(0, 3).join(" ") || "0 giây";
+}
+
+function getAuctionTiming(auction) {
+  return {
+    date: formatDateOnly(auction.startTime),
+    start: formatTimeOnly(auction.startTime),
+    duration: formatAuctionDuration(auction.startTime, auction.endTime),
+    end: formatDateTime(auction.endTime),
+  };
 }
 
 function normalizeStatus(status) {
@@ -570,8 +671,10 @@ function renderVerificationQueue() {
   }
 
   grid.innerHTML = pending
-    .map(
-      (auction) => `
+    .map((auction) => {
+      const timing = getAuctionTiming(auction);
+
+      return `
         <article class="verification-card">
           <div class="verification-media">
             ${imageMarkup(auction.imageUrl, auction.title)}
@@ -601,6 +704,28 @@ function renderVerificationQueue() {
               </div>
             </dl>
 
+            <div class="verification-time-grid">
+              <div>
+                <span>Ngày đấu giá</span>
+                <strong>${escapeHtml(timing.date)}</strong>
+              </div>
+
+              <div>
+                <span>Giờ bắt đầu</span>
+                <strong>${escapeHtml(timing.start)}</strong>
+              </div>
+
+              <div>
+                <span>Thời lượng</span>
+                <strong>${escapeHtml(timing.duration)}</strong>
+              </div>
+
+              <div>
+                <span>Kết thúc</span>
+                <strong>${escapeHtml(timing.end)}</strong>
+              </div>
+            </div>
+
             <p class="verification-note">${escapeHtml(auction.description || "Không có mô tả trong database.")}</p>
 
             <div class="verification-actions">
@@ -610,8 +735,8 @@ function renderVerificationQueue() {
             </div>
           </div>
         </article>
-      `,
-    )
+      `;
+    })
     .join("");
 }
 
