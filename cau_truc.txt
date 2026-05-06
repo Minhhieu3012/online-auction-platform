@@ -54,17 +54,27 @@ online-auction-platform
 │   ├── .env.example
 │   ├── package-lock.json
 │   ├── package.json
+│   ├── public
 │   ├── scripts
 │   │   ├── seed-admin.js
+│   │   ├── seed-redis.js
+│   │   ├── test-worker.js
 │   │   └── warmup.js
 │   └── src
 │       ├── app.js
 │       ├── config
 │       │   ├── db.js
-│       │   └── queue.js
+│       │   ├── kafka.js
+│       │   ├── queue.js
+│       │   └── redis.js
+│       ├── constants
+│       │   └── business.js
 │       ├── controllers
 │       │   ├── admin.js
+│       │   ├── admin.js.bak
+│       │   ├── admin.js.bak-encoding
 │       │   ├── auction.js
+│       │   ├── auction.js.bak
 │       │   ├── auth.js
 │       │   ├── bidding.js
 │       │   ├── deposit.js
@@ -77,11 +87,18 @@ online-auction-platform
 │       │   ├── admin.js
 │       │   ├── auction.js
 │       │   ├── auth.js
-│       │   └── index.js
+│       │   ├── index.js
+│       │   └── notifications.js
 │       ├── server.js
 │       ├── services
+│       │   ├── autobid.js
 │       │   ├── bidding.js
-│       │   └── kafka-consumer.js
+│       │   ├── kafka-consumer.js
+│       │   └── notificationService.js
+│       ├── utils
+│       │   ├── logger.js
+│       │   ├── redis-keys.js
+│       │   └── response.js
 │       └── workers
 │           └── auctionWorker.js
 ├── cau_truc.txt
@@ -89,6 +106,8 @@ online-auction-platform
 │   ├── init.sql
 │   └── mock_data.sql
 ├── docker-compose.yml
+├── fix-admin-encoding.cjs
+├── fix-notifications-encoding.cjs
 ├── frontend
 │   ├── assets
 │   │   ├── icons
@@ -122,7 +141,6 @@ online-auction-platform
 │   │   ├── forgot-password.css
 │   │   ├── main.css
 │   │   ├── notifications.css
-│   │   ├── publish-lot.css
 │   │   └── watchlist.css
 │   ├── index.html
 │   ├── js
@@ -145,9 +163,9 @@ online-auction-platform
 │   │       ├── consignment.js
 │   │       ├── countdown.js
 │   │       ├── forgot-password.js
+│   │       ├── live-auctions.js
 │   │       ├── notifications.js
 │   │       ├── page-shell.js
-│   │       ├── publish-lot.js
 │   │       ├── register.js
 │   │       └── watchlist.js
 │   └── pages
@@ -163,7 +181,6 @@ online-auction-platform
 │       ├── login.html
 │       ├── notifications.html
 │       ├── product-detail.html
-│       ├── publish-lot.html
 │       ├── register.html
 │       └── watchlist.html
 ├── package-lock.json

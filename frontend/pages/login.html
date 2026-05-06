@@ -1,6 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi" data-theme="dark">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Đăng Nhập | BrosGem</title>
@@ -8,126 +8,110 @@
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/auth.css" />
-</head>
-<body>
+  </head>
+  <body>
     <div class="app-shell">
-        <div data-site-header data-base-path=".." data-active-page="" data-header-action="register"></div>
+      <div data-site-header data-base-path=".." data-active-page="" data-header-action="register"></div>
 
-        <main class="auth-page auth-page-login">
-            <section class="auth-shell auth-shell-login">
-                <article class="auth-brand-panel auth-brand-panel-login">
-                    <div class="auth-brand-inner auth-brand-inner-compact">
-                        <p class="eyebrow">Truy Cập Cá Nhân</p>
+      <main class="auth-page auth-page-login">
+        <section class="auth-shell auth-shell-login">
+          <article class="auth-brand-panel auth-brand-panel-login">
+            <div class="auth-brand-inner auth-brand-inner-compact">
+              <p class="eyebrow">Truy Cập Cá Nhân</p>
 
-                        <h1>Trở lại với danh mục của bạn.</h1>
+              <h1>Trở lại với danh mục của bạn.</h1>
 
-                        <p class="auth-brand-copy">
-                            Theo dõi lượt giá đang diễn ra, phiên đã tạo, tiền cọc, thông báo và trạng thái thanh toán từ một bảng điều khiển thành viên duy nhất.
-                        </p>
+              <p class="auth-brand-copy">
+                Theo dõi lượt giá đang diễn ra, phiên đã tạo, tiền cọc, thông báo và trạng thái thanh toán từ một bảng
+                điều khiển thành viên duy nhất.
+              </p>
 
-                        <div class="auth-preview-card auth-preview-card-unified">
-                            <span>Cổng Thành Viên Tích Hợp</span>
-                            <strong>Sẵn Sàng Mua & Bán</strong>
-                            <p>
-                                Một tài khoản bảo mật duy nhất có thể đấu giá, tạo phiên chờ duyệt và theo dõi thanh toán.
-                            </p>
-                        </div>
-                    </div>
-                </article>
+              <div class="auth-preview-card auth-preview-card-unified">
+                <span>Cổng Thành Viên Tích Hợp</span>
+                <strong>Sẵn Sàng Mua & Bán</strong>
+                <p>Một tài khoản bảo mật duy nhất có thể đấu giá, tạo phiên chờ duyệt và theo dõi thanh toán.</p>
+              </div>
+            </div>
+          </article>
 
-                <article class="auth-card auth-card-login-compact">
-                    <div class="auth-card-heading auth-card-heading-compact">
-                        <p class="eyebrow">Chào mừng trở lại</p>
-                        <h2>Đăng Nhập</h2>
-                        <p>Truy cập vào tài khoản BrosGem của bạn.</p>
-                    </div>
+          <article class="auth-card auth-card-login-compact">
+            <div class="auth-card-heading auth-card-heading-compact">
+              <p class="eyebrow">Chào mừng trở lại</p>
+              <h2>Đăng Nhập</h2>
+              <p>Truy cập vào tài khoản BrosGem của bạn.</p>
+            </div>
 
-                    <form class="auth-form auth-form-compact" data-auth-form data-auth-mode="login" novalidate>
-                        <label class="auth-field" for="loginEmail">
-                            <span>Thư điện tử</span>
-                            <input
-                                id="loginEmail"
-                                name="email"
-                                type="email"
-                                placeholder="thanhvien@brosgem.com"
-                                autocomplete="email"
-                                data-auth-email
-                                required
-                            />
-                            <small data-field-error></small>
-                        </label>
+            <form class="auth-form auth-form-compact" data-auth-form data-auth-mode="login" novalidate>
+              <label class="auth-field" for="loginEmail">
+                <span>Thư điện tử</span>
+                <input
+                  id="loginEmail"
+                  name="email"
+                  type="email"
+                  placeholder="thanhvien@brosgem.com"
+                  autocomplete="email"
+                  data-auth-email
+                  required
+                />
+                <small data-field-error></small>
+              </label>
 
-                        <label class="auth-field" for="loginPassword">
-                            <span>Mật khẩu</span>
+              <label class="auth-field" for="loginPassword">
+                <span>Mật khẩu</span>
 
-                            <div class="auth-password-shell">
-                                <input
-                                    id="loginPassword"
-                                    name="password"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    autocomplete="current-password"
-                                    data-auth-password
-                                    required
-                                />
+                <div class="auth-password-shell">
+                  <input
+                    id="loginPassword"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    autocomplete="current-password"
+                    data-auth-password
+                    required
+                  />
 
-                                <button
-                                    type="button"
-                                    class="auth-password-toggle"
-                                    data-password-toggle
-                                    data-password-target="loginPassword"
-                                    aria-label="Hiển thị mật khẩu"
-                                >
-                                    HIỆN
-                                </button>
-                            </div>
+                  <button
+                    type="button"
+                    class="auth-password-toggle"
+                    data-password-toggle
+                    data-password-target="loginPassword"
+                    aria-label="Hiển thị mật khẩu"
+                  >
+                    HIỆN
+                  </button>
+                </div>
 
-                            <small data-field-error></small>
-                        </label>
+                <small data-field-error></small>
+              </label>
 
-                        <div class="auth-options-row">
-                            <label class="auth-check">
-                                <input type="checkbox" name="remember" />
-                                <span></span>
-                                Ghi nhớ đăng nhập
-                            </label>
+              <div class="auth-options-row">
+                <label class="auth-check">
+                  <input type="checkbox" name="remember" />
+                  <span></span>
+                  Ghi nhớ đăng nhập
+                </label>
 
-                            <a href="./forgot-password.html" class="auth-mini-link">Quên mật khẩu?</a>
-                        </div>
+                <a href="./forgot-password.html" class="auth-mini-link">Quên mật khẩu?</a>
+              </div>
 
-                        <button type="submit" class="button button-primary auth-submit-button">
-                            Đăng Nhập
-                        </button>
+              <button type="submit" class="button button-primary auth-submit-button">Đăng Nhập</button>
+            </form>
 
-                        <div class="auth-demo-box auth-demo-box-compact auth-demo-box-unified">
-                            <span>Demo phát triển</span>
+            <p class="auth-switch-copy">
+              Lần đầu đến với BrosGem?
+              <a href="./register.html">Tạo tài khoản thành viên</a>
+            </p>
+          </article>
+        </section>
+      </main>
 
-                            <button
-                                type="button"
-                                data-fill-demo
-                                data-email="member@brosgem.com"
-                                data-password="Member@123456"
-                            >
-                                Điền User Mẫu
-                            </button>
-                        </div>
-                    </form>
+      <div class="toast-stack" data-toast-stack aria-live="polite"></div>
 
-                    <p class="auth-switch-copy">
-                        Lần đầu đến với BrosGem?
-                        <a href="./register.html">Tạo tài khoản thành viên</a>
-                    </p>
-                </article>
-            </section>
-        </main>
-
-        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
-
-        <div data-site-footer data-base-path=".."></div>
+      <div data-site-footer data-base-path=".."></div>
     </div>
 
     <script type="module" src="../components/site-header.js"></script>
     <script type="module" src="../components/site-footer.js"></script>
     <script type="module" src="../js/modules/auth.js"></script>
-</body>
+  </body>
 </html>

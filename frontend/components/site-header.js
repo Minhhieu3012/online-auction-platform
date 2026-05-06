@@ -628,7 +628,6 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
         <a href="${homeHref}" class="nav-link ${activePage === "home" ? "is-active" : ""}">Trang Chủ</a>
         <a href="${collectionsHref}" class="nav-link ${activePage === "collections" ? "is-active" : ""}">Bộ Sưu Tập</a>
         <a href="${liveAuctionsHref}" class="nav-link ${activePage === "live-auctions" ? "is-active" : ""}">Đấu Giá Trực Tiếp</a>
-        <a href="${protocolHref}" class="nav-link">Giao Thức Tin Cậy</a>
       </nav>
 
       <div class="header-actions home-header-actions">
@@ -753,7 +752,6 @@ function createHeaderTemplate({ basePath = ".", activePage = "" }) {
       <a href="${homeHref}" class="mobile-nav-link">Trang Chủ</a>
       <a href="${collectionsHref}" class="mobile-nav-link">Bộ Sưu Tập</a>
       <a href="${liveAuctionsHref}" class="mobile-nav-link">Đấu Giá Trực Tiếp</a>
-      <a href="${protocolHref}" class="mobile-nav-link">Giao Thức Tin Cậy</a>
       <a href="${actionHref}" class="mobile-nav-link mobile-nav-cta" ${actionTargetAttrs}>${escapeHtml(actionText)}</a>
     </nav>
   `;
@@ -839,15 +837,11 @@ async function markNotificationAsRead(notificationId) {
   renderNotifications(currentNotifications);
 
   try {
-    await apiClient.patch(
-      `/notifications/${encodeURIComponent(targetNotification.id)}/read`,
-      null,
-      {
-        auth: true,
-        idempotency: false,
-        redirectOnUnauthorized: false,
-      },
-    );
+    await apiClient.patch(`/notifications/${encodeURIComponent(targetNotification.id)}/read`, null, {
+      auth: true,
+      idempotency: false,
+      redirectOnUnauthorized: false,
+    });
   } catch (error) {
     console.warn("[Header] Không thể cập nhật trạng thái đã đọc:", error);
   }
@@ -872,15 +866,11 @@ async function markAllNotificationsAsRead() {
   renderNotifications(currentNotifications);
 
   try {
-    await apiClient.patch(
-      "/notifications/read-all",
-      null,
-      {
-        auth: true,
-        idempotency: false,
-        redirectOnUnauthorized: false,
-      },
-    );
+    await apiClient.patch("/notifications/read-all", null, {
+      auth: true,
+      idempotency: false,
+      redirectOnUnauthorized: false,
+    });
   } catch (error) {
     console.warn("[Header] Không thể đánh dấu tất cả thông báo là đã đọc:", error);
   } finally {
@@ -1035,7 +1025,4 @@ function renderSiteHeaders() {
 
 document.addEventListener("DOMContentLoaded", renderSiteHeaders);
 
-export {
-  renderSiteHeaders,
-  closeNotificationDropdown,
-};
+export { renderSiteHeaders, closeNotificationDropdown };

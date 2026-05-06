@@ -367,29 +367,6 @@ function bindAuthForms() {
   });
 }
 
-function bindDemoFillButtons() {
-  document.querySelectorAll("[data-fill-demo]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const form = button.closest("[data-auth-form]");
-      const emailInput = form?.querySelector("[data-auth-email]");
-      const passwordInput = form?.querySelector("[data-auth-password]");
-
-      if (emailInput) {
-        emailInput.value = button.dataset.email || "member@brosgem.com";
-        setFieldError(emailInput, "");
-      }
-
-      if (passwordInput) {
-        passwordInput.value = button.dataset.password || "Member@123456";
-        setFieldError(passwordInput, "");
-        passwordInput.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-
-      showToast("Đã điền dữ liệu mẫu", "Hãy chắc chắn tài khoản này tồn tại trong database thật.", "info");
-    });
-  });
-}
-
 function bindPasswordToggles() {
   document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -421,7 +398,6 @@ function initAuthPage() {
   });
 
   bindAuthForms();
-  bindDemoFillButtons();
   bindPasswordToggles();
   bindPasswordStrength();
 }

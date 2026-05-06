@@ -33,11 +33,11 @@ async def get_recent_alerts():
             # - lss -> risk_score
             # - reason -> reasons
             processed_alerts.append({
-                "user_id": data.get("suspectedUserId"),
-                "risk_score": data.get("lss", 0.0), # LSS (Likelihood of Shill bidding Score)
-                "reasons": data.get("reason", "Hành vi đấu giá bất thường"),
-                "timestamp": data.get("timestamp"), # Dùng cho hiển thị thời gian
-                "auction_id": data.get("auctionId")
+                "user_id":    data.get("user_id"),      # đúng key
+                "risk_score": data.get("lss_score", 0.0),
+                "reasons":    data.get("message", "Hành vi đấu giá bất thường"),
+                "timestamp":  data.get("timestamp"),
+                "auction_id": data.get("auction_id")
             })
         except Exception as e:
             # Bỏ qua các bản ghi lỗi định dạng để tránh làm đứng hệ thống
