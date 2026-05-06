@@ -5,6 +5,7 @@ import "../core/socket-client.js";
 
 const API_ORIGIN = window.BROSGEM_API_ORIGIN || "http://localhost:3000";
 const PAGE_SIZE = 8;
+const CLOSING_SOON_WINDOW_MS = 5 * 60 * 1000;
 
 const PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
@@ -65,10 +66,27 @@ function normalizeKey(value) {
 }
 
 function normalizeStatus(value) {
-  return String(value || "")
+  const normalized = String(value || "")
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, "_");
+
+  const map = {
+    active: "active",
+    closing: "closing",
+    closing_soon: "closing",
+    scheduled: "scheduled",
+    ended: "ended",
+    completed: "completed",
+    complete: "completed",
+    payment_pending: "payment_pending",
+    pending: "pending",
+    rejected: "rejected",
+    cancelled: "cancelled",
+    canceled: "cancelled",
+  };
+
+  return map[normalized] || normalized || "active";
 }
 
 function normalizeCategory(value) {
@@ -109,11 +127,15 @@ function parseTimeMs(value) {
 
   const text = String(value).trim();
 
+  if (!text) return 0;
+
   if (/^\d+$/.test(text)) {
     return Number(text);
   }
 
-  const parsed = new Date(text).getTime();
+  const normalizedText = text.includes("T") ? text : text.replace(" ", "T");
+  const parsed = new Date(normalizedText).getTime();
+
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
@@ -167,6 +189,32 @@ function formatCountdown(endTime) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function formatStartsIn(startTime) {
+  const startTimeMs = parseTimeMs(startTime);
+
+  if (!startTimeMs) {
+    return "Chưa đặt";
+  }
+
+  const distance = startTimeMs - Date.now();
+
+  if (distance <= 0) {
+    return "Sắp mở";
+  }
+
+  const totalSeconds = Math.floor(distance / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (days > 0) {
+    return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 function getStatusLabel(status) {
   const map = {
     active: "Đang Mở",
@@ -193,6 +241,73 @@ function getStatusClass(status) {
   if (normalized === "completed") return "status-completed";
 
   return "status-active";
+}
+
+function deriveAuctionStatus(rawStatus, startTime, endTime, nowMs = Date.now()) {
+  const normalized = normalizeStatus(rawStatus);
+  const startMs = parseTimeMs(startTime);
+  const endMs = parseTimeMs(endTime);
+
+  if (normalized === "pending") {
+    return "pending";
+  }
+
+  if (normalized === "rejected") {
+    return "rejected";
+  }
+
+  if (normalized === "cancelled") {
+    return "cancelled";
+  }
+
+  if (normalized === "payment_pending") {
+    return "payment_pending";
+  }
+
+  if (normalized === "completed") {
+    return "completed";
+  }
+
+  if (endMs && endMs <= nowMs) {
+    return "ended";
+  }
+
+  if (startMs && startMs > nowMs) {
+    return "scheduled";
+  }
+
+  if (endMs && endMs > nowMs && endMs - nowMs <= CLOSING_SOON_WINDOW_MS) {
+    return "closing";
+  }
+
+  return "active";
+}
+
+function refreshDerivedStatuses() {
+  const nowMs = Date.now();
+  let hasStatusChanged = false;
+
+  state.allAuctions = state.allAuctions.map((auction) => {
+    const nextStatus = deriveAuctionStatus(
+      auction.rawStatus || auction.status,
+      auction.startTime,
+      auction.endTime,
+      nowMs,
+    );
+    const nextNormalizedStatus = normalizeStatus(nextStatus);
+
+    if (nextNormalizedStatus !== auction.normalizedStatus) {
+      hasStatusChanged = true;
+    }
+
+    return {
+      ...auction,
+      status: nextStatus,
+      normalizedStatus: nextNormalizedStatus,
+    };
+  });
+
+  return hasStatusChanged;
 }
 
 function resolveImageUrl(value) {
@@ -235,7 +350,7 @@ function getAuctionTitle(rawAuction) {
 
 function normalizeAuction(rawAuction = {}) {
   const id = toNumber(getRawValue(rawAuction, ["id", "auction_id", "auctionId"]), 0);
-  const status = getRawValue(rawAuction, ["status"], "Active");
+  const rawStatus = getRawValue(rawAuction, ["status"], "Active");
   const currentPrice = toNumber(getRawValue(rawAuction, ["currentPrice", "current_price", "price"], 0), 0);
   const startingPrice = toNumber(getRawValue(rawAuction, ["startingPrice", "starting_price", "currentPrice", "current_price"], currentPrice), currentPrice);
   const stepPrice = toNumber(getRawValue(rawAuction, ["stepPrice", "step_price", "increment"], 0), 0);
@@ -246,6 +361,7 @@ function normalizeAuction(rawAuction = {}) {
   const startTime = getRawValue(rawAuction, ["startTime", "start_time", "startsAt", "starts_at"], null);
   const createdAt = getRawValue(rawAuction, ["createdAt", "created_at"], null);
   const imageUrl = getRawValue(rawAuction, ["imageUrl", "image_url", "productImage", "product_image"], null);
+  const derivedStatus = deriveAuctionStatus(rawStatus, startTime, endTime);
 
   return {
     id,
@@ -254,8 +370,9 @@ function normalizeAuction(rawAuction = {}) {
     description: getRawValue(rawAuction, ["description", "product_description"], "Đang cập nhật mô tả tài sản."),
     category: category || "collectibles",
     normalizedCategory: normalizeCategory(category),
-    status,
-    normalizedStatus: normalizeStatus(status),
+    rawStatus: normalizeStatus(rawStatus),
+    status: derivedStatus,
+    normalizedStatus: normalizeStatus(derivedStatus),
     currentPrice,
     startingPrice,
     stepPrice,
@@ -307,6 +424,8 @@ function setStatusButtons() {
 }
 
 function applyFiltersAndSort() {
+  refreshDerivedStatuses();
+
   const searchNeedle = normalizeText(state.search);
 
   let result = [...state.allAuctions];
@@ -328,6 +447,7 @@ function applyFiltersAndSort() {
           auction.category,
           auction.lot,
           auction.status,
+          auction.rawStatus,
           auction.id,
         ].join(" "),
       );
@@ -349,7 +469,18 @@ function applyFiltersAndSort() {
       return right.bidCount - left.bidCount;
     }
 
-    return parseTimeMs(left.endTime) - parseTimeMs(right.endTime);
+    const leftEnd = parseTimeMs(left.endTime);
+    const rightEnd = parseTimeMs(right.endTime);
+    const nowMs = Date.now();
+
+    const leftFutureEnd = leftEnd && leftEnd > nowMs ? leftEnd : Number.MAX_SAFE_INTEGER;
+    const rightFutureEnd = rightEnd && rightEnd > nowMs ? rightEnd : Number.MAX_SAFE_INTEGER;
+
+    if (leftFutureEnd !== rightFutureEnd) {
+      return leftFutureEnd - rightFutureEnd;
+    }
+
+    return rightEnd - leftEnd;
   });
 
   state.filteredAuctions = result;
@@ -392,6 +523,7 @@ function renderEmptyState() {
 function renderAuctionCard(auction) {
   const detailHref = `./auction-detail.html?id=${encodeURIComponent(auction.id)}`;
   const isActive = auction.normalizedStatus === "active" || auction.normalizedStatus === "closing";
+  const isScheduled = auction.normalizedStatus === "scheduled";
 
   return `
     <article class="auction-card collection-auction-card" data-auction-id="${escapeHtml(auction.id)}">
@@ -424,8 +556,10 @@ function renderAuctionCard(auction) {
             </div>
 
             <div>
-              <span class="field-label">${isActive ? "Kết Thúc Trong" : "Thời Gian"}</span>
-              <strong data-countdown-card="${escapeHtml(auction.id)}">${isActive ? formatCountdown(auction.endTime) : formatDateTime(auction.startTime || auction.endTime)}</strong>
+              <span class="field-label">${isActive ? "Kết Thúc Trong" : isScheduled ? "Bắt Đầu Trong" : "Thời Gian"}</span>
+              <strong data-countdown-card="${escapeHtml(auction.id)}">
+                ${isActive ? formatCountdown(auction.endTime) : isScheduled ? formatStartsIn(auction.startTime) : formatDateTime(auction.startTime || auction.endTime)}
+              </strong>
             </div>
           </div>
 
@@ -516,10 +650,6 @@ async function loadAuctions() {
 
   const query = {};
 
-  if (state.status !== "all") {
-    query.status = state.status;
-  }
-
   try {
     const response = await apiClient.get("/auctions", query, {
       auth: false,
@@ -544,6 +674,13 @@ async function loadAuctions() {
 }
 
 function refreshVisibleCountdowns() {
+  const hasStatusChanged = refreshDerivedStatuses();
+
+  if (hasStatusChanged) {
+    renderAuctions();
+    return;
+  }
+
   document.querySelectorAll("[data-countdown-card]").forEach((element) => {
     const auctionId = Number(element.dataset.countdownCard);
     const auction = state.filteredAuctions.find((item) => Number(item.id) === auctionId);
@@ -552,6 +689,10 @@ function refreshVisibleCountdowns() {
 
     if (auction.normalizedStatus === "active" || auction.normalizedStatus === "closing") {
       element.textContent = formatCountdown(auction.endTime);
+    }
+
+    if (auction.normalizedStatus === "scheduled") {
+      element.textContent = formatStartsIn(auction.startTime);
     }
   });
 }
@@ -568,7 +709,7 @@ function resetFilters() {
   if (elements.sortSelect) elements.sortSelect.value = "ending-soon";
 
   setStatusButtons();
-  loadAuctions();
+  renderAuctions();
 }
 
 function bindEvents() {
@@ -583,7 +724,7 @@ function bindEvents() {
       state.status = nextStatus;
       state.visibleCount = PAGE_SIZE;
       setStatusButtons();
-      loadAuctions();
+      renderAuctions();
     });
   });
 
