@@ -60,7 +60,7 @@ def fire_defensive_tests(producer):
         "price": 250.0,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
-    producer.send("auction_bids", json.dumps(valid_bid).encode('utf-8'))
+    producer.send("auction-bids", json.dumps(valid_bid).encode('utf-8'))
     print(" -> Đã bắn: Dữ liệu chuẩn")
 
     # Viên đạn 2: Giá âm
@@ -70,12 +70,12 @@ def fire_defensive_tests(producer):
         "price": -5.0, 
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
-    producer.send("auction_bids", json.dumps(invalid_schema_bid).encode('utf-8'))
+    producer.send("auction-bids", json.dumps(invalid_schema_bid).encode('utf-8'))
     print(" -> Đã bắn: Dữ liệu vi phạm schema (Giá âm)")
 
     # Viên đạn 3: Rác bytes
     garbage_data = b"Hello, day la doan text gay loi he thong!"
-    producer.send("auction_bids", garbage_data)
+    producer.send("auction-bids", garbage_data)
     print(" -> Đã bắn: Rác dữ liệu (Không phải JSON)")
     
     producer.flush()
@@ -94,7 +94,7 @@ def fire_spam_attack(producer):
             "price": price,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        producer.send("auction_bids", json.dumps(bid).encode('utf-8'))
+        producer.send("auction-bids", json.dumps(bid).encode('utf-8'))
         print(f" -> Đã bắn đạn giá: ${price}")
         time.sleep(0.1) 
 
@@ -126,7 +126,7 @@ def fire_sniper_test(producer, redis_client):
     }
     
     print(f" -> Đang bắn giá ${payload['price']} (Cách giờ chốt 8 giây!)")
-    producer.send("auction_bids", json.dumps(payload).encode('utf-8'))
+    producer.send("auction-bids", json.dumps(payload).encode('utf-8'))
     producer.flush()
     print("=> Hoàn tất Phase 3!\n")
 
