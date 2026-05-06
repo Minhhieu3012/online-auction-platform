@@ -64,6 +64,9 @@ function cacheElements() {
   elements.lightboxClose = document.querySelector("[data-lightbox-close]");
   elements.lightboxPrev = document.querySelector("[data-lightbox-prev]");
   elements.lightboxNext = document.querySelector("[data-lightbox-next]");
+  elements.proxyToggle = document.querySelector("[data-proxy-toggle]");
+  elements.proxySettings = document.querySelector("[data-proxy-settings]");
+  elements.proxyMaxInput = document.querySelector("[data-proxy-max]");
 }
 
 function getAuctionIdFromUrl() {
@@ -84,7 +87,10 @@ function formatTwoDigits(value) {
 }
 
 function normalizeStatusKey(status) {
-  return String(status || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
 }
 
 function getStatusLabel(status) {
@@ -152,7 +158,9 @@ function setDisplay(element, isVisible) {
 function normalizeBid(rawBid = {}, index = 0) {
   const id = toNullableNumber(getRawValue(rawBid, ["id", "bidId", "bid_id"]));
   const userId = toNullableNumber(getRawValue(rawBid, ["userId", "user_id"]));
-  const amount = Number(getRawValue(rawBid, ["amount", "bidAmount", "bid_amount", "price", "currentPrice", "current_price"], 0));
+  const amount = Number(
+    getRawValue(rawBid, ["amount", "bidAmount", "bid_amount", "price", "currentPrice", "current_price"], 0),
+  );
   const createdAt = getRawValue(rawBid, ["createdAt", "created_at", "time", "timestamp"], null);
 
   return {
@@ -221,8 +229,13 @@ function normalizeAuction(rawAuction = {}) {
     description: rawAuction.description || "Đang cập nhật...",
     status,
     rawStatus: normalizeStatusKey(status),
-    currentBid: finalPrice !== null && ["payment_pending", "completed", "ended"].includes(normalizeStatusKey(status)) ? finalPrice : currentPrice,
-    startingPrice: Number(getRawValue(rawAuction, ["starting_price", "startingPrice", "current_price", "currentPrice"], 0)),
+    currentBid:
+      finalPrice !== null && ["payment_pending", "completed", "ended"].includes(normalizeStatusKey(status))
+        ? finalPrice
+        : currentPrice,
+    startingPrice: Number(
+      getRawValue(rawAuction, ["starting_price", "startingPrice", "current_price", "currentPrice"], 0),
+    ),
     increment: Number(getRawValue(rawAuction, ["step_price", "stepPrice"], 1000)),
     depositAmount: Number(getRawValue(rawAuction, ["deposit_amount", "depositAmount"], 0)),
     requiresDeposit: Boolean(getRawValue(rawAuction, ["requires_deposit", "requiresDeposit"], false)),
@@ -244,7 +257,8 @@ function mergeAuctionState(incomingAuction) {
   }
 
   const incomingIsFinal = ["ended", "payment_pending", "completed", "cancelled"].includes(incomingAuction.rawStatus);
-  const shouldTrustIncoming = incomingAuction.version >= auction.version || incomingIsFinal || incomingAuction.winnerId !== null;
+  const shouldTrustIncoming =
+    incomingAuction.version >= auction.version || incomingIsFinal || incomingAuction.winnerId !== null;
 
   auction = {
     ...auction,
@@ -354,7 +368,10 @@ function renderActionPanel() {
 
     if (isWinner) {
       const finalAmount = Number(auction.finalPrice ?? auction.currentBid ?? 0);
-      const depositApplied = currentDepositStatus === "APPLIED_TO_WIN_PAYMENT" ? Number(depositStatusObj.amount || auction.depositAmount || 0) : Number(auction.depositAmount || 0);
+      const depositApplied =
+        currentDepositStatus === "APPLIED_TO_WIN_PAYMENT"
+          ? Number(depositStatusObj.amount || auction.depositAmount || 0)
+          : Number(auction.depositAmount || 0);
       const remaining = Math.max(0, finalAmount - depositApplied);
 
       elements.winnerPanel.innerHTML = `
@@ -405,7 +422,8 @@ function renderActionPanel() {
   if (auction.requiresDeposit && !isDepositSucceeded) {
     setDisplay(elements.depositPanel, true);
     if (elements.depositActionBtn) {
-      elements.depositActionBtn.textContent = currentDepositStatus === "PENDING" ? "Tiếp Tục Thanh Toán Cọc" : "Đặt Cọc Để Tham Gia";
+      elements.depositActionBtn.textContent =
+        currentDepositStatus === "PENDING" ? "Tiếp Tục Thanh Toán Cọc" : "Đặt Cọc Để Tham Gia";
     }
     return;
   }
@@ -417,7 +435,9 @@ function updateUIWithNewBid(data = {}) {
   if (!auction || Number(data.auctionId || data.auction_id) !== Number(auction.id)) return;
 
   const incomingVersion = Number(data.version || 0);
-  const nextAmount = Number(getRawValue(data, ["currentPrice", "current_price", "amount", "bidAmount", "bid_amount", "price"], 0));
+  const nextAmount = Number(
+    getRawValue(data, ["currentPrice", "current_price", "amount", "bidAmount", "bid_amount", "price"], 0),
+  );
 
   if (incomingVersion > 0 && incomingVersion < Number(auction.version || 0)) {
     console.warn("[Realtime] Bỏ qua lượt giá cũ.", { current: auction.version, incoming: incomingVersion });
@@ -425,7 +445,10 @@ function updateUIWithNewBid(data = {}) {
   }
 
   if (nextAmount > 0 && nextAmount < Number(auction.currentBid || 0)) {
-    console.warn("[Realtime] Bỏ qua current price thấp hơn state hiện tại.", { current: auction.currentBid, incoming: nextAmount });
+    console.warn("[Realtime] Bỏ qua current price thấp hơn state hiện tại.", {
+      current: auction.currentBid,
+      incoming: nextAmount,
+    });
     return;
   }
 
@@ -458,7 +481,9 @@ function updateUIWithFinalizedAuction(data = {}) {
   if (!auction || Number(data.auctionId || data.auction_id) !== Number(auction.id)) return;
 
   auction.winnerId = toNullableNumber(getRawValue(data, ["winnerId", "winner_id", "userId", "user_id"]));
-  auction.finalPrice = toNullableNumber(getRawValue(data, ["finalPrice", "final_price", "amount", "currentPrice", "current_price"]));
+  auction.finalPrice = toNullableNumber(
+    getRawValue(data, ["finalPrice", "final_price", "amount", "currentPrice", "current_price"]),
+  );
   auction.currentBid = Number(auction.finalPrice ?? auction.currentBid ?? 0);
   auction.status = getRawValue(data, ["status"], auction.winnerId ? "Payment Pending" : "Ended");
   auction.rawStatus = normalizeStatusKey(auction.status);
@@ -500,7 +525,9 @@ function setActiveImage(index) {
   const image = auction.images[activeImageIndex];
   if (elements.mainImage) elements.mainImage.src = image;
   if (elements.lightboxImage) elements.lightboxImage.src = image;
-  elements.thumbnailGrid?.querySelectorAll(".thumbnail-button").forEach((btn, i) => btn.classList.toggle("is-active", i === activeImageIndex));
+  elements.thumbnailGrid
+    ?.querySelectorAll(".thumbnail-button")
+    .forEach((btn, i) => btn.classList.toggle("is-active", i === activeImageIndex));
 }
 
 function renderGallery() {
@@ -550,7 +577,8 @@ function renderBidPanel() {
     elements.bidInput.placeholder = String(minBid);
     elements.bidInput.min = String(minBid);
   }
-  if (elements.activeBids) elements.activeBids.textContent = `${auction.bidHistory?.length || auction.bidCount || 0} bids`;
+  if (elements.activeBids)
+    elements.activeBids.textContent = `${auction.bidHistory?.length || auction.bidCount || 0} bids`;
   if (elements.statusLabel) elements.statusLabel.textContent = getStatusLabel(auction.status);
 }
 
@@ -613,11 +641,33 @@ async function handleManualBid(event) {
 
   submitButton.disabled = true;
 
+  const isProxyChecked = elements.proxyToggle?.checked;
+
   try {
-    const res = await apiClient.post(`/auctions/${auction.id}/bids`, { bidAmount: bidValue });
-    showToast("Thành công", "Lượt giá đã được ghi nhận.", "success");
-    if (input) input.value = "";
-    updateUIWithNewBid(res.data);
+    if (isProxyChecked) {
+      // ----------------------------------------
+      // LUỒNG 1: XỬ LÝ AUTO-BID (PROXY BIDDING)
+      // ----------------------------------------
+      const maxBudget = Number(String(elements.proxyMaxInput?.value || "").replace(/[^0-9.]/g, ""));
+
+      if (maxBudget < getMinimumBid()) {
+        showToast("Từ chối", "Hạn mức uỷ thác phải lớn hơn hoặc bằng bước giá tiếp theo.", "warning");
+        submitButton.disabled = false;
+        return;
+      }
+
+      // Giả định route API của bạn là /auctions/:id/auto-bid (hãy điều chỉnh nếu route trong index.js của bạn khác)
+      await apiClient.post(`/auctions/${auction.id}/auto-bid`, { maxAmount: maxBudget });
+      showToast("Thành công", "Đã lưu cấu hình tự động trả giá.", "success");
+    } else {
+      // ----------------------------------------
+      // LUỒNG 2: XỬ LÝ TRẢ GIÁ THỦ CÔNG (NHƯ CŨ)
+      // ----------------------------------------
+      const res = await apiClient.post(`/auctions/${auction.id}/bids`, { bidAmount: bidValue });
+      showToast("Thành công", "Lượt giá đã được ghi nhận.", "success");
+      if (input) input.value = "";
+      updateUIWithNewBid(res.data);
+    }
   } catch (error) {
     showToast("Lỗi", error.message, "error");
     if (error.errorCode === "ERR_AUCTION_ENDED") loadAuctionDetail({ reason: "bid-ended" });
@@ -669,6 +719,16 @@ async function loadAuctionDetail(options = {}) {
 }
 
 function bindEvents() {
+  if (elements.proxyToggle && elements.proxySettings) {
+    elements.proxyToggle.addEventListener("change", (e) => {
+      elements.proxySettings.style.display = e.target.checked ? "block" : "none";
+      if (e.target.checked && elements.bidInput) {
+        // Tự động điền giá trị gợi ý lớn hơn giá hiện tại
+        elements.proxyMaxInput.value = getMinimumBid() * 2;
+        elements.proxyMaxInput.focus();
+      }
+    });
+  }
   if (elements.bidForm) elements.bidForm.addEventListener("submit", handleManualBid);
 
   if (elements.depositActionBtn) {

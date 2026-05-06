@@ -53,7 +53,11 @@ const listAuctions = safeController(AuctionController, "listAuctions", "Danh sá
 const listMyAuctions = safeController(AuctionController, "listMyAuctions", "Danh sách phiên của tôi");
 const getAuctionById = safeController(AuctionController, "getAuctionById", "Chi tiết phiên đấu giá");
 const createAuction = safeController(AuctionController, "createAuction", "Tạo phiên đấu giá");
-const updateAuctionStatus = safeController(AuctionController, "updateAuctionStatus", "Cập nhật trạng thái phiên đấu giá");
+const updateAuctionStatus = safeController(
+  AuctionController,
+  "updateAuctionStatus",
+  "Cập nhật trạng thái phiên đấu giá",
+);
 const approveAuction = safeController(AuctionController, "approveAuction", "Duyệt phiên đấu giá");
 const rejectAuction = safeController(AuctionController, "rejectAuction", "Từ chối phiên đấu giá");
 
@@ -108,6 +112,8 @@ router.post(
   placeBid,
 );
 router.post("/:id/autobid", validateAuctionId, authMiddleware, authorize("user"), checkIdempotency, setupAutoBid);
+
+router.post("/:id/auto-bid", validateAuctionId, authMiddleware, authorize("user"), checkIdempotency, setupAutoBid);
 
 /**
  * Admin aliases.

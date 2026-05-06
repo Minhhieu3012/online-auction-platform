@@ -7,7 +7,8 @@ const FALLBACK_IMAGE = "../assets/images/mockdata/1.png";
 const TAB_COPY = {
   overview: {
     title: "Tổng Quan",
-    subtitle: "Theo dõi hoạt động trả giá, danh mục quan tâm, yêu cầu bán và trạng thái thanh toán của bạn ở một nơi duy nhất.",
+    subtitle:
+      "Theo dõi hoạt động trả giá, danh mục quan tâm, yêu cầu bán và trạng thái thanh toán của bạn ở một nơi duy nhất.",
   },
   bids: {
     title: "Lượt Giá Của Tôi",
@@ -22,8 +23,8 @@ const TAB_COPY = {
     subtitle: "Các phiên bạn thắng và trạng thái thanh toán sau đấu giá sẽ xuất hiện tại đây.",
   },
   publish: {
-  title: "Đăng Bán",
-  subtitle: "Tạo lô đấu giá mới, tải hình ảnh, nhập giá và gửi vào hàng chờ admin duyệt.",
+    title: "Đăng Bán",
+    subtitle: "Tạo lô đấu giá mới, tải hình ảnh, nhập giá và gửi vào hàng chờ admin duyệt.",
   },
   selling: {
     title: "Bán Hàng",
@@ -718,7 +719,10 @@ function getMemberSubtitle(user) {
 function getInitials(value) {
   const cleanValue = String(value || "BG").trim();
   const emailName = cleanValue.includes("@") ? cleanValue.split("@")[0] : cleanValue;
-  const words = emailName.replace(/[._-]+/g, " ").split(/\s+/).filter(Boolean);
+  const words = emailName
+    .replace(/[._-]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
 
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
 
@@ -759,7 +763,10 @@ function setInput(selector, value) {
 }
 
 function normalizeStatus(status) {
-  return String(status || "").trim().toLowerCase().replace(/\s+/g, "_");
+  return String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
 }
 
 function getStatusLabel(status) {
@@ -859,7 +866,6 @@ function renderEmptyPanel(tabName, title, message) {
     </article>
   `;
 }
-
 
 function resetPublishState() {
   state.publishPreviewUrls.forEach((url) => {
@@ -1039,14 +1045,35 @@ async function handleAccountPublishImageUpload(event) {
 
 function updateAccountPublishPreview() {
   setAccountPublishText("[data-account-preview-lot]", "CHỜ HỆ THỐNG CẤP MÃ");
-  setAccountPublishText("[data-account-preview-title]", getAccountPublishValue("[data-account-lot-title]") || "Chưa có tiêu đề");
-  setAccountPublishText("[data-account-preview-category]", getAccountPublishValue("[data-account-lot-category]") || "Chưa phân loại");
+  setAccountPublishText(
+    "[data-account-preview-title]",
+    getAccountPublishValue("[data-account-lot-title]") || "Chưa có tiêu đề",
+  );
+  setAccountPublishText(
+    "[data-account-preview-category]",
+    getAccountPublishValue("[data-account-lot-category]") || "Chưa phân loại",
+  );
   setAccountPublishText("[data-account-preview-specialist]", "BrosGem Verification");
-  setAccountPublishText("[data-account-preview-description]", getAccountPublishValue("[data-account-lot-description]") || "Mô tả công khai sẽ hiện ở đây.");
-  setAccountPublishText("[data-account-preview-estimate]", `${formatCurrency(getAccountPublishValue("[data-account-estimate-low]"))} - ${formatCurrency(getAccountPublishValue("[data-account-estimate-high]"))}`);
-  setAccountPublishText("[data-account-preview-starting]", formatCurrency(getAccountPublishValue("[data-account-starting-bid]")));
-  setAccountPublishText("[data-account-preview-reserve]", formatCurrency(getAccountPublishValue("[data-account-reserve-price]")));
-  setAccountPublishText("[data-account-preview-increment]", formatCurrency(getAccountPublishValue("[data-account-bid-increment]")));
+  setAccountPublishText(
+    "[data-account-preview-description]",
+    getAccountPublishValue("[data-account-lot-description]") || "Mô tả công khai sẽ hiện ở đây.",
+  );
+  setAccountPublishText(
+    "[data-account-preview-estimate]",
+    `${formatCurrency(getAccountPublishValue("[data-account-estimate-low]"))} - ${formatCurrency(getAccountPublishValue("[data-account-estimate-high]"))}`,
+  );
+  setAccountPublishText(
+    "[data-account-preview-starting]",
+    formatCurrency(getAccountPublishValue("[data-account-starting-bid]")),
+  );
+  setAccountPublishText(
+    "[data-account-preview-reserve]",
+    formatCurrency(getAccountPublishValue("[data-account-reserve-price]")),
+  );
+  setAccountPublishText(
+    "[data-account-preview-increment]",
+    formatCurrency(getAccountPublishValue("[data-account-bid-increment]")),
+  );
   setAccountPublishText("[data-account-preview-window]", formatAccountPublishDurationLabel());
   updateAccountPublishPreviewImage();
 }
@@ -1102,15 +1129,38 @@ function validateAccountPublishForm() {
     if (!validateAccountPublishRequired(document.querySelector(selector), message)) isValid = false;
   });
 
-  if (!validateAccountPublishNumber(document.querySelector("[data-account-starting-bid]"), "Nhập giá khởi điểm.")) isValid = false;
-  if (!validateAccountPublishNumber(document.querySelector("[data-account-reserve-price]"), "Nhập giá sàn.")) isValid = false;
-  if (!validateAccountPublishNumber(document.querySelector("[data-account-bid-increment]"), "Nhập bước giá.")) isValid = false;
-  if (!validateAccountPublishNumber(document.querySelector("[data-account-estimate-low]"), "Nhập ước tính thấp.")) isValid = false;
-  if (!validateAccountPublishNumber(document.querySelector("[data-account-estimate-high]"), "Nhập ước tính cao.")) isValid = false;
+  if (!validateAccountPublishNumber(document.querySelector("[data-account-starting-bid]"), "Nhập giá khởi điểm."))
+    isValid = false;
+  if (!validateAccountPublishNumber(document.querySelector("[data-account-reserve-price]"), "Nhập giá sàn."))
+    isValid = false;
+  if (!validateAccountPublishNumber(document.querySelector("[data-account-bid-increment]"), "Nhập bước giá."))
+    isValid = false;
+  if (!validateAccountPublishNumber(document.querySelector("[data-account-estimate-low]"), "Nhập ước tính thấp."))
+    isValid = false;
+  if (!validateAccountPublishNumber(document.querySelector("[data-account-estimate-high]"), "Nhập ước tính cao."))
+    isValid = false;
 
-  if (!validateAccountPublishOptionalNonNegative(document.querySelector("[data-account-dur-hours]"), "Số giờ không hợp lệ.")) isValid = false;
-  if (!validateAccountPublishOptionalNonNegative(document.querySelector("[data-account-dur-minutes]"), "Số phút không hợp lệ.")) isValid = false;
-  if (!validateAccountPublishOptionalNonNegative(document.querySelector("[data-account-dur-seconds]"), "Số giây không hợp lệ.")) isValid = false;
+  if (
+    !validateAccountPublishOptionalNonNegative(
+      document.querySelector("[data-account-dur-hours]"),
+      "Số giờ không hợp lệ.",
+    )
+  )
+    isValid = false;
+  if (
+    !validateAccountPublishOptionalNonNegative(
+      document.querySelector("[data-account-dur-minutes]"),
+      "Số phút không hợp lệ.",
+    )
+  )
+    isValid = false;
+  if (
+    !validateAccountPublishOptionalNonNegative(
+      document.querySelector("[data-account-dur-seconds]"),
+      "Số giây không hợp lệ.",
+    )
+  )
+    isValid = false;
 
   if (getAccountPublishDurationParts().totalSeconds <= 0) {
     setAccountPublishFieldError(document.querySelector("[data-account-dur-hours]"), "Nhập thời lượng phiên > 0.");
@@ -1177,7 +1227,12 @@ function shouldFallbackAccountPublishToJson(error) {
   const message = String(error?.message || "").toLowerCase();
   const code = String(error?.errorCode || "").toUpperCase();
 
-  return error?.status === 400 || code === "ERR_INVALID_INPUT" || message.includes("invalid input") || message.includes("vui lòng nhập đủ");
+  return (
+    error?.status === 400 ||
+    code === "ERR_INVALID_INPUT" ||
+    message.includes("invalid input") ||
+    message.includes("vui lòng nhập đủ")
+  );
 }
 
 async function handleAccountPublishSubmit(event) {
@@ -1258,7 +1313,8 @@ function bindAccountPublishForm() {
   if (prevButton) {
     prevButton.addEventListener("click", () => {
       if (state.publishPreviewUrls.length <= 1) return;
-      state.publishCurrentImageIndex = state.publishCurrentImageIndex === 0 ? state.publishPreviewUrls.length - 1 : state.publishCurrentImageIndex - 1;
+      state.publishCurrentImageIndex =
+        state.publishCurrentImageIndex === 0 ? state.publishPreviewUrls.length - 1 : state.publishCurrentImageIndex - 1;
       updateAccountPublishPreviewImage();
       renderAccountPublishThumbnails();
     });
@@ -1267,7 +1323,8 @@ function bindAccountPublishForm() {
   if (nextButton) {
     nextButton.addEventListener("click", () => {
       if (state.publishPreviewUrls.length <= 1) return;
-      state.publishCurrentImageIndex = state.publishCurrentImageIndex + 1 >= state.publishPreviewUrls.length ? 0 : state.publishCurrentImageIndex + 1;
+      state.publishCurrentImageIndex =
+        state.publishCurrentImageIndex + 1 >= state.publishPreviewUrls.length ? 0 : state.publishCurrentImageIndex + 1;
       updateAccountPublishPreviewImage();
       renderAccountPublishThumbnails();
     });
@@ -1463,7 +1520,6 @@ function renderPublishPanel() {
 
             <div class="account-publish-preview-media">
               <img src="${DEFAULT_PUBLISH_PREVIEW_IMAGE}" alt="Bản xem trước lô hàng" data-account-publish-preview-image />
-              <span class="account-publish-preview-chip">Pending</span>
               <button type="button" class="account-publish-preview-nav" data-account-publish-prev aria-label="Ảnh trước">‹</button>
               <button type="button" class="account-publish-preview-nav" data-account-publish-next aria-label="Ảnh tiếp theo">›</button>
               <span class="account-publish-preview-counter" data-account-publish-counter>1 / 1</span>
@@ -1505,14 +1561,15 @@ function renderSellingPanel() {
   const panel = getPanel("selling");
   if (!panel) return;
 
-  const auctionListHtml = state.myAuctions.length === 0
-    ? `
+  const auctionListHtml =
+    state.myAuctions.length === 0
+      ? `
       <div class="account-empty-state">
         <span>◇</span>
         <p>Bạn chưa gửi phiên đấu giá nào. Hãy mở tab Đăng Bán để tạo lô mới, sau đó phiên sẽ xuất hiện tại đây với trạng thái chờ duyệt.</p>
       </div>
     `
-    : `
+      : `
       <div class="account-selling-grid">
         ${state.myAuctions
           .map(
@@ -1571,7 +1628,6 @@ function renderSellingPanel() {
       </article>
     </div>
   `;
-
 
   bindAccountPublishForm();
 }
@@ -1663,9 +1719,17 @@ async function loadMyAuctions() {
 
 function renderNonReadyPanels() {
   renderPublishPanel();
-  renderEmptyPanel("bids", "Lượt Giá Của Tôi", "Phần này sẽ nối API lịch sử bid ở scope tiếp theo. Hiện không còn dùng mock data.");
+  renderEmptyPanel(
+    "bids",
+    "Lượt Giá Của Tôi",
+    "Phần này sẽ nối API lịch sử bid ở scope tiếp theo. Hiện không còn dùng mock data.",
+  );
   renderEmptyPanel("watching", "Đang Theo Dõi", "Watchlist sẽ hiển thị khi API watchlist được nối vào Backend.");
-  renderEmptyPanel("won", "Đấu Giá Đã Thắng", "Các phiên thắng sẽ xuất hiện sau khi Backend hoàn tất settlement/payment.");
+  renderEmptyPanel(
+    "won",
+    "Đấu Giá Đã Thắng",
+    "Các phiên thắng sẽ xuất hiện sau khi Backend hoàn tất settlement/payment.",
+  );
   renderEmptyPanel("payments", "Thanh Toán", "Hóa đơn và đối soát sẽ được nối sau luồng checkout.");
   renderSettingsPanel();
 }

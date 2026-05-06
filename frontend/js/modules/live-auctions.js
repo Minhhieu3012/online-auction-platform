@@ -35,10 +35,8 @@ function cacheElements() {
   elements.emptyState = document.querySelector("[data-empty-state]");
   elements.resultCount = document.querySelector("[data-result-count]");
   elements.showingLabel = document.querySelector("[data-showing-label]");
-  elements.currentSort = document.querySelector("[data-current-sort]");
   elements.categoryFilter = document.querySelector("[data-category-filter]");
   elements.searchInput = document.querySelector("[data-search-input]");
-  elements.sortSelect = document.querySelector("[data-sort-select]");
   elements.loadMoreButton = document.querySelector("[data-load-more]");
   elements.resetFiltersButton = document.querySelector("[data-reset-filters]");
   elements.statusButtons = Array.from(document.querySelectorAll("[data-status-filter]"));
@@ -352,7 +350,10 @@ function normalizeAuction(rawAuction = {}) {
   const id = toNumber(getRawValue(rawAuction, ["id", "auction_id", "auctionId"]), 0);
   const rawStatus = getRawValue(rawAuction, ["status"], "Active");
   const currentPrice = toNumber(getRawValue(rawAuction, ["currentPrice", "current_price", "price"], 0), 0);
-  const startingPrice = toNumber(getRawValue(rawAuction, ["startingPrice", "starting_price", "currentPrice", "current_price"], currentPrice), currentPrice);
+  const startingPrice = toNumber(
+    getRawValue(rawAuction, ["startingPrice", "starting_price", "currentPrice", "current_price"], currentPrice),
+    currentPrice,
+  );
   const stepPrice = toNumber(getRawValue(rawAuction, ["stepPrice", "step_price", "increment"], 0), 0);
   const depositAmount = toNumber(getRawValue(rawAuction, ["depositAmount", "deposit_amount"], 0), 0);
   const bidCount = toNumber(getRawValue(rawAuction, ["bidCount", "bid_count", "bidsCount"], 0), 0);
@@ -659,9 +660,7 @@ async function loadAuctions() {
 
     const rawAuctions = getAuctionsFromPayload(response);
 
-    state.allAuctions = rawAuctions
-      .map(normalizeAuction)
-      .filter((auction) => auction.id > 0);
+    state.allAuctions = rawAuctions.map(normalizeAuction).filter((auction) => auction.id > 0);
 
     state.visibleCount = PAGE_SIZE;
 
@@ -742,12 +741,6 @@ function bindEvents() {
       state.visibleCount = PAGE_SIZE;
       renderAuctions();
     }, 240);
-  });
-
-  elements.sortSelect?.addEventListener("change", () => {
-    state.sort = elements.sortSelect.value || "ending-soon";
-    state.visibleCount = PAGE_SIZE;
-    renderAuctions();
   });
 
   elements.loadMoreButton?.addEventListener("click", () => {

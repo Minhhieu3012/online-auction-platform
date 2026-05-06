@@ -1,6 +1,6 @@
 DROP DATABASE IF EXISTS auction_db;
 
-/*UPDATE Users SET role = 'admin' WHERE username = 'admin123';*/
+UPDATE Users SET role = 'admin' WHERE username = 'admin123';
 CREATE DATABASE IF NOT EXISTS auction_db
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;

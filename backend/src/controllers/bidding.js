@@ -3,6 +3,7 @@ const { sendSuccess, sendError } = require("../utils/response");
 const redisClient = require("../config/redis");
 const redisKeys = require("../utils/redis-keys");
 const NotificationService = require("../services/notificationService");
+const AutoBidService = require("../services/autobid");
 
 /**
  * Ép chuỗi MySQL DATETIME thành UTC timestamp tuyệt đối.
@@ -272,7 +273,27 @@ class BiddingController {
   }
 
   static async setupAutoBid(req, res) {
-    return sendError(res, "ERR_NOT_IMPLEMENTED", "Tính năng Auto-bid đang được bảo trì.", 501);
+    const auctionId = Number(req.params.id);
+    const userId = Number(req.user?.id);
+    const maxAmount = Number(req.body?.maxAmount);
+
+    if (!auctionId || !userId || !maxAmount || maxAmount <= 0) {
+      return sendError(res, "ERR_INVALID_INPUT", "Hạn mức tối đa không hợp lệ.", 400);
+    }
+
+    try {
+      const result = await AutoBidService.setupAutoBid(auctionId, userId, maxAmount);
+      return sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      console.error("[Auto-Bid Setup Error]:", error);
+      if (error.message === "ERR_INSUFFICIENT_BALANCE") {
+        return sendError(res, "ERR_BALANCE", "Số dư khả dụng không đủ để đóng băng hạn mức này.", 400);
+      }
+      if (error.message === "ERR_USER_NOT_FOUND") {
+        return sendError(res, "ERR_AUTH", "Không tìm thấy thông tin tài khoản.", 404);
+      }
+      return sendError(res, "ERR_SERVER", "Lỗi máy chủ khi thiết lập Auto-bid.", 500);
+    }
   }
 }
 
