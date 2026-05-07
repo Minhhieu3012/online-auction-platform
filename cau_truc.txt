@@ -1,0 +1,185 @@
+online-auction-platform
+├── ai-features
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── app
+│   │   ├── __init__.py
+│   │   ├── api
+│   │   │   ├── __init__.py
+│   │   │   ├── deps.py
+│   │   │   └── routes
+│   │   │       ├── __init__.py
+│   │   │       ├── alerts.py
+│   │   │       └── health.py
+│   │   ├── core
+│   │   │   ├── __init__.py
+│   │   │   ├── config.py
+│   │   │   ├── constants.py
+│   │   │   └── logging.py
+│   │   ├── db
+│   │   │   ├── __init__.py
+│   │   │   ├── mysql.py
+│   │   │   ├── redis_client.py
+│   │   │   └── repositories.py
+│   │   ├── kafka
+│   │   │   ├── __init__.py
+│   │   │   ├── connection.py
+│   │   │   ├── handlers
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── bid_handler.py
+│   │   │   ├── producer.py
+│   │   │   └── schemas.py
+│   │   ├── main.py
+│   │   ├── services
+│   │   │   ├── __init__.py
+│   │   │   ├── detector.py
+│   │   │   ├── integrity.py
+│   │   │   └── rules.py
+│   │   └── workers
+│   │       ├── __init__.py
+│   │       └── kafka_worker.py
+│   ├── jmeter
+│   │   └── auction-bid-stress-test.jmx
+│   ├── pytest.ini
+│   ├── requirements.txt
+│   ├── scripts
+│   │   ├── start.sh
+│   │   ├── test_producer.py
+│   │   └── wait_for_kafka.sh
+│   └── tests
+│       ├── __init__.py
+│       ├── test_integrity.py
+│       └── test_rules.py
+├── backend
+│   ├── .env.example
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   ├── scripts
+│   │   ├── seed-admin.js
+│   │   ├── seed-redis.js
+│   │   ├── test-worker.js
+│   │   └── warmup.js
+│   └── src
+│       ├── app.js
+│       ├── config
+│       │   ├── db.js
+│       │   ├── kafka.js
+│       │   ├── queue.js
+│       │   └── redis.js
+│       ├── constants
+│       │   └── business.js
+│       ├── controllers
+│       │   ├── admin.js
+│       │   ├── admin.js.bak
+│       │   ├── admin.js.bak-encoding
+│       │   ├── auction.js
+│       │   ├── auction.js.bak
+│       │   ├── auth.js
+│       │   ├── bidding.js
+│       │   ├── deposit.js
+│       │   ├── payment.js
+│       │   ├── transactions.js
+│       │   └── watchlist.js
+│       ├── middlewares
+│       │   ├── auth.js
+│       │   ├── idempotency.js
+│       │   └── validateBid.js
+│       ├── routes
+│       │   ├── admin.js
+│       │   ├── auction-routes.js
+│       │   ├── auction.js
+│       │   ├── auth.js
+│       │   ├── index.js
+│       │   └── notifications.js
+│       ├── server.js
+│       ├── services
+│       │   ├── autobid.js
+│       │   ├── bidding.js
+│       │   ├── kafka-consumer.js
+│       │   └── notificationService.js
+│       ├── utils
+│       │   ├── logger.js
+│       │   ├── redis-keys.js
+│       │   └── response.js
+│       └── workers
+│           └── auctionWorker.js
+├── cau_truc.txt
+├── database
+│   ├── init.sql
+│   └── mock_data.sql
+├── docker-compose.yml
+├── fix-admin-encoding.cjs
+├── fix-notifications-encoding.cjs
+├── frontend
+│   ├── assets
+│   │   ├── icons
+│   │   │   ├── bidding.png
+│   │   │   ├── cart.png
+│   │   │   └── user.png
+│   │   └── images
+│   │       ├── background.jpg
+│   │       ├── logo.png
+│   │       └── mockdata
+│   │           ├── pic-1.png
+│   │           ├── pic-2.png
+│   │           ├── pic-3.png
+│   │           └── pic-4.png
+│   ├── components
+│   │   ├── auction-list.js
+│   │   ├── site-footer.js
+│   │   └── site-header.js
+│   ├── css
+│   │   ├── admin.css
+│   │   ├── auction-detail.css
+│   │   ├── auth.css
+│   │   ├── checkout.css
+│   │   ├── collections.css
+│   │   ├── command-palette.css
+│   │   ├── components.css
+│   │   ├── consignment.css
+│   │   ├── dashboard.css
+│   │   ├── forgot-password.css
+│   │   ├── main.css
+│   │   └── watchlist.css
+│   ├── index.html
+│   ├── js
+│   │   ├── core
+│   │   │   ├── api-client.js
+│   │   │   ├── config.js
+│   │   │   ├── header.js
+│   │   │   ├── socket-client.js
+│   │   │   ├── storage.js
+│   │   │   └── theme.js
+│   │   ├── main.js
+│   │   └── modules
+│   │       ├── account.js
+│   │       ├── admin.js
+│   │       ├── auction-detail.js
+│   │       ├── auction-list.js
+│   │       ├── auth.js
+│   │       ├── checkout.js
+│   │       ├── command-palette.js
+│   │       ├── consignment.js
+│   │       ├── countdown.js
+│   │       ├── forgot-password.js
+│   │       ├── live-auctions.js
+│   │       ├── page-shell.js
+│   │       ├── register.js
+│   │       └── watchlist.js
+│   └── pages
+│       ├── account.html
+│       ├── admin.html
+│       ├── auction-detail.html
+│       ├── checkout.html
+│       ├── collections.html
+│       ├── consign.html
+│       ├── dashboard.html
+│       ├── forgot-password.html
+│       ├── live-auctions.html
+│       ├── login.html
+│       ├── product-detail.html
+│       ├── register.html
+│       └── watchlist.html
+├── package-lock.json
+└── package.json

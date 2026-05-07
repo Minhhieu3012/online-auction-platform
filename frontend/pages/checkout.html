@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout Settlement | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/checkout.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+        <main class="checkout-page">
+            <section class="checkout-hero">
+                <div>
+                    <p class="eyebrow">Payment Settlement</p>
+                    <h1>Complete your winning invoice.</h1>
+                    <p>
+                        Review the hammer price, buyer premium, shipping, insurance, and payment method before
+                        confirming settlement for your auction purchase.
+                    </p>
+                </div>
+
+                <div class="checkout-hero-actions">
+                    <a href="./account.html#payments" class="button button-outline">Back to Payments</a>
+                    <a href="./live-auctions.html" class="button button-primary">Browse Auctions</a>
+                </div>
+            </section>
+
+            <section class="checkout-layout">
+                <form class="checkout-form" data-checkout-form novalidate>
+                    <section class="checkout-section">
+                        <div class="checkout-section-heading">
+                            <span>01</span>
+                            <div>
+                                <h2>Invoice Asset</h2>
+                                <p>Winning lot information prepared for buyer settlement.</p>
+                            </div>
+                        </div>
+
+                        <article class="invoice-asset-card">
+                            <img src="../assets/images/mockdata/1.png" alt="Winning auction asset" />
+
+                            <div>
+                                <p>Invoice #BG-8822</p>
+                                <h3>The Midnight Chronograph</h3>
+                                <span>Lot #842 • Horology • Private Collection</span>
+                            </div>
+
+                            <strong data-hammer-price-label>$285,000</strong>
+                        </article>
+                    </section>
+
+                    <section class="checkout-section">
+                        <div class="checkout-section-heading">
+                            <span>02</span>
+                            <div>
+                                <h2>Billing Information</h2>
+                                <p>Mock billing details. Backend payment gateway can connect later.</p>
+                            </div>
+                        </div>
+
+                        <div class="checkout-grid-2">
+                            <label class="checkout-field" for="billingName">
+                                <span>Full Name</span>
+                                <input
+                                    id="billingName"
+                                    type="text"
+                                    value="Nguyen Ha Gia Huy"
+                                    data-billing-name
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="checkout-field" for="billingEmail">
+                                <span>Email</span>
+                                <input
+                                    id="billingEmail"
+                                    type="email"
+                                    value="member@brosgem.com"
+                                    data-billing-email
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <div class="checkout-grid-2">
+                            <label class="checkout-field" for="billingPhone">
+                                <span>Phone</span>
+                                <input
+                                    id="billingPhone"
+                                    type="text"
+                                    value="056205005458"
+                                    data-billing-phone
+                                    required
+                                />
+                                <small data-field-error></small>
+                            </label>
+
+                            <label class="checkout-field" for="billingCountry">
+                                <span>Country / Region</span>
+                                <select id="billingCountry" data-billing-country required>
+                                    <option value="">Select country</option>
+                                    <option value="Vietnam" selected>Vietnam</option>
+                                    <option value="Singapore">Singapore</option>
+                                    <option value="Hong Kong">Hong Kong</option>
+                                    <option value="Japan">Japan</option>
+                                    <option value="United States">United States</option>
+                                </select>
+                                <small data-field-error></small>
+                            </label>
+                        </div>
+
+                        <label class="checkout-field" for="billingAddress">
+                            <span>Billing Address</span>
+                            <input
+                                id="billingAddress"
+                                type="text"
+                                placeholder="Street address, city, postal code"
+                                data-billing-address
+                                required
+                            />
+                            <small data-field-error></small>
+                        </label>
+                    </section>
+
+                    <section class="checkout-section">
+                        <div class="checkout-section-heading">
+                            <span>03</span>
+                            <div>
+                                <h2>Delivery & Custody</h2>
+                                <p>Select how the item should be transferred after payment confirmation.</p>
+                            </div>
+                        </div>
+
+                        <div class="delivery-option-grid">
+                            <label class="delivery-option is-selected" data-delivery-option>
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="insured"
+                                    data-delivery-input
+                                    checked
+                                />
+                                <span></span>
+                                <div>
+                                    <strong>Insured Global Delivery</strong>
+                                    <p>Protected logistics, insurance, and condition documentation included.</p>
+                                    <b>$2,400</b>
+                                </div>
+                            </label>
+
+                            <label class="delivery-option" data-delivery-option>
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="vault"
+                                    data-delivery-input
+                                />
+                                <span></span>
+                                <div>
+                                    <strong>Vault Storage</strong>
+                                    <p>Keep the asset in BrosGem secured custody after settlement.</p>
+                                    <b>$950</b>
+                                </div>
+                            </label>
+
+                            <label class="delivery-option" data-delivery-option>
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="pickup"
+                                    data-delivery-input
+                                />
+                                <span></span>
+                                <div>
+                                    <strong>Private Pickup</strong>
+                                    <p>Arrange handover at a verified appointment location.</p>
+                                    <b>$0</b>
+                                </div>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="checkout-section">
+                        <div class="checkout-section-heading">
+                            <span>04</span>
+                            <div>
+                                <h2>Payment Method</h2>
+                                <p>Select a settlement method for this mock invoice.</p>
+                            </div>
+                        </div>
+
+                        <div class="payment-method-grid">
+                            <label class="payment-method is-selected" data-payment-method>
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="bank-transfer"
+                                    checked
+                                    data-payment-input
+                                />
+                                <span></span>
+                                <div>
+                                    <strong>Bank Transfer</strong>
+                                    <p>Recommended for high-value settlement.</p>
+                                </div>
+                            </label>
+
+                            <label class="payment-method" data-payment-method>
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="card"
+                                    data-payment-input
+                                />
+                                <span></span>
+                                <div>
+                                    <strong>Card Payment</strong>
+                                    <p>Mock card gateway prepared for frontend flow.</p>
+                                </div>
+                            </label>
+
+                            <label class="payment-method" data-payment-method>
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="escrow"
+                                    data-payment-input
+                                />
+                                <span></span>
+                                <div>
+                                    <strong>Escrow Settlement</strong>
+                                    <p>Funds held until final verification and transfer.</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <label class="checkout-check">
+                            <input type="checkbox" data-payment-confirm required />
+                            <span></span>
+                            I confirm that I have reviewed the invoice, premium, delivery cost, and settlement terms.
+                        </label>
+                        <small class="checkout-confirm-error" data-confirm-error></small>
+                    </section>
+
+                    <div class="checkout-actions">
+                        <button type="button" class="button button-outline" data-download-invoice>
+                            Download Invoice
+                        </button>
+
+                        <button type="submit" class="button button-primary" data-pay-button>
+                            Pay Now
+                        </button>
+                    </div>
+                </form>
+
+                <aside class="checkout-summary-panel">
+                    <div class="checkout-summary-sticky">
+                        <div class="summary-heading">
+                            <p class="eyebrow">Settlement Summary</p>
+                            <span data-payment-status>Pending</span>
+                        </div>
+
+                        <article class="summary-card">
+                            <div class="summary-row">
+                                <span>Hammer Price</span>
+                                <strong data-summary-hammer>$285,000</strong>
+                            </div>
+
+                            <div class="summary-row">
+                                <span>Buyer Premium <small data-premium-rate-label>12.5%</small></span>
+                                <strong data-summary-premium>$35,625</strong>
+                            </div>
+
+                            <div class="summary-row">
+                                <span>Shipping / Custody</span>
+                                <strong data-summary-shipping>$2,400</strong>
+                            </div>
+
+                            <div class="summary-row">
+                                <span>Platform Processing</span>
+                                <strong data-summary-processing>$1,250</strong>
+                            </div>
+
+                            <div class="summary-divider"></div>
+
+                            <div class="summary-total">
+                                <span>Total Due</span>
+                                <strong data-summary-total>$324,275</strong>
+                            </div>
+                        </article>
+
+                        <article class="settlement-timeline">
+                            <h3>Settlement Timeline</h3>
+
+                            <div class="timeline-item is-current" data-timeline-payment>
+                                <span></span>
+                                <div>
+                                    <strong>Payment Pending</strong>
+                                    <p>Awaiting buyer settlement confirmation.</p>
+                                </div>
+                            </div>
+
+                            <div class="timeline-item" data-timeline-verification>
+                                <span></span>
+                                <div>
+                                    <strong>Funds Verification</strong>
+                                    <p>Finance team validates payment record.</p>
+                                </div>
+                            </div>
+
+                            <div class="timeline-item" data-timeline-transfer>
+                                <span></span>
+                                <div>
+                                    <strong>Asset Transfer</strong>
+                                    <p>Delivery, custody, or private pickup begins.</p>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="payment-success-card" data-success-card hidden>
+                            <span>✓</span>
+                            <h3>Payment Confirmed</h3>
+                            <p>
+                                Settlement mock is completed. This invoice can now move into transfer processing.
+                            </p>
+                            <a href="./account.html#payments" class="button button-primary">
+                                View Payments
+                            </a>
+                        </article>
+                    </div>
+                </aside>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/checkout.js"></script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tài Khoản Của Tôi | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/dashboard.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+      <main class="dashboard-page">
+        <aside class="dashboard-sidebar">
+          <div class="dashboard-sidebar-heading">
+            <p class="eyebrow">Cổng Thành Viên</p>
+            <h1>Bảng Điều Khiển</h1>
+          </div>
+
+          <nav class="dashboard-nav" aria-label="Điều hướng bảng điều khiển">
+            <button class="dashboard-nav-item is-active" type="button" data-dashboard-tab="overview">
+              <span>◇</span>
+              Tổng Quan
+            </button>
+
+            <button class="dashboard-nav-item" type="button" data-dashboard-tab="bids">
+              <span>◷</span>
+              Lượt Giá Của Tôi
+            </button>
+
+            <button class="dashboard-nav-item" type="button" data-dashboard-tab="watching">
+              <span>◎</span>
+              Đang Theo Dõi
+            </button>
+
+            <button class="dashboard-nav-item" type="button" data-dashboard-tab="won">
+              <span>◆</span>
+              Đấu Giá Đã Thắng
+            </button>
+
+            <button class="dashboard-nav-item" type="button" data-dashboard-tab="publish">
+              <span>✦</span>
+              Đăng Bán
+            </button>
+
+            <button class="dashboard-nav-item" type="button" data-dashboard-tab="selling">
+              <span>▣</span>
+              Bán Hàng
+            </button>
+
+            <button class="dashboard-nav-item" type="button" data-dashboard-tab="payments">
+              <span>▤</span>
+              Thanh Toán
+            </button>
+
+            <button class="dashboard-nav-item" type="button" data-dashboard-tab="settings">
+              <span>⚙</span>
+              Cài Đặt
+            </button>
+          </nav>
+
+          <a href="./live-auctions.html" class="button button-primary dashboard-sidebar-cta"> Khám Phá Đấu Giá </a>
+        </aside>
+
+        <section class="dashboard-content">
+          <div class="dashboard-topbar">
+            <div>
+              <p class="eyebrow">Tài Khoản Thành Viên Tích Hợp</p>
+              <h2 data-dashboard-title>Tổng Quan</h2>
+              <p data-dashboard-subtitle>
+                Theo dõi hoạt động trả giá, danh mục quan tâm, yêu cầu bán và trạng thái thanh toán của bạn ở một nơi
+                duy nhất.
+              </p>
+            </div>
+
+            <div class="member-card">
+              <div class="member-avatar" data-member-avatar>BG</div>
+              <div>
+                <strong data-member-name>Đang tải dữ liệu...</strong>
+                <span data-member-subtitle>Thành Viên Đã Xác Thực</span>
+              </div>
+            </div>
+          </div>
+
+          <section class="dashboard-panel is-active" data-dashboard-panel="overview">
+            <div class="dashboard-stat-grid">
+              <article class="dashboard-stat-card">
+                <span>Lượt Giá Đang Mở</span>
+                <strong>08</strong>
+                <p>Đang dẫn đầu ở 3 lô</p>
+              </article>
+
+              <article class="dashboard-stat-card">
+                <span>Đang Theo Dõi</span>
+                <strong>14</strong>
+                <p>5 lô sẽ đóng trong 24h</p>
+              </article>
+
+              <article class="dashboard-stat-card dashboard-stat-card-gold">
+                <span>Tổng Số Dư</span>
+                <strong data-member-balance>$0</strong>
+                <p>Số dư tài khoản từ máy chủ backend</p>
+              </article>
+
+              <article class="dashboard-stat-card">
+                <span>Yêu Cầu Bán Hàng</span>
+                <strong>02</strong>
+                <p>Đang chờ luồng xác minh</p>
+              </article>
+            </div>
+
+            <div class="dashboard-grid-2">
+              <article class="dashboard-section-card">
+                <div class="dashboard-section-heading">
+                  <h3>Theo Dõi Đấu Giá Đang Mở</h3>
+                  <a href="./live-auctions.html">Xem tất cả</a>
+                </div>
+
+                <div class="dashboard-list">
+                  <div class="dashboard-list-row">
+                    <img src="../assets/images/mockdata/1.png" alt="Đồng hồ Patek Philippe" />
+                    <div>
+                      <strong>Lô #142: Patek Philippe Ref. 2499</strong>
+                      <span>Dẫn đầu • Kết thúc trong 2h 14m</span>
+                    </div>
+                    <b>$320,000</b>
+                  </div>
+
+                  <div class="dashboard-list-row">
+                    <img src="../assets/images/mockdata/2.png" alt="Bức tranh trừu tượng" />
+                    <div>
+                      <strong>Lô #089: Soulages Peinture 1957</strong>
+                      <span>Bị vượt giá • Khuyến nghị tăng giá</span>
+                    </div>
+                    <b>$475,000</b>
+                  </div>
+
+                  <div class="dashboard-list-row">
+                    <img src="../assets/images/mockdata/4.png" alt="Kim cương" />
+                    <div>
+                      <strong>Lô #212: Fancy Intense Blue Diamond</strong>
+                      <span>Dẫn đầu • Kết thúc trong 1d 04h</span>
+                    </div>
+                    <b>$72,500</b>
+                  </div>
+                </div>
+              </article>
+
+              <article class="dashboard-section-card">
+                <div class="dashboard-section-heading">
+                  <h3>Tính Năng Tài Khoản</h3>
+                  <span>Tích Hợp</span>
+                </div>
+
+                <div class="capability-stack">
+                  <div>
+                    <span>01</span>
+                    <strong>Trả Giá Như Nhà Sưu Tập</strong>
+                    <p>Đặt giá thủ công hoặc sử dụng hệ thống tự động trong các phiên đấu giá trực tiếp.</p>
+                  </div>
+
+                  <div>
+                    <span>02</span>
+                    <strong>Gửi Yêu Cầu Bán Hàng</strong>
+                    <p>Gửi thông tin tài sản để chuyên gia xét duyệt sau khi tích hợp chức năng tải lên.</p>
+                  </div>
+
+                  <div>
+                    <span>03</span>
+                    <strong>Theo Dõi Đối Soát</strong>
+                    <p>Giám sát quá trình thanh toán, hóa đơn và trạng thái lưu ký sau đấu giá.</p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="dashboard-panel" data-dashboard-panel="bids">
+            <article class="dashboard-section-card">
+              <div class="dashboard-section-heading">
+                <h3>Lượt Giá Của Tôi</h3>
+                <button type="button" data-dashboard-toast="Tính năng xuất dữ liệu hiện đang là giao diện giả lập.">
+                  Xuất Dữ Liệu
+                </button>
+              </div>
+
+              <div class="dashboard-table-shell">
+                <table class="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Lô Hàng</th>
+                      <th>Mức Giá Cao Nhất Của Bạn</th>
+                      <th>Giá Hiện Tại</th>
+                      <th>Trạng Thái</th>
+                      <th>Hành Động</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    <tr>
+                      <td>Patek Philippe Ref. 2499</td>
+                      <td>$320,000</td>
+                      <td>$320,000</td>
+                      <td><span class="dashboard-status is-leading">Đang Dẫn Đầu</span></td>
+                      <td><a href="./product-detail.html?id=842">Xem Lô</a></td>
+                    </tr>
+
+                    <tr>
+                      <td>Soulages Peinture 1957</td>
+                      <td>$450,000</td>
+                      <td>$475,000</td>
+                      <td><span class="dashboard-status is-outbid">Bị Vượt Giá</span></td>
+                      <td><a href="./product-detail.html?id=118">Tăng Giá</a></td>
+                    </tr>
+
+                    <tr>
+                      <td>Fancy Intense Blue Diamond</td>
+                      <td>$72,500</td>
+                      <td>$72,500</td>
+                      <td><span class="dashboard-status is-leading">Đang Dẫn Đầu</span></td>
+                      <td><a href="./product-detail.html?id=883">Xem Lô</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="dashboard-panel" data-dashboard-panel="watching">
+            <article class="dashboard-section-card">
+              <div class="dashboard-section-heading">
+                <h3>Đang Theo Dõi</h3>
+                <span>14 lô</span>
+              </div>
+
+              <div class="dashboard-card-grid">
+                <article class="watch-card">
+                  <img src="../assets/images/mockdata/3.png" alt="Xe hơi cổ" />
+                  <div>
+                    <strong>1962 GTO Heritage</strong>
+                    <p>Giá hiện tại: $3,800,000</p>
+                    <a href="./product-detail.html?id=883">Xem chi tiết</a>
+                  </div>
+                </article>
+
+                <article class="watch-card">
+                  <img src="../assets/images/mockdata/2.png" alt="Nghệ thuật" />
+                  <div>
+                    <strong>Fragmented Echo</strong>
+                    <p>Giá hiện tại: $1,220,000</p>
+                    <a href="./product-detail.html?id=118">Xem chi tiết</a>
+                  </div>
+                </article>
+
+                <article class="watch-card">
+                  <img src="../assets/images/mockdata/1.png" alt="Đồng hồ" />
+                  <div>
+                    <strong>The Midnight Chronograph</strong>
+                    <p>Giá hiện tại: $285,000</p>
+                    <a href="./product-detail.html?id=842">Xem chi tiết</a>
+                  </div>
+                </article>
+              </div>
+            </article>
+          </section>
+
+          <section class="dashboard-panel" data-dashboard-panel="won">
+            <article class="dashboard-section-card dashboard-empty-state">
+              <span>◆</span>
+              <h3>Đấu Giá Đã Thắng</h3>
+              <p>Các lô chiến thắng sẽ xuất hiện ở đây sau khi phiên đấu giá kết thúc và xác nhận thanh toán.</p>
+              <a href="./live-auctions.html" class="button button-outline">Duyệt Các Lô Đang Mở</a>
+            </article>
+          </section>
+
+          <section class="dashboard-panel" data-dashboard-panel="publish">
+            <article class="dashboard-section-card dashboard-empty-state">
+              <span>✦</span>
+              <h3>Đang Tải Form Đăng Bán</h3>
+              <p>Form đăng bán sẽ được tải từ account.js.</p>
+            </article>
+          </section>
+
+          <section class="dashboard-panel" data-dashboard-panel="selling">
+            <article class="dashboard-section-card dashboard-empty-state">
+              <span>◇</span>
+              <h3>Đang Tải Khu Vực Bán Hàng</h3>
+              <p>Danh sách phiên bạn đã gửi sẽ được tải từ account.js.</p>
+            </article>
+          </section>
+
+          <section class="dashboard-panel" data-dashboard-panel="payments">
+            <article class="dashboard-section-card">
+              <div class="dashboard-section-heading">
+                <h3>Thanh Toán</h3>
+                <span>Dữ liệu giả lập</span>
+              </div>
+
+              <div class="dashboard-table-shell">
+                <table class="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Giao Dịch</th>
+                      <th>Tài Sản</th>
+                      <th>Số Tiền</th>
+                      <th>Trạng Thái</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    <tr>
+                      <td>#BG-8821</td>
+                      <td>Art Deco Vase</td>
+                      <td>$42,500</td>
+                      <td><span class="dashboard-status is-leading">Đã Thanh Toán</span></td>
+                    </tr>
+
+                    <tr>
+                      <td>#BG-8822</td>
+                      <td>Private Sale - Patek 5711</td>
+                      <td>$185,000</td>
+                      <td><span class="dashboard-status is-pending">Đang Chờ</span></td>
+                    </tr>
+
+                    <tr>
+                      <td>#BG-8823</td>
+                      <td>Commission - Q4 Estate</td>
+                      <td>$12,440</td>
+                      <td><span class="dashboard-status is-leading">Đã Thanh Toán</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="dashboard-panel" data-dashboard-panel="settings">
+            <article class="dashboard-section-card">
+              <div class="dashboard-section-heading">
+                <h3>Cài Đặt</h3>
+                <button type="button" data-dashboard-toast="Cài đặt hồ sơ sẽ được kết nối với backend trong tương lai.">
+                  Lưu
+                </button>
+              </div>
+
+              <form class="settings-form">
+                <label>
+                  <span>Tên Hiển Thị</span>
+                  <input type="text" data-settings-name readonly />
+                </label>
+
+                <label>
+                  <span>Thư điện tử (Email)</span>
+                  <input type="email" data-settings-email readonly />
+                </label>
+
+                <label>
+                  <span>ID Người Dùng</span>
+                  <input type="text" data-settings-user-id readonly />
+                </label>
+
+                <label>
+                  <span>Tùy Chọn Thông Báo</span>
+                  <select>
+                    <option>Cảnh báo giá + cập nhật thanh toán</option>
+                    <option>Chỉ cập nhật thanh toán</option>
+                    <option>Chỉ cảnh báo quan trọng</option>
+                  </select>
+                </label>
+              </form>
+
+              <button type="button" class="button button-outline dashboard-logout-button" data-auth-btn>
+                ĐĂNG XUẤT
+              </button>
+            </article>
+          </section>
+        </section>
+      </main>
+
+      <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+      <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/account.js"></script>
+  </body>
+</html>

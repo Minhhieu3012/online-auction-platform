@@ -1,0 +1,14 @@
+# --- Core Framework ---
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+
+# --- Async Drivers (Thay thế các thư viện Blocking cũ) ---
+aiomysql
+redis
+aiokafka
+
+# --- Security & Utils ---
+cryptography
+python-dotenv

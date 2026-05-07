@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BrosGem | Nền Tảng Đấu Giá Trực Tuyến</title>
+
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/components.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path="." data-active-page="home"></div>
+
+        <main>
+            <section class="hero-section">
+                <div class="hero-background-orb" aria-hidden="true"></div>
+
+                <div class="hero-content">
+                    <p class="eyebrow">Đấu Giá Vượt Tầm Sở Hữu</p>
+
+                    <h1 class="hero-title">
+                        Tài sản tinh tuyển. Đấu giá thời gian thực. Xác thực niềm tin.
+                    </h1>
+
+                    <p class="hero-description">
+                        Tiếp cận những vật phẩm quý hiếm thông qua trải nghiệm đấu giá minh bạch, được thiết kế riêng cho các nhà sưu tập,
+                        người bán và quản trị viên - những người đòi hỏi tốc độ, độ chính xác và sự bảo mật tuyệt đối.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="./pages/collections.html" class="button button-primary">
+                            Khám Phá Bộ Sưu Tập
+                        </a>
+                        <a href="./pages/live-auctions.html" class="button button-outline">
+                            Xem Phiên Đang Mở
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="trust-strip" aria-label="Thế mạnh nền tảng">
+                <article class="trust-item">
+                    <span class="trust-icon">◇</span>
+                    <div>
+                        <h2>AI Chống Gian Lận</h2>
+                        <p>Giám sát chống đẩy giá ảo (shill-bidding) đa tầng.</p>
+                    </div>
+                </article>
+
+                <article class="trust-item">
+                    <span class="trust-icon">◷</span>
+                    <div>
+                        <h2>Đấu Giá Thời Gian Thực</h2>
+                        <p>Cập nhật giá thầu trực tiếp không cần tải lại trang.</p>
+                    </div>
+                </article>
+
+                <article class="trust-item">
+                    <span class="trust-icon">▣</span>
+                    <div>
+                        <h2>Lưu Ký Bảo Mật</h2>
+                        <p>Giao dịch được xác minh và hồ sơ được bảo vệ nghiêm ngặt.</p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="section-block live-auctions-section" id="live-auctions">
+                <div class="section-heading-row">
+                    <div>
+                        <p class="eyebrow">Đấu Giá Trực Tiếp</p>
+                        <h2 class="section-title">Thời gian là cốt lõi</h2>
+                    </div>
+
+                    <a href="./pages/live-auctions.html" class="text-link">Xem Tất Cả Lô Hàng</a>
+                </div>
+
+                <div class="auction-grid" data-featured-auctions>
+                    <article class="auction-card" style="min-height: 320px; display: grid; place-items: center;">
+                        <div style="text-align: center; padding: 32px;">
+                            <span style="color: var(--primary); font-size: 28px;">◇</span>
+                            <p style="margin-top: 12px; color: var(--text-muted); font-weight: 800; letter-spacing: .14em; text-transform: uppercase;">
+                                Đang tải phiên đấu giá thật từ database...
+                            </p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section-block protocol-section" id="protocol">
+                <div class="center-heading">
+                    <p class="eyebrow">Giao Thức Ba Bước</p>
+                    <h2 class="section-title">Hành trình đấu giá hoàn mỹ</h2>
+                    <p class="section-description">
+                        Từ bước xác thực tài khoản đến trả giá thời gian thực và thanh toán cuối cùng, mọi tương tác
+                        đều được thiết kế để mang lại cảm giác bình yên, cao cấp và đáng tin cậy.
+                    </p>
+                </div>
+
+                <div class="protocol-grid">
+                    <article class="protocol-card">
+                        <span class="protocol-number">01</span>
+                        <h3>Thấu Hiểu Nhà Sưu Tập</h3>
+                        <p>Mỗi người tham gia đều phải vượt qua quy trình xác thực tài khoản trước khi bước vào các phòng đấu giá kín.</p>
+                    </article>
+
+                    <article class="protocol-card">
+                        <span class="protocol-number">02</span>
+                        <h3>Tiếng Búa Kỹ Thuật Số</h3>
+                        <p>Đặt giá thủ công hoặc sử dụng hệ thống tự động Proxy thông qua giao diện tối ưu độ trễ và được giám sát thời gian thực.</p>
+                    </article>
+
+                    <article class="protocol-card">
+                        <span class="protocol-number">03</span>
+                        <h3>Thanh Toán Két Sắt</h3>
+                        <p>Những mức giá thắng cuộc sẽ chuyển sang trạng thái chờ thanh toán và hoàn tất sau khi luồng giao dịch được xác thực.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="portfolio-cta-section" id="valuation">
+                <div class="portfolio-cta-card">
+                    <p class="eyebrow">Nâng Tầm Danh Mục Đầu Tư</p>
+                    <h2>Gia nhập hệ sinh thái đấu giá được xác thực dành cho tài sản quý hiếm.</h2>
+                    <p>
+                        Khởi đầu với tư cách nhà sưu tập, người bán hoặc quản trị viên bằng một giao diện được chuẩn bị sẵn sàng
+                        cho các phiên đấu giá trực tiếp, cảnh báo từ AI và hệ thống theo dõi trạng thái thanh toán bảo mật.
+                    </p>
+                    <a href="./pages/register.html" class="button button-primary">
+                        Tạo Tài Khoản Chuyên Nghiệp
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <div data-site-footer data-base-path="."></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script type="module" src="./components/site-header.js"></script>
+    <script type="module" src="./components/site-footer.js"></script>
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>

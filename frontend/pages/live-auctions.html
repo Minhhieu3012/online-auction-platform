@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đấu Giá Trực Tiếp | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/collections.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div data-site-header data-base-path=".." data-active-page="live-auctions"></div>
+
+      <main class="collections-page">
+        <section class="collections-hero">
+          <div>
+            <p class="eyebrow" data-i18n="collections.eyebrow">Độc Quyền Tinh Tuyển</p>
+            <h1 data-i18n="collections.title">Đấu Giá Trực Tiếp</h1>
+          </div>
+
+          <div class="collections-hero-meta">
+            <span data-result-count>Tìm thấy 0 lô</span>
+          </div>
+        </section>
+
+        <section class="collections-toolbar" aria-label="Bộ lọc đấu giá">
+          <div class="toolbar-left">
+            <div class="category-trigger">
+              <span class="category-icon">≡</span>
+              <label for="categoryFilter" data-i18n="collections.category">Danh mục</label>
+              <select id="categoryFilter" class="toolbar-select" data-category-filter>
+                <option value="all" data-i18n="collections.allCategories">Tất Cả Danh Mục</option>
+                <option value="horology">Đồng hồ (Horology)</option>
+                <option value="fine-art">Nghệ thuật (Fine Art)</option>
+                <option value="automotive">Ô tô (Automotive)</option>
+                <option value="jewelry">Trang sức (Jewelry)</option>
+                <option value="collectibles">Đồ sưu tầm (Collectibles)</option>
+              </select>
+            </div>
+
+            <div class="status-tabs" role="tablist" aria-label="Bộ lọc trạng thái đấu giá">
+              <button type="button" class="status-tab" data-status-filter="all" data-i18n="collections.all">
+                Tất cả
+              </button>
+              <button
+                type="button"
+                class="status-tab is-active"
+                data-status-filter="active"
+                data-i18n="collections.active"
+              >
+                Đang Mở
+              </button>
+              <button type="button" class="status-tab" data-status-filter="scheduled" data-i18n="collections.scheduled">
+                Đã Lên Lịch
+              </button>
+              <button type="button" class="status-tab" data-status-filter="closing" data-i18n="collections.closing">
+                Sắp Đóng
+              </button>
+              <button type="button" class="status-tab" data-status-filter="ended">Đã Kết Thúc</button>
+            </div>
+          </div>
+
+          <div class="toolbar-right">
+            <label class="search-box" for="auctionSearch">
+              <span>⌕</span>
+              <input
+                id="auctionSearch"
+                type="search"
+                placeholder="Tìm kiếm vật phẩm cụ thể..."
+                autocomplete="off"
+                data-search-input
+                data-i18n-placeholder="collections.searchPlaceholder"
+              />
+            </label>
+          </div>
+        </section>
+
+        <section class="collections-content">
+          <div class="collections-grid" data-auction-grid></div>
+
+          <div class="empty-state" data-empty-state hidden>
+            <span class="empty-state-icon">◇</span>
+            <h2 data-i18n="collections.noLots">Không có lô nào khớp với tìm kiếm của bạn</h2>
+            <p data-i18n="collections.noLotsDesc">Hãy thử một từ khóa, danh mục hoặc trạng thái đấu giá khác.</p>
+            <button type="button" class="button button-outline" data-reset-filters data-i18n="collections.resetFilters">
+              Đặt Lại Bộ Lọc
+            </button>
+          </div>
+
+          <div class="load-more-area">
+            <p class="load-more-label" data-showing-label>Đang hiển thị 0 / 0 lô</p>
+            <button type="button" class="button button-outline load-more-button" data-load-more>
+              <span data-i18n="collections.loadMore">Tải Thêm Bộ Sưu Tập</span>
+              <span>⌄</span>
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="../js/core/socket-client.js"></script>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/live-auctions.js"></script>
+  </body>
+</html>

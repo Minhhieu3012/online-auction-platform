@@ -1,0 +1,514 @@
+.consign-page {
+    width: min(var(--page-max-width), 100%);
+    margin: 0 auto;
+    padding: 44px var(--container-padding) 86px;
+}
+
+.consign-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 28px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+}
+
+.consign-hero h1 {
+    max-width: 860px;
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(46px, 6vw, 96px);
+    font-weight: 300;
+    line-height: 0.96;
+    letter-spacing: -0.085em;
+    text-transform: uppercase;
+}
+
+.consign-hero p:not(.eyebrow) {
+    max-width: 760px;
+    margin: 18px 0 0;
+    color: var(--text-soft);
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.consign-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+    gap: clamp(24px, 3.5vw, 52px);
+    margin-top: 32px;
+    align-items: start;
+}
+
+.consign-form {
+    display: grid;
+    gap: 22px;
+}
+
+.consign-form-section,
+.consign-preview-panel {
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--surface) 94%, transparent),
+            color-mix(in srgb, var(--bg) 84%, transparent)
+        );
+}
+
+.consign-form-section {
+    padding: clamp(22px, 3vw, 34px);
+}
+
+.consign-section-heading {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.consign-section-heading > span {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+}
+
+.consign-section-heading h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.consign-section-heading p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.consign-grid-2,
+.consign-grid-3 {
+    display: grid;
+    gap: 16px;
+}
+
+.consign-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.consign-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.consign-field {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.consign-field:last-child {
+    margin-bottom: 0;
+}
+
+.consign-field span {
+    color: var(--text-soft);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.consign-field input,
+.consign-field select,
+.consign-field textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    outline: 0;
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    color: var(--text);
+    font-size: 14px;
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+.consign-field input,
+.consign-field select {
+    min-height: 48px;
+    padding: 0 14px;
+}
+
+.consign-field textarea {
+    min-height: 138px;
+    padding: 14px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.consign-field input::placeholder,
+.consign-field textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.consign-field input:focus,
+.consign-field select:focus,
+.consign-field textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.consign-field small,
+.consign-confirm-error {
+    min-height: 12px;
+    color: #E08E8E;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.consign-field.has-error input,
+.consign-field.has-error select,
+.consign-field.has-error textarea {
+    border-color: #E08E8E;
+}
+
+.upload-zone {
+    position: relative;
+    min-height: 180px;
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    padding: 28px;
+    border: 1px dashed var(--border-strong);
+    background:
+        radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 36%),
+        color-mix(in srgb, var(--surface-strong) 42%, transparent);
+    text-align: center;
+    cursor: pointer;
+    transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+.upload-zone:hover,
+.upload-zone.is-dragging {
+    border-color: var(--primary);
+    background-color: var(--primary-soft);
+}
+
+.upload-zone input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.upload-icon {
+    color: var(--primary);
+    font-size: 34px;
+    line-height: 1;
+}
+
+.upload-zone strong {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.upload-zone small {
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.upload-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.upload-preview-item {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface-strong);
+}
+
+.upload-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.upload-preview-item span {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    padding: 4px 6px;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    color: var(--text-soft);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.consign-check {
+    position: relative;
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.consign-check input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.consign-check span {
+    position: relative;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    border: 1px solid var(--border-strong);
+}
+
+.consign-check span::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    background: var(--primary);
+    transform: scale(0);
+    transition: transform var(--transition-fast);
+}
+
+.consign-check input:checked + span::after {
+    transform: scale(1);
+}
+
+.consign-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.consign-preview-panel {
+    padding: 22px;
+}
+
+.preview-sticky {
+    position: sticky;
+    top: 86px;
+}
+
+.preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.preview-heading span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 9px;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.preview-card {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.preview-media {
+    position: relative;
+    aspect-ratio: 1.16 / 1;
+    overflow: hidden;
+    background: var(--surface-strong);
+}
+
+.preview-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: var(--image-filter);
+}
+
+.preview-media span {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 9px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.preview-body {
+    padding: 20px;
+}
+
+.preview-body > p:first-child {
+    margin: 0 0 8px;
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.preview-body h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+}
+
+.preview-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.preview-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.preview-description {
+    min-height: 70px;
+    margin: 16px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.58;
+}
+
+.preview-price-box {
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface-strong) 58%, transparent);
+}
+
+.preview-price-box span {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.preview-price-box strong {
+    color: var(--primary);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.review-note {
+    margin-top: 18px;
+    padding: 18px;
+    border-left: 1px solid var(--primary);
+    background: color-mix(in srgb, var(--primary) 9%, transparent);
+}
+
+.review-note strong {
+    display: block;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.review-note p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+@media (max-width: 1120px) {
+    .consign-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .preview-sticky {
+        position: static;
+    }
+}
+
+@media (max-width: 760px) {
+    .consign-page {
+        padding-top: 28px;
+    }
+
+    .consign-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .consign-grid-2,
+    .consign-grid-3,
+    .upload-preview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .consign-actions {
+        flex-direction: column;
+    }
+
+    .consign-actions .button {
+        width: 100%;
+    }
+}

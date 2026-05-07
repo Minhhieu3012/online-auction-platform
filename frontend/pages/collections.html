@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bộ Sưu Tập | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/collections.css" />
+    <style>
+      .auction-card-link-wrapper {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        height: 100%;
+        transition: transform 0.2s ease;
+      }
+
+      .auction-card-link-wrapper:hover {
+        transform: translateY(-4px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div data-site-header data-base-path=".." data-active-page="collections"></div>
+
+      <main class="collections-page">
+        <section class="collections-hero">
+          <div>
+            <p class="eyebrow">Phân Khu Tinh Tuyển</p>
+            <h1>Bộ Sưu Tập</h1>
+          </div>
+
+          <div class="collections-hero-meta">
+            <span>5 Phân khu</span>
+            <span class="meta-divider"></span>
+            <span><strong>Chỉ hiển thị lô đã xác thực</strong></span>
+          </div>
+        </section>
+
+        <section class="collections-content">
+          <div class="auction-grid">
+            <article class="auction-card">
+              <a href="./live-auctions.html?category=horology" class="auction-card-link-wrapper">
+                <div class="auction-card-media">
+                  <img src="../assets/images/mockdata/pic-1.png" alt="Bộ sưu tập đồng hồ" />
+                  <span class="status-badge status-active">Đồng Hồ (Horology)</span>
+                </div>
+
+                <div class="auction-card-body">
+                  <div class="auction-card-meta">
+                    <span>Phân Khu 01</span>
+                    <span>32 lô</span>
+                  </div>
+
+                  <h3>Đồng Hồ Cơ Cấp Cao</h3>
+                  <p>Đồng hồ cơ quý hiếm, đa chức năng phức tạp và các mẫu đặc biệt dành cho nhà sưu tập.</p>
+                </div>
+              </a>
+            </article>
+
+            <article class="auction-card">
+              <a href="./live-auctions.html?category=fine-art" class="auction-card-link-wrapper">
+                <div class="auction-card-media">
+                  <img src="../assets/images/mockdata/pic-2.png" alt="Bộ sưu tập nghệ thuật" />
+                  <span class="status-badge status-active">Nghệ Thuật (Fine Art)</span>
+                </div>
+
+                <div class="auction-card-body">
+                  <div class="auction-card-meta">
+                    <span>Phân Khu 02</span>
+                    <span>24 lô</span>
+                  </div>
+
+                  <h3>Nghệ Thuật Đương Đại</h3>
+                  <p>Tranh vẽ, bản in giới hạn, tác phẩm điêu khắc và các đợt phát hành từ phòng tranh tư nhân.</p>
+                </div>
+              </a>
+            </article>
+
+            <article class="auction-card">
+              <a href="./live-auctions.html?category=automotive" class="auction-card-link-wrapper">
+                <div class="auction-card-media">
+                  <img src="../assets/images/mockdata/pic-3.png" alt="Bộ sưu tập ô tô" />
+                  <span class="status-badge status-active">Ô Tô (Automotive)</span>
+                </div>
+
+                <div class="auction-card-body">
+                  <div class="auction-card-meta">
+                    <span>Phân Khu 03</span>
+                    <span>18 lô</span>
+                  </div>
+
+                  <h3>Siêu Xe Sưu Tầm</h3>
+                  <p>
+                    Phương tiện mang tính lịch sử, xe đua đường trường grand tourer và các tài sản garage tư nhân có
+                    giấy tờ.
+                  </p>
+                </div>
+              </a>
+            </article>
+
+            <article class="auction-card">
+              <a href="./live-auctions.html?category=jewelry" class="auction-card-link-wrapper">
+                <div class="auction-card-media">
+                  <img src="../assets/images/mockdata/pic-4.png" alt="Bộ sưu tập trang sức" />
+                  <span class="status-badge status-active">Trang Sức (Jewelry)</span>
+                </div>
+
+                <div class="auction-card-body">
+                  <div class="auction-card-meta">
+                    <span>Phân Khu 04</span>
+                    <span>29 lô</span>
+                  </div>
+
+                  <h3>Trang Sức Thượng Lưu</h3>
+                  <p>Kim cương, đá quý màu, các tác phẩm thiết kế độc bản và có chứng nhận nguồn gốc.</p>
+                </div>
+              </a>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/page-shell.js"></script>
+  </body>
+</html>

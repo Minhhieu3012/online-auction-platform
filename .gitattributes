@@ -1,0 +1,3 @@
+# Ép các file script luôn sử dụng LF bất kể hệ điều hành nào
+*.sh text eol=lf
+*.py text eol=lf

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchlist | BrosGem</title>
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/watchlist.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <div data-site-header data-base-path=".." data-active-page="" data-header-action="account"></div>
+
+        <main class="watchlist-page">
+            <section class="watchlist-hero">
+                <div>
+                    <p class="eyebrow">Saved Lots</p>
+                    <h1>Your private watchlist.</h1>
+                    <p>
+                        Track selected auction lots, monitor closing windows, compare estimates, and move quickly
+                        from interest to action.
+                    </p>
+                </div>
+
+                <div class="watchlist-hero-actions">
+                    <a href="./account.html#watching" class="button button-outline">Back to Account</a>
+                    <a href="./live-auctions.html" class="button button-primary">Browse Auctions</a>
+                </div>
+            </section>
+
+            <section class="watchlist-layout">
+                <aside class="watchlist-sidebar">
+                    <div class="watchlist-sidebar-heading">
+                        <p class="eyebrow">Filters</p>
+                        <h2>Watching</h2>
+                    </div>
+
+                    <label class="watchlist-search" for="watchlistSearch">
+                        <span>⌕</span>
+                        <input
+                            id="watchlistSearch"
+                            type="search"
+                            placeholder="Search saved lots..."
+                            autocomplete="off"
+                            data-watchlist-search
+                        />
+                    </label>
+
+                    <nav class="watchlist-tabs" aria-label="Watchlist filters">
+                        <button class="watchlist-tab is-active" type="button" data-watchlist-filter="all">
+                            <span>◇</span>
+                            All
+                            <b data-count-all>0</b>
+                        </button>
+
+                        <button class="watchlist-tab" type="button" data-watchlist-filter="active">
+                            <span>◷</span>
+                            Active
+                            <b data-count-active>0</b>
+                        </button>
+
+                        <button class="watchlist-tab" type="button" data-watchlist-filter="closing">
+                            <span>△</span>
+                            Closing
+                            <b data-count-closing>0</b>
+                        </button>
+
+                        <button class="watchlist-tab" type="button" data-watchlist-filter="scheduled">
+                            <span>▣</span>
+                            Scheduled
+                            <b data-count-scheduled>0</b>
+                        </button>
+
+                        <button class="watchlist-tab" type="button" data-watchlist-filter="ended">
+                            <span>□</span>
+                            Ended
+                            <b data-count-ended>0</b>
+                        </button>
+                    </nav>
+
+                    <div class="watchlist-note">
+                        <strong>Compare Mode</strong>
+                        <p>Select up to 3 lots. The comparison panel will update instantly.</p>
+                    </div>
+                </aside>
+
+                <section class="watchlist-main">
+                    <div class="watchlist-toolbar">
+                        <div>
+                            <p class="eyebrow">Saved Inventory</p>
+                            <h2 data-watchlist-title>All Saved Lots</h2>
+                        </div>
+
+                        <div class="watchlist-meta">
+                            <span data-visible-count>0 visible</span>
+                            <span class="watchlist-divider"></span>
+                            <span><strong data-selected-count>0</strong> selected</span>
+                        </div>
+                    </div>
+
+                    <div class="watchlist-grid" data-watchlist-grid></div>
+
+                    <div class="watchlist-empty" data-watchlist-empty hidden>
+                        <span>◇</span>
+                        <h3>No saved lots found</h3>
+                        <p>Try another filter, search keyword, or browse live auctions to add more lots.</p>
+                        <a href="./live-auctions.html" class="button button-primary">Browse Auctions</a>
+                    </div>
+                </section>
+
+                <aside class="compare-panel">
+                    <div class="compare-sticky">
+                        <div class="compare-heading">
+                            <p class="eyebrow">Compare</p>
+                            <span data-compare-status>0 / 3</span>
+                        </div>
+
+                        <div class="compare-empty" data-compare-empty>
+                            <span>◇</span>
+                            <h3>Select lots to compare</h3>
+                            <p>Choose up to three saved lots to compare status, estimate, current bid, and action.</p>
+                        </div>
+
+                        <div class="compare-list" data-compare-list hidden></div>
+
+                        <button type="button" class="button button-outline compare-clear-button" data-clear-compare hidden>
+                            Clear Comparison
+                        </button>
+                    </div>
+                </aside>
+            </section>
+        </main>
+
+        <div class="toast-stack" data-toast-stack aria-live="polite"></div>
+
+        <div data-site-footer data-base-path=".."></div>
+    </div>
+
+    <script type="module" src="../components/site-header.js"></script>
+    <script type="module" src="../components/site-footer.js"></script>
+    <script type="module" src="../js/modules/watchlist.js"></script>
+</body>
+</html>
