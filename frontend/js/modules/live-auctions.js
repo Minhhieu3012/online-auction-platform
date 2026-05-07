@@ -672,7 +672,11 @@ async function loadAuctions() {
 
     const rawAuctions = getAuctionsFromPayload(response);
 
-    state.allAuctions = rawAuctions.map(normalizeAuction).filter((auction) => auction.id > 0);
+    const HIDDEN_STATUSES = ["completed", "payment_pending", "cancelled", "rejected", "pending"];
+
+    state.allAuctions = rawAuctions
+      .map(normalizeAuction)
+      .filter((auction) => auction.id > 0 && !HIDDEN_STATUSES.includes(auction.normalizedStatus));
 
     state.visibleCount = PAGE_SIZE;
 
