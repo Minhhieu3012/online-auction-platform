@@ -6,6 +6,7 @@ const DepositController = require("../controllers/deposit");
 const checkIdempotency = require("../middlewares/idempotency");
 const { validateBidRequirements } = require("../middlewares/validateBid");
 const { sendError } = require("../utils/response");
+const { authenticate } = require("../middlewares/auth");
 
 const authModule = require("../middlewares/auth");
 const authMiddleware = authModule.authMiddleware || authModule;
@@ -51,7 +52,9 @@ function validateAuctionId(req, res, next) {
 // Map Controllers
 const listAuctions = safeController(AuctionController, "listAuctions", "Danh sách phiên đấu giá");
 const listMyAuctions = safeController(AuctionController, "listMyAuctions", "Danh sách phiên của tôi");
+const listWonAuctions = safeController(AuctionController, "listWonAuctions", "Danh sách phiên đã thắng");
 const getAuctionById = safeController(AuctionController, "getAuctionById", "Chi tiết phiên đấu giá");
+const getSettlementStatus = safeController(AuctionController, "getSettlementStatus", "Trạng thái settlement");
 const createAuction = safeController(AuctionController, "createAuction", "Tạo phiên đấu giá");
 const updateAuctionStatus = safeController(
   AuctionController,
@@ -71,9 +74,12 @@ const setupAutoBid = safeController(BiddingController, "setupAutoBid", "Auto-bid
 
 /**
  * Public/listing routes.
+ * QUAN TRỌNG: Các route tĩnh (/mine, /won) phải đứng TRƯỚC route động (/:id)
+ * để Express không hiểu nhầm "mine"/"won" là auction ID.
  */
 router.get("/", optionalAuth, listAuctions);
 router.get("/mine", authMiddleware, listMyAuctions);
+router.get("/won", authMiddleware, listWonAuctions);
 router.post("/", authMiddleware, authorize("user", "admin"), checkIdempotency, createAuction);
 
 /**
@@ -81,6 +87,11 @@ router.post("/", authMiddleware, authorize("user", "admin"), checkIdempotency, c
  */
 router.get("/:id", validateAuctionId, optionalAuth, getAuctionById);
 router.get("/:id/bids", validateAuctionId, optionalAuth, getBidHistory);
+
+/**
+ * Settlement status route (check sau khi thanh toán Stripe).
+ */
+router.get("/:id/settlement-status", validateAuctionId, authMiddleware, getSettlementStatus);
 
 /**
  * Deposit & Payment routes.
@@ -112,7 +123,6 @@ router.post(
   placeBid,
 );
 router.post("/:id/autobid", validateAuctionId, authMiddleware, authorize("user"), checkIdempotency, setupAutoBid);
-
 router.post("/:id/auto-bid", validateAuctionId, authMiddleware, authorize("user"), checkIdempotency, setupAutoBid);
 
 /**

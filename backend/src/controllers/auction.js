@@ -936,6 +936,110 @@ class AuctionController {
       connection.release();
     }
   }
+
+  static async listWonAuctions(req, res) {
+    const userId = req.user?.id;
+    if (!userId) {
+      return sendError(res, "ERR_UNAUTHORIZED", "Bạn cần đăng nhập.", 401);
+    }
+
+    try {
+      const [rows] = await pool.execute(
+        `
+        SELECT
+          a.id,
+          a.status,
+          a.final_price,
+          a.winner_id,
+          a.end_time,
+          a.updated_at,
+          p.name        AS product_name,
+          p.image_url,
+          p.description,
+          s.id          AS settlement_id,
+          s.status      AS settlement_status,
+          s.deposit_applied_amount,
+          s.remaining_amount,
+          s.paid_at,
+          s.due_at
+        FROM Auctions a
+        INNER JOIN Products p ON p.id = a.product_id
+        LEFT JOIN auction_settlements s
+          ON s.auction_id = a.id AND s.winner_id = ?
+        WHERE a.winner_id = ?
+        ORDER BY a.updated_at DESC
+      `,
+        [userId, userId],
+      );
+
+      const auctions = rows.map((row) => ({
+        id: row.id,
+        lot: `Lô #${String(row.id).padStart(3, "0")}`,
+        title: row.product_name,
+        description: row.description || "",
+        imageUrl: row.image_url || null,
+        status: row.status,
+        finalPrice: row.final_price !== null ? Number(row.final_price) : null,
+        endTime: formatUTC(row.end_time),
+        settlementId: row.settlement_id || null,
+        settlementStatus: row.settlement_status || null,
+        depositApplied: Number(row.deposit_applied_amount || 0),
+        remainingAmount: Number(row.remaining_amount || 0),
+        paidAt: formatUTC(row.paid_at),
+        dueAt: formatUTC(row.due_at),
+      }));
+
+      return sendSuccess(res, { auctions }, "Lấy danh sách phiên đã thắng thành công.");
+    } catch (error) {
+      logger.error("[Won Auctions Error]:", error);
+      return sendError(res, "ERR_SERVER", "Không thể tải danh sách phiên đã thắng.", 500);
+    }
+  }
+
+  static async getSettlementStatus(req, res) {
+    const auctionId = Number(req.params.id);
+    const userId = req.user?.id;
+    if (!userId) {
+      return sendError(res, "ERR_UNAUTHORIZED", "Bạn cần đăng nhập.", 401);
+    }
+
+    try {
+      const [rows] = await pool.execute(
+        `
+        SELECT id, status, final_price, deposit_applied_amount,
+               remaining_amount, paid_at, due_at
+        FROM auction_settlements
+        WHERE auction_id = ? AND winner_id = ?
+        LIMIT 1
+      `,
+        [auctionId, userId],
+      );
+
+      if (rows.length === 0) {
+        return sendSuccess(res, { settlement: null }, "Không có settlement.");
+      }
+
+      const s = rows[0];
+      return sendSuccess(
+        res,
+        {
+          settlement: {
+            id: s.id,
+            status: s.status,
+            finalPrice: Number(s.final_price || 0),
+            depositApplied: Number(s.deposit_applied_amount || 0),
+            remainingAmount: Number(s.remaining_amount || 0),
+            paidAt: formatUTC(s.paid_at),
+            dueAt: formatUTC(s.due_at),
+          },
+        },
+        "Lấy trạng thái settlement thành công.",
+      );
+    } catch (error) {
+      logger.error("[Settlement Status Error]:", error);
+      return sendError(res, "ERR_SERVER", "Không thể lấy trạng thái thanh toán.", 500);
+    }
+  }
 }
 
 module.exports = AuctionController;

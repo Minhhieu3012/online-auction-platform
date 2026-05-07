@@ -17,6 +17,7 @@ const FINALIZE_REFETCH_DELAY_MS = 1800;
 
 let auction = null;
 let depositStatusObj = { has_deposit: false, status: "NONE" };
+let settlementStatusObj = null;
 let activeImageIndex = 0;
 let countdownInterval = null;
 let serverTimeOffset = 0;
@@ -368,18 +369,37 @@ function renderActionPanel() {
 
     if (isWinner) {
       const finalAmount = Number(auction.finalPrice ?? auction.currentBid ?? 0);
+
+      // Đã thanh toán → hiện thông tin, KHÔNG hiện nút
+      if (settlementStatusObj?.status === "PAID") {
+        const paidDate = settlementStatusObj.paidAt
+          ? new Date(settlementStatusObj.paidAt).toLocaleString("vi-VN")
+          : "vừa xong";
+
+        elements.winnerPanel.innerHTML = `
+      <h3 style="color: var(--success);">✅ ĐÃ THANH TOÁN THÀNH CÔNG</h3>
+      <p>Giá chốt: <strong>${formatMoney(finalAmount)}</strong></p>
+      <p style="color: var(--text-muted); font-size: 13px;">Thanh toán lúc: ${paidDate}</p>
+      <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">
+        Cảm ơn bạn đã tham gia đấu giá! Vật phẩm sẽ sớm được liên hệ giao nhận.
+      </p>
+    `;
+        return;
+      }
+
+      // Chưa thanh toán → hiện nút như cũ
       const depositApplied =
         currentDepositStatus === "APPLIED_TO_WIN_PAYMENT"
           ? Number(depositStatusObj.amount || auction.depositAmount || 0)
-          : Number(auction.depositAmount || 0);
-      const remaining = Math.max(0, finalAmount - depositApplied);
+          : Number(settlementStatusObj?.depositApplied ?? auction.depositAmount ?? 0);
+      const remaining = Number(settlementStatusObj?.remainingAmount ?? Math.max(0, finalAmount - depositApplied));
 
       elements.winnerPanel.innerHTML = `
-        <h3 style="color: var(--success);">🎉 BẠN ĐÃ THẮNG PHIÊN ĐẤU GIÁ</h3>
-        <p>Giá thắng: ${formatMoney(finalAmount)} - Tiền cọc dự kiến khấu trừ: ${formatMoney(depositApplied)}</p>
-        <p style="font-weight:bold;">Cần thanh toán thêm: ${formatMoney(remaining)}</p>
-        ${remaining > 0 ? `<button type="button" class="button button-primary" id="btn-pay-remaining" style="margin-top:15px; width:100%;">Thanh Toán Ngay</button>` : ""}
-      `;
+    <h3 style="color: var(--success);">🎉 BẠN ĐÃ THẮNG PHIÊN ĐẤU GIÁ</h3>
+    <p>Giá thắng: ${formatMoney(finalAmount)} - Tiền cọc dự kiến khấu trừ: ${formatMoney(depositApplied)}</p>
+    <p style="font-weight:bold;">Cần thanh toán thêm: ${formatMoney(remaining)}</p>
+    ${remaining > 0 ? `<button type="button" class="button button-primary" id="btn-pay-remaining" style="margin-top:15px; width:100%;">THANH TOÁN NGAY</button>` : ""}
+  `;
 
       const btn = document.getElementById("btn-pay-remaining");
       if (btn) {
@@ -690,6 +710,19 @@ async function loadDepositStatus(auctionId) {
   }
 }
 
+async function loadSettlementStatus(auctionId) {
+  if (!isLoggedIn()) {
+    settlementStatusObj = null;
+    return;
+  }
+  try {
+    const res = await apiClient.get(`/auctions/${auctionId}/settlement-status`, null, { auth: true });
+    settlementStatusObj = res.data?.settlement || null;
+  } catch {
+    settlementStatusObj = null;
+  }
+}
+
 async function loadAuctionDetail(options = {}) {
   const id = getAuctionIdFromUrl();
   if (!id) return;
@@ -706,7 +739,7 @@ async function loadAuctionDetail(options = {}) {
     const incomingAuction = normalizeAuction(res.data.auction);
     mergeAuctionState(incomingAuction);
 
-    await loadDepositStatus(id);
+    await Promise.all([loadDepositStatus(id), loadSettlementStatus(id)]);
     renderAuction();
     bindSocketEvents();
 

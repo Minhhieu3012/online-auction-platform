@@ -1725,11 +1725,7 @@ function renderNonReadyPanels() {
     "Phần này sẽ nối API lịch sử bid ở scope tiếp theo. Hiện không còn dùng mock data.",
   );
   renderEmptyPanel("watching", "Đang Theo Dõi", "Watchlist sẽ hiển thị khi API watchlist được nối vào Backend.");
-  renderEmptyPanel(
-    "won",
-    "Đấu Giá Đã Thắng",
-    "Các phiên thắng sẽ xuất hiện sau khi Backend hoàn tất settlement/payment.",
-  );
+  loadAndRenderWonAuctions();
   renderEmptyPanel("payments", "Thanh Toán", "Hóa đơn và đối soát sẽ được nối sau luồng checkout.");
   renderSettingsPanel();
 }
@@ -1749,6 +1745,99 @@ function initLogout() {
       }, 650);
     });
   });
+}
+
+async function loadAndRenderWonAuctions() {
+  const panel = getPanel("won");
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <article class="account-runtime-card">
+      <div class="account-card-heading"><h3>Đấu Giá Đã Thắng</h3></div>
+      <div class="account-empty-state"><span>◇</span><p>Đang tải...</p></div>
+    </article>
+  `;
+
+  try {
+    const res = await apiClient.get("/auctions/won", null, { auth: true, redirectOnUnauthorized: false });
+    const auctions = res?.data?.auctions || [];
+
+    if (auctions.length === 0) {
+      panel.innerHTML = `
+        <article class="account-runtime-card">
+          <div class="account-card-heading"><h3>Đấu Giá Đã Thắng</h3></div>
+          <div class="account-empty-state">
+            <span>◇</span>
+            <p>Bạn chưa thắng phiên đấu giá nào.</p>
+          </div>
+        </article>
+      `;
+      return;
+    }
+
+    const cardsHtml = auctions
+      .map((a) => {
+        const isPaid = a.settlementStatus === "PAID";
+        const isPending = a.settlementStatus === "PENDING";
+
+        const statusBadge = isPaid
+          ? `<span class="account-status-pill is-active">✓ Đã thanh toán</span>`
+          : isPending
+            ? `<span class="account-status-pill is-pending">⏳ Chờ thanh toán</span>`
+            : `<span class="account-status-pill">Đang xử lý</span>`;
+
+        const paymentInfo = isPaid
+          ? `<p style="color: var(--text-muted); font-size: 13px;">Thanh toán lúc: ${formatDateTime(a.paidAt)}</p>`
+          : isPending
+            ? `
+          <p>Còn cần thanh toán: <strong>${formatCurrency(a.remainingAmount)}</strong></p>
+          <a class="button button-primary" href="./auction-detail.html?id=${escapeHtml(String(a.id))}" style="display:inline-block; margin-top:10px;">
+            Thanh Toán Ngay
+          </a>
+        `
+            : "";
+
+        return `
+        <article class="account-selling-card">
+          <img
+            src="${escapeHtml(a.imageUrl || FALLBACK_IMAGE)}"
+            alt="${escapeHtml(a.title)}"
+            onerror="this.src='${FALLBACK_IMAGE}'"
+          />
+          <div>
+            <p class="eyebrow">${escapeHtml(a.lot)}</p>
+            <h4>${escapeHtml(a.title)}</h4>
+            ${statusBadge}
+            <div class="account-selling-meta" style="margin-top: 12px;">
+              <span>Giá chốt: <strong>${formatCurrency(a.finalPrice)}</strong></span>
+              <span>Kết thúc: <strong>${formatDateTime(a.endTime)}</strong></span>
+            </div>
+            <div style="margin-top: 10px;">${paymentInfo}</div>
+          </div>
+        </article>
+      `;
+      })
+      .join("");
+
+    panel.innerHTML = `
+      <div class="account-selling-shell">
+        <article class="account-runtime-card">
+          <div class="account-card-heading">
+            <h3>Đấu Giá Đã Thắng</h3>
+            <span class="account-status-pill">${auctions.length} phiên</span>
+          </div>
+          <div class="account-selling-grid">${cardsHtml}</div>
+        </article>
+      </div>
+    `;
+  } catch (error) {
+    panel.innerHTML = `
+      <article class="account-runtime-card">
+        <div class="account-card-heading"><h3>Đấu Giá Đã Thắng</h3></div>
+        <div class="account-empty-state"><span>◇</span><p>Không thể tải dữ liệu: ${escapeHtml(error.message)}</p></div>
+      </article>
+    `;
+  }
 }
 
 function initAccountPage() {
