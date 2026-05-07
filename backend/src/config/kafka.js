@@ -7,11 +7,12 @@ const kafkaConfig = {
   brokers: [process.env.KAFKA_BROKER],
 };
 
-// Bật bảo mật SSL và SASL cho Render
 if (process.env.NODE_ENV === "production") {
-  kafkaConfig.ssl = true;
+  kafkaConfig.ssl = {
+    rejectUnauthorized: false,
+  };
   kafkaConfig.sasl = {
-    mechanism: "scram-sha-256", // Aiven mặc định dùng chuẩn này
+    mechanism: "scram-sha-256",
     username: process.env.KAFKA_USERNAME,
     password: process.env.KAFKA_PASSWORD,
   };
