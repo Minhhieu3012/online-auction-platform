@@ -78,13 +78,16 @@ online-auction-platform
 │       │   ├── auth.js
 │       │   ├── bidding.js
 │       │   ├── deposit.js
-│       │   └── payment.js
+│       │   ├── payment.js
+│       │   ├── transactions.js
+│       │   └── watchlist.js
 │       ├── middlewares
 │       │   ├── auth.js
 │       │   ├── idempotency.js
 │       │   └── validateBid.js
 │       ├── routes
 │       │   ├── admin.js
+│       │   ├── auction-routes.js
 │       │   ├── auction.js
 │       │   ├── auth.js
 │       │   ├── index.js
@@ -118,12 +121,10 @@ online-auction-platform
 │   │       ├── background.jpg
 │   │       ├── logo.png
 │   │       └── mockdata
-│   │           ├── 1.png
-│   │           ├── 2.png
-│   │           ├── 3.png
-│   │           ├── 4.png
-│   │           ├── 5.png
-│   │           └── 6.png
+│   │           ├── pic-1.png
+│   │           ├── pic-2.png
+│   │           ├── pic-3.png
+│   │           └── pic-4.png
 │   ├── components
 │   │   ├── auction-list.js
 │   │   ├── site-footer.js
@@ -140,7 +141,6 @@ online-auction-platform
 │   │   ├── dashboard.css
 │   │   ├── forgot-password.css
 │   │   ├── main.css
-│   │   ├── notifications.css
 │   │   └── watchlist.css
 │   ├── index.html
 │   ├── js
@@ -164,7 +164,6 @@ online-auction-platform
 │   │       ├── countdown.js
 │   │       ├── forgot-password.js
 │   │       ├── live-auctions.js
-│   │       ├── notifications.js
 │   │       ├── page-shell.js
 │   │       ├── register.js
 │   │       └── watchlist.js
@@ -179,7 +178,6 @@ online-auction-platform
 │       ├── forgot-password.html
 │       ├── live-auctions.html
 │       ├── login.html
-│       ├── notifications.html
 │       ├── product-detail.html
 │       ├── register.html
 │       └── watchlist.html

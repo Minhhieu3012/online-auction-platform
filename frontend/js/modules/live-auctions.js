@@ -577,6 +577,18 @@ function renderAuctionCard(auction) {
           </div>
         </div>
       </a>
+
+      <div style="padding: 0 18px 16px; margin-top: -4px;">
+        <button
+          type="button"
+          class="button button-outline"
+          style="width: 100%; font-size: 11px; letter-spacing: 0.12em; padding: 10px;"
+          data-watchlist-btn="${escapeHtml(auction.id)}"
+          onclick="handleWatchlistToggle(${Number(auction.id)}, this)"
+        >
+          ♡ Theo Dõi
+        </button>
+      </div>
     </article>
   `;
 }
@@ -787,6 +799,65 @@ function initLiveAuctionsPage() {
   setStatusButtons();
   startCountdownTicker();
   loadAuctions();
+  syncWatchlistState();
 }
+
+// ─── WATCHLIST TOGGLE ────────────────────────────────────────────────────────
+const watchlistState = new Set(); // lưu id các auction đang theo dõi
+
+async function syncWatchlistState() {
+  const token = apiClient.getAuthToken();
+  if (!token) return;
+
+  try {
+    const res = await apiClient.get("/watchlist", null, {
+      auth: true,
+      redirectOnUnauthorized: false,
+    });
+    const auctions = res?.data?.auctions || [];
+    auctions.forEach((a) => watchlistState.add(Number(a.auctionId)));
+    refreshWatchlistButtons();
+  } catch {
+    // Không bắt buộc — user chưa login thì bỏ qua
+  }
+}
+
+function refreshWatchlistButtons() {
+  document.querySelectorAll("[data-watchlist-btn]").forEach((btn) => {
+    const id = Number(btn.dataset.watchlistBtn);
+    const isWatching = watchlistState.has(id);
+    btn.textContent = isWatching ? "♥ Đang Theo Dõi" : "♡ Theo Dõi";
+    btn.style.color = isWatching ? "var(--primary)" : "";
+    btn.style.borderColor = isWatching ? "var(--primary)" : "";
+  });
+}
+
+window.handleWatchlistToggle = async function (auctionId, button) {
+  const token = apiClient.getAuthToken();
+  if (!token) {
+    window.location.href = "./login.html?redirect=" + encodeURIComponent(window.location.href);
+    return;
+  }
+
+  const isWatching = watchlistState.has(auctionId);
+  button.disabled = true;
+  button.textContent = "...";
+
+  try {
+    if (isWatching) {
+      await apiClient.delete(`/watchlist/${auctionId}`, { auth: true });
+      watchlistState.delete(auctionId);
+    } else {
+      await apiClient.post(`/watchlist/${auctionId}`, null, { auth: true });
+      watchlistState.add(auctionId);
+    }
+    refreshWatchlistButtons();
+  } catch (error) {
+    button.textContent = isWatching ? "♥ Đang Theo Dõi" : "♡ Theo Dõi";
+    console.error("[Watchlist]", error.message);
+  } finally {
+    button.disabled = false;
+  }
+};
 
 document.addEventListener("DOMContentLoaded", initLiveAuctionsPage);

@@ -1717,16 +1717,344 @@ async function loadMyAuctions() {
   renderSellingPanel();
 }
 
+async function loadAndRenderBidsPanel() {
+  const panel = getPanel("bids");
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <article class="account-runtime-card">
+      <div class="account-card-heading"><h3>Lượt Giá Của Tôi</h3></div>
+      <div class="account-empty-state"><span>◇</span><p>Đang tải...</p></div>
+    </article>
+  `;
+
+  try {
+    const res = await apiClient.get("/transactions", null, {
+      auth: true,
+      redirectOnUnauthorized: false,
+    });
+
+    const allTx = res?.data?.transactions || [];
+    const bidTypes = ["AUCTION_DEPOSIT", "WIN_FULL_PAYMENT", "WIN_REMAINING_PAYMENT"];
+    const bidTx = allTx.filter((tx) => bidTypes.includes(tx.type));
+
+    if (bidTx.length === 0) {
+      panel.innerHTML = `
+        <article class="account-runtime-card">
+          <div class="account-card-heading"><h3>Lượt Giá Của Tôi</h3></div>
+          <div class="account-empty-state">
+            <span>◇</span>
+            <p>Bạn chưa tham gia đặt giá phiên nào. Hãy khám phá các phiên đang mở!</p>
+          </div>
+        </article>
+      `;
+      return;
+    }
+
+    const rowsHtml = bidTx
+      .map((tx) => {
+        const statusClass =
+          tx.status === "SUCCESS" ? "is-active" : tx.status === "FAILED" ? "is-rejected" : "is-pending";
+
+        return `
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 12px;">
+            ${escapeHtml(formatDateTime(tx.createdAt))}
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text);">
+            ${
+              tx.auctionId
+                ? `<a href="./auction-detail.html?id=${escapeHtml(String(tx.auctionId))}" style="color: var(--primary);">
+                   ${escapeHtml(tx.auctionTitle || `Phiên #${tx.auctionId}`)}
+                 </a>`
+                : "—"
+            }
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">
+            ${escapeHtml(tx.typeLabel || tx.type)}
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--primary); font-weight: 700;">
+            ${formatCurrency(tx.amount)}
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border);">
+            <span class="account-status-pill ${statusClass}">
+              ${escapeHtml(tx.statusLabel || tx.status)}
+            </span>
+          </td>
+        </tr>
+      `;
+      })
+      .join("");
+
+    panel.innerHTML = `
+      <article class="account-runtime-card">
+        <div class="account-card-heading">
+          <h3>Lượt Giá Của Tôi</h3>
+          <span class="account-status-pill">${bidTx.length} giao dịch</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Thời gian</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Phiên đấu giá</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Loại</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Số tiền</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  } catch (error) {
+    panel.innerHTML = `
+      <article class="account-runtime-card">
+        <div class="account-card-heading"><h3>Lượt Giá Của Tôi</h3></div>
+        <div class="account-empty-state">
+          <span>◇</span>
+          <p>Không thể tải dữ liệu: ${escapeHtml(error.message)}</p>
+        </div>
+      </article>
+    `;
+  }
+}
+
+// ─── WATCHING PANEL ─────────────────────────────────────────────────────────
+async function loadAndRenderWatchingPanel() {
+  const panel = getPanel("watching");
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <article class="account-runtime-card">
+      <div class="account-card-heading"><h3>Đang Theo Dõi</h3></div>
+      <div class="account-empty-state"><span>◇</span><p>Đang tải...</p></div>
+    </article>
+  `;
+
+  try {
+    const res = await apiClient.get("/watchlist", null, {
+      auth: true,
+      redirectOnUnauthorized: false,
+    });
+
+    const auctions = res?.data?.auctions || [];
+
+    if (auctions.length === 0) {
+      panel.innerHTML = `
+        <article class="account-runtime-card">
+          <div class="account-card-heading"><h3>Đang Theo Dõi</h3></div>
+          <div class="account-empty-state">
+            <span>◇</span>
+            <p>Bạn chưa theo dõi phiên nào. Thêm phiên vào watchlist từ trang đấu giá để xem tại đây.</p>
+          </div>
+        </article>
+      `;
+      return;
+    }
+
+    const cardsHtml = auctions
+      .map((a) => {
+        const isEnded = a.isEnded;
+        const statusClass = isEnded ? "" : "is-active";
+        const statusText = isEnded ? "Đã kết thúc" : "Đang mở";
+
+        return `
+          <article class="account-selling-card">
+            <img
+              src="${escapeHtml(a.imageUrl || FALLBACK_IMAGE)}"
+              alt="${escapeHtml(a.title)}"
+              onerror="this.src='${FALLBACK_IMAGE}'"
+            />
+            <div>
+              <p class="eyebrow">${escapeHtml(a.lot || `Lô #${a.auctionId}`)}</p>
+              <h4>${escapeHtml(a.title)}</h4>
+              <span class="account-status-pill ${statusClass}">${escapeHtml(statusText)}</span>
+              <div class="account-selling-meta" style="margin-top: 12px;">
+                <span>Giá hiện tại: <strong>${formatCurrency(a.currentPrice)}</strong></span>
+                <span>Lượt bid: <strong>${a.bidCount}</strong></span>
+                <span>Kết thúc: <strong>${formatDateTime(a.endTime)}</strong></span>
+              </div>
+              <div style="margin-top: 14px; display: flex; gap: 10px; align-items: center;">
+                <a class="button button-outline" href="./auction-detail.html?id=${escapeHtml(String(a.auctionId))}">
+                  Xem phiên
+                </a>
+                <button
+                  class="button button-outline"
+                  style="border-color: rgba(255,120,120,0.5); color: #ff8f8f;"
+                  onclick="removeFromWatchlistInline(${Number(a.auctionId)}, this)"
+                >
+                  Bỏ theo dõi
+                </button>
+              </div>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    panel.innerHTML = `
+      <div class="account-selling-shell">
+        <article class="account-runtime-card">
+          <div class="account-card-heading">
+            <h3>Đang Theo Dõi</h3>
+            <span class="account-status-pill">${auctions.length} phiên</span>
+          </div>
+          <div class="account-selling-grid">${cardsHtml}</div>
+        </article>
+      </div>
+    `;
+  } catch (error) {
+    panel.innerHTML = `
+      <article class="account-runtime-card">
+        <div class="account-card-heading"><h3>Đang Theo Dõi</h3></div>
+        <div class="account-empty-state">
+          <span>◇</span>
+          <p>Không thể tải danh sách theo dõi: ${escapeHtml(error.message)}</p>
+        </div>
+      </article>
+    `;
+  }
+}
+
+// Inline handler cho nút "Bỏ theo dõi" — expose ra window để onclick dùng được
+window.removeFromWatchlistInline = async function (auctionId, button) {
+  button.disabled = true;
+  button.textContent = "Đang xóa...";
+  try {
+    await apiClient.delete(`/watchlist/${auctionId}`, { auth: true });
+    showToast("Đã bỏ theo dõi", `Đã xóa phiên #${auctionId} khỏi watchlist.`, "success");
+    await loadAndRenderWatchingPanel();
+  } catch (error) {
+    showToast("Lỗi", error.message, "error");
+    button.disabled = false;
+    button.textContent = "Bỏ theo dõi";
+  }
+};
+
+async function loadAndRenderPaymentsPanel() {
+  const panel = getPanel("payments");
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <article class="account-runtime-card">
+      <div class="account-card-heading"><h3>Thanh Toán</h3></div>
+      <div class="account-empty-state"><span>◇</span><p>Đang tải...</p></div>
+    </article>
+  `;
+
+  try {
+    const res = await apiClient.get("/transactions", null, {
+      auth: true,
+      redirectOnUnauthorized: false,
+    });
+
+    const allTx = res?.data?.transactions || [];
+
+    // Tất cả giao dịch tiền (trừ adjustment nội bộ)
+    const ignoredTypes = ["ADMIN_ADJUSTMENT"];
+    const payments = allTx.filter((tx) => !ignoredTypes.includes(tx.type));
+
+    if (payments.length === 0) {
+      panel.innerHTML = `
+        <article class="account-runtime-card">
+          <div class="account-card-heading"><h3>Thanh Toán</h3></div>
+          <div class="account-empty-state">
+            <span>◇</span>
+            <p>Chưa có giao dịch nào. Lịch sử đặt cọc, hoàn tiền và thanh toán thắng sẽ xuất hiện tại đây.</p>
+          </div>
+        </article>
+      `;
+      return;
+    }
+
+    // Tổng tiền ra (deposit + win payment) đã SUCCESS
+    const outTypes = ["AUCTION_DEPOSIT", "WIN_FULL_PAYMENT", "WIN_REMAINING_PAYMENT"];
+    const totalOut = payments
+      .filter((tx) => tx.status === "SUCCESS" && outTypes.includes(tx.type))
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+    const rowsHtml = payments
+      .map((tx) => {
+        const isOut = outTypes.includes(tx.type);
+        const amountColor = isOut ? "var(--primary)" : "rgba(64, 201, 139, 0.9)";
+        const amountPrefix = isOut ? "−" : "+";
+
+        const statusClass =
+          tx.status === "SUCCESS" ? "is-active" : tx.status === "FAILED" ? "is-rejected" : "is-pending";
+
+        return `
+        <tr>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 12px;">
+            ${escapeHtml(formatDateTime(tx.createdAt))}
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text);">
+            ${
+              tx.auctionId
+                ? `<a href="./auction-detail.html?id=${escapeHtml(String(tx.auctionId))}" style="color: var(--primary);">
+                   ${escapeHtml(tx.auctionTitle || `Phiên #${tx.auctionId}`)}
+                 </a>`
+                : "—"
+            }
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">
+            ${escapeHtml(tx.typeLabel || tx.type)}
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border); font-weight: 700; color: ${amountColor};">
+            ${amountPrefix}${formatCurrency(tx.amount)}
+          </td>
+          <td style="padding: 12px 14px; border-bottom: 1px solid var(--border);">
+            <span class="account-status-pill ${statusClass}">
+              ${escapeHtml(tx.statusLabel || tx.status)}
+            </span>
+          </td>
+        </tr>
+      `;
+      })
+      .join("");
+
+    panel.innerHTML = `
+      <article class="account-runtime-card">
+        <div class="account-card-heading">
+          <h3>Thanh Toán</h3>
+          <span class="account-status-pill is-active">Đã chi: ${formatCurrency(totalOut)}</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Thời gian</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Phiên đấu giá</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Loại giao dịch</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Số tiền</th>
+                <th style="padding: 10px 14px; text-align: left; color: var(--text-muted); font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  } catch (error) {
+    panel.innerHTML = `
+      <article class="account-runtime-card">
+        <div class="account-card-heading"><h3>Thanh Toán</h3></div>
+        <div class="account-empty-state">
+          <span>◇</span>
+          <p>Không thể tải lịch sử thanh toán: ${escapeHtml(error.message)}</p>
+        </div>
+      </article>
+    `;
+  }
+}
+
 function renderNonReadyPanels() {
   renderPublishPanel();
-  renderEmptyPanel(
-    "bids",
-    "Lượt Giá Của Tôi",
-    "Phần này sẽ nối API lịch sử bid ở scope tiếp theo. Hiện không còn dùng mock data.",
-  );
-  renderEmptyPanel("watching", "Đang Theo Dõi", "Watchlist sẽ hiển thị khi API watchlist được nối vào Backend.");
+  loadAndRenderBidsPanel(); // ← thay renderEmptyPanel
+  loadAndRenderWatchingPanel(); // ← thay renderEmptyPanel
   loadAndRenderWonAuctions();
-  renderEmptyPanel("payments", "Thanh Toán", "Hóa đơn và đối soát sẽ được nối sau luồng checkout.");
+  loadAndRenderPaymentsPanel(); // ← thay renderEmptyPanel
   renderSettingsPanel();
 }
 
