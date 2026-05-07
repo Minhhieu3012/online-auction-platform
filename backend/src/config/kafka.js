@@ -2,11 +2,22 @@ const logger = require("../utils/logger");
 const { Kafka } = require("kafkajs");
 require("dotenv").config();
 
-const kafka = new Kafka({
+const kafkaConfig = {
   clientId: "online-auction-platform",
-  brokers: [process.env.KAFKA_BROKER || "localhost:9092"],
-  connectionTimeout: 3000,
-});
+  brokers: [process.env.KAFKA_BROKER],
+};
+
+// Bật bảo mật SSL và SASL cho Render
+if (process.env.NODE_ENV === "production") {
+  kafkaConfig.ssl = true;
+  kafkaConfig.sasl = {
+    mechanism: "scram-sha-256", // Aiven mặc định dùng chuẩn này
+    username: process.env.KAFKA_USERNAME,
+    password: process.env.KAFKA_PASSWORD,
+  };
+}
+
+const kafka = new Kafka(kafkaConfig);
 
 const producer = kafka.producer();
 
