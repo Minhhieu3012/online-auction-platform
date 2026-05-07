@@ -4,7 +4,7 @@
  */
 
 (function initAuctionSocketClient(global) {
-  const SOCKET_SERVER_URL = global.BROSGEM_SOCKET_URL || "http://localhost:3000";
+  const SOCKET_SERVER_URL = global.BROSGEM_SOCKET_URL || "https://auction-backend-8cp7.onrender.com";
 
   function normalizeRoom(room) {
     const normalizedRoom = String(room || "global").trim();

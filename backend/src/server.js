@@ -22,8 +22,11 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: function (origin, callback) {
+      callback(null, true);
+    },
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
