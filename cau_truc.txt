@@ -1,4 +1,5 @@
 online-auction-platform
+├── README.md
 ├── ai-features
 │   ├── .env.example
 │   ├── Dockerfile
@@ -54,7 +55,6 @@ online-auction-platform
 │   ├── .env.example
 │   ├── package-lock.json
 │   ├── package.json
-│   ├── public
 │   ├── scripts
 │   │   ├── seed-admin.js
 │   │   ├── seed-redis.js
@@ -71,10 +71,7 @@ online-auction-platform
 │       │   └── business.js
 │       ├── controllers
 │       │   ├── admin.js
-│       │   ├── admin.js.bak
-│       │   ├── admin.js.bak-encoding
 │       │   ├── auction.js
-│       │   ├── auction.js.bak
 │       │   ├── auth.js
 │       │   ├── bidding.js
 │       │   ├── deposit.js
@@ -87,7 +84,6 @@ online-auction-platform
 │       │   └── validateBid.js
 │       ├── routes
 │       │   ├── admin.js
-│       │   ├── auction-routes.js
 │       │   ├── auction.js
 │       │   ├── auth.js
 │       │   ├── index.js
@@ -106,11 +102,8 @@ online-auction-platform
 │           └── auctionWorker.js
 ├── cau_truc.txt
 ├── database
-│   ├── init.sql
-│   └── mock_data.sql
+│   └── init.sql
 ├── docker-compose.yml
-├── fix-admin-encoding.cjs
-├── fix-notifications-encoding.cjs
 ├── frontend
 │   ├── assets
 │   │   ├── icons

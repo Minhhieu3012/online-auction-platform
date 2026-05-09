@@ -264,6 +264,10 @@ class DepositController {
       return sendError(res, "ERR_INVALID_AUCTION_ID", "ID phiên đấu giá không hợp lệ.", 400);
     }
 
+    if (String(req.user?.role || "").toLowerCase() === "admin") {
+      return sendError(res, "ERR_FORBIDDEN", "Admin không thể đặt cọc tham gia đấu giá.", 403);
+    }
+
     const connection = await pool.getConnection();
 
     try {

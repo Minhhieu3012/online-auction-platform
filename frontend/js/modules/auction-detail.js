@@ -301,6 +301,11 @@ function isLoggedIn() {
   return Boolean(apiClient.getAuthToken() && getCurrentUser());
 }
 
+function isAdminUser() {
+  const user = getCurrentUser();
+  return String(user?.role || "").toLowerCase() === "admin";
+}
+
 function hasCurrentUserBid(currentUserId) {
   if (!currentUserId || !auction?.bidHistory?.length) return false;
   return auction.bidHistory.some((bid) => Number(bid.userId) === Number(currentUserId));
@@ -359,6 +364,18 @@ function renderActionPanel() {
 
     if (isGuest) {
       elements.winnerPanel.innerHTML = `<h3 style="color: var(--text-muted);">Phiên đấu giá đã kết thúc.</h3><p>Giá chốt: ${formatMoney(auction.finalPrice ?? auction.currentBid)}</p>`;
+      return;
+    }
+
+    if (isAdminUser()) {
+      setDisplay(elements.ownerPanel, true);
+      if (elements.ownerPanel) {
+        elements.ownerPanel.innerHTML = `
+        <p style="color: var(--text-muted); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">
+          ◇ Chế độ xem quản trị — không thể đặt giá
+        </p>
+      `;
+      }
       return;
     }
 
@@ -528,13 +545,51 @@ function bindSocketEvents() {
   socketUnsubscribers.push(window.socketClient.on("new_bid", updateUIWithNewBid));
   socketUnsubscribers.push(window.socketClient.on("auction_winner", updateUIWithFinalizedAuction));
   socketUnsubscribers.push(window.socketClient.on("auction_finalized", updateUIWithFinalizedAuction));
+
   socketUnsubscribers.push(
     window.socketClient.on("auction_extended", (data) => {
       if (Number(data.auctionId || data.auction_id) !== Number(auction.id)) return;
+
       const newEndTime = getRawValue(data, ["newEndTime", "new_end_time", "endTime", "end_time"], null);
       const parsedEndTime = parseTimeMs(newEndTime);
-      if (parsedEndTime > auction.endTime) auction.endTime = parsedEndTime;
-      showToast("Gia hạn phiên", "Phiên đấu giá đã được gia hạn để đảm bảo công bằng.", "info");
+      const nowMs = Date.now() + serverTimeOffset;
+
+      // Nếu newEndTime <= now → admin force end, không phải gia hạn
+      if (parsedEndTime && parsedEndTime <= nowMs) {
+        auction.endTime = parsedEndTime;
+        auction.status = "Ended";
+        auction.rawStatus = "ended";
+        renderBidPanel();
+        renderActionPanel();
+        scheduleFinalizeRefetch(1000);
+        return;
+      }
+
+      // Gia hạn thật sự
+      if (parsedEndTime > auction.endTime) {
+        auction.endTime = parsedEndTime;
+        showToast("Gia hạn phiên", "Phiên đấu giá đã được gia hạn để đảm bảo công bằng.", "info");
+      }
+    }),
+  );
+
+  socketUnsubscribers.push(
+    window.socketClient.on("auction_ended", (data) => {
+      if (Number(data.auctionId || data.auction_id) !== Number(auction.id)) return;
+
+      auction.status = data.status || "Ended";
+      auction.rawStatus = "ended";
+
+      const endTime = getRawValue(data, ["endTime", "end_time"], null);
+      if (endTime) auction.endTime = parseTimeMs(endTime);
+
+      renderBidPanel();
+      renderActionPanel();
+      scheduleFinalizeRefetch(1500);
+
+      if (data.forcedByAdmin) {
+        showToast("Phiên đã kết thúc", "Admin đã kết thúc phiên đấu giá.", "info");
+      }
     }),
   );
 }

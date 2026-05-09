@@ -2168,6 +2168,43 @@ async function loadAndRenderWonAuctions() {
   }
 }
 
+function bindSocketEvents() {
+  if (!window.socketClient) return;
+
+  // Connect vào global room + room riêng của user
+  window.socketClient.connect("global");
+
+  const userId = state.user?.id;
+  if (userId) {
+    window.socketClient.socket?.emit("join_auction", { auctionId: `user_${userId}` });
+  }
+
+  // Khi admin duyệt/từ chối → reload lại danh sách phiên
+  window.socketClient.on("auction_approved", (data) => {
+    if (data?.sellerId === state.user?.id || !data?.sellerId) {
+      loadMyAuctions();
+    }
+  });
+
+  window.socketClient.on("auction_rejected", (data) => {
+    if (data?.sellerId === state.user?.id || !data?.sellerId) {
+      loadMyAuctions();
+    }
+  });
+
+  window.socketClient.on("user_notification", (data) => {
+    if (data?.type === "AUCTION_APPROVED" || data?.type === "AUCTION_REJECTED") {
+      const isApproved = data.type === "AUCTION_APPROVED";
+      showToast(
+        isApproved ? "Phiên đã được duyệt! 🎉" : "Phiên chưa được duyệt",
+        data.message || "",
+        isApproved ? "success" : "error",
+      );
+      loadMyAuctions();
+    }
+  });
+}
+
 function initAccountPage() {
   injectAccountRuntimeStyles();
   initTheme();
@@ -2188,6 +2225,7 @@ function initAccountPage() {
 
   renderNonReadyPanels();
   loadMyAuctions();
+  bindSocketEvents();
 }
 
 document.addEventListener("DOMContentLoaded", initAccountPage);

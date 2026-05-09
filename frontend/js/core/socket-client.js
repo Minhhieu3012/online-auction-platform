@@ -108,6 +108,8 @@
         "auction_finalized",
         "auction_ended",
         "user_notification",
+        "auction_approved",
+        "auction_rejected",
       ];
 
       events.forEach((eventName) => {

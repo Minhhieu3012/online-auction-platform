@@ -841,6 +841,26 @@ class AuctionController {
 
       await connection.commit();
 
+      const io = req.app.get("io");
+      if (io) {
+        // Emit vào room global để live-auctions page reload
+        io.to("global").emit("auction_approved", {
+          auctionId,
+          status: requestedStatus,
+          sellerId: auction.created_by,
+        });
+
+        // Emit notification cá nhân về seller
+        io.to(`user_${auction.created_by}`).emit("user_notification", {
+          type: requestedStatus === "Rejected" ? "AUCTION_REJECTED" : "AUCTION_APPROVED",
+          auctionId,
+          message:
+            requestedStatus === "Rejected"
+              ? `Phiên #${auctionId} chưa được thông qua.`
+              : `Phiên #${auctionId} đã được admin duyệt!`,
+        });
+      }
+
       if (requestedStatus === "Active" || requestedStatus === "Scheduled") {
         await trySyncAuctionToRedis({
           ...auction,
@@ -922,6 +942,13 @@ class AuctionController {
       const io = req.app.get("io");
       if (io) {
         io.to(String(auctionId)).emit("auction_extended", { auctionId, newEndTime: now.toISOString() });
+
+        io.to(String(auctionId)).emit("auction_ended", {
+          auctionId,
+          status: "Ended",
+          endTime: now.toISOString(),
+          forcedByAdmin: true,
+        });
       }
 
       return sendSuccess(res, { auctionId }, "Đã ra lệnh kết thúc phiên đấu giá.");

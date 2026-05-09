@@ -246,26 +246,12 @@ function deriveAuctionStatus(rawStatus, startTime, endTime, nowMs = Date.now()) 
   const startMs = parseTimeMs(startTime);
   const endMs = parseTimeMs(endTime);
 
-  if (normalized === "pending") {
-    return "pending";
+  // Pass-through các status terminal từ DB
+  if (["pending", "rejected", "cancelled", "payment_pending", "completed", "ended"].includes(normalized)) {
+    return normalized;
   }
 
-  if (normalized === "rejected") {
-    return "rejected";
-  }
-
-  if (normalized === "cancelled") {
-    return "cancelled";
-  }
-
-  if (normalized === "payment_pending") {
-    return "payment_pending";
-  }
-
-  if (normalized === "completed") {
-    return "completed";
-  }
-
+  // Derive từ thời gian thực nếu DB status là active/scheduled/closing
   if (endMs && endMs <= nowMs) {
     return "ended";
   }
