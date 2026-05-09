@@ -221,6 +221,7 @@ function normalizeAuction(rawAuction = {}) {
   const finalPrice = toNullableNumber(getRawValue(rawAuction, ["final_price", "finalPrice"]));
   const winnerId = toNullableNumber(getRawValue(rawAuction, ["winner_id", "winnerId"]));
   const endTime = parseTimeMs(getRawValue(rawAuction, ["end_time", "endTime"]));
+  const startTime = parseTimeMs(getRawValue(rawAuction, ["start_time", "startTime"]));
   const status = getRawValue(rawAuction, ["status"], "Active");
 
   return {
@@ -241,6 +242,7 @@ function normalizeAuction(rawAuction = {}) {
     depositAmount: Number(getRawValue(rawAuction, ["deposit_amount", "depositAmount"], 0)),
     requiresDeposit: Boolean(getRawValue(rawAuction, ["requires_deposit", "requiresDeposit"], false)),
     endTime,
+    startTime,
     winnerId,
     finalPrice,
     createdBy: toNullableNumber(getRawValue(rawAuction, ["created_by", "createdBy"])),
@@ -324,6 +326,19 @@ function scheduleFinalizeRefetch(delay = FINALIZE_REFETCH_DELAY_MS) {
   }, delay);
 }
 
+function formatScheduledTime(auction) {
+  if (!auction?.startTime && !auction?.endTime) return "chưa xác định";
+  const ms = parseTimeMs(auction.startTime) || parseTimeMs(auction.endTime);
+  if (!ms) return "chưa xác định";
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(ms));
+}
+
 function renderActionPanel() {
   if (!auction) return;
 
@@ -381,6 +396,19 @@ function renderActionPanel() {
 
     if (isOwner) {
       elements.winnerPanel.innerHTML = `<h3 style="color: var(--text-muted);">Phiên kết thúc. Giá chốt: ${formatMoney(auction.finalPrice ?? auction.currentBid)}</h3>`;
+      return;
+    }
+
+    if (auction.rawStatus === "scheduled") {
+      setDisplay(elements.winnerPanel, true);
+      elements.winnerPanel.innerHTML = `
+    <h3 style="color: var(--primary);">PHIÊN CHƯA BẮT ĐẦU</h3>
+    <p style="color: var(--text-muted);">
+      Phiên đấu giá sẽ bắt đầu lúc 
+      <strong style="color: var(--text);">${formatScheduledTime(auction)}</strong>.
+      Hãy quay lại khi phiên mở.
+    </p>
+  `;
       return;
     }
 
