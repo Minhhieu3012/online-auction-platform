@@ -456,6 +456,16 @@ class DepositController {
       const finalPrice = Number(auction.final_price || auction.current_price || 0);
       const remainingAmount = Math.max(0, finalPrice - depositAmount);
 
+      const STRIPE_MAX_AMOUNT = 999999.99;
+      if (remainingAmount > STRIPE_MAX_AMOUNT) {
+        return sendError(
+          res,
+          "ERR_AMOUNT_TOO_LARGE",
+          `Số tiền thanh toán ($${remainingAmount.toLocaleString()}) vượt quá giới hạn Stripe ($999,999). Vui lòng liên hệ admin để xử lý thủ công.`,
+          400,
+        );
+      }
+
       if (remainingAmount <= 0) {
         return sendSuccess(
           res,
