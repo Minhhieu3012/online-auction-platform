@@ -400,3 +400,15 @@ CREATE TABLE Admin_Action_Logs (
     INDEX idx_admin_logs_action (action),
     INDEX idx_admin_logs_created_at (created_at DESC)
 );
+
+-- INSERT INTO Users (username, email, password, role, account_status, balance)
+-- VALUES (
+--     'admin2',                              
+--     'admin2@brosgem.com',                  
+--     '$2b$10$hyRVdnViH4LsooWKZV4tceus9xw.fk5SjN7nhxZdChtBM/366xKtW',
+--     'admin',
+--     'active',
+--     0.00
+-- );
+
+-- SELECT id, username, email, role FROM Users WHERE role = 'admin';
