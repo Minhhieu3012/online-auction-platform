@@ -13,7 +13,7 @@
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 
-## 📖 Overview
+## Overview
 
 Unlike traditional e-commerce with fixed prices, this system implements an **English Auction** model (increasing prices). Users compete by bidding in real time, the system continuously updates prices, and determines the winner when the countdown ends.
 
@@ -25,22 +25,22 @@ Unlike traditional e-commerce with fixed prices, this system implements an **Eng
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### ⚡ The Bidding Experience
+### The Bidding Experience
 
 - **Real-time Engine:** Instant price updates via Socket.io (no refreshes).
 - **Smart Proxy Bidding:** Automated bidding up to a user-defined limit.
 - **Soft-Close (Anti-sniping):** Extends auction time by 60s if a bid occurs in the final seconds to prevent last-second "sniping".
 
-### 🛡️ Trust & Safety
+### Trust & Safety
 
 - **AI Shill Score:** Analyzes bid frequency, patterns, and win/loss ratios to flag suspicious price manipulation in real-time.
 - **Admin Dashboard:** Comprehensive monitoring for auction health and fraud alerts.
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 - **Frontend:** Vanilla JS (Lightweight, high performance).
 - **Backend:** Node.js/Express (Event-driven API Gateway).
@@ -52,7 +52,7 @@ Unlike traditional e-commerce with fixed prices, this system implements an **Eng
 
 ---
 
-## ⚡ Handling Concurrency & Data Integrity
+## Handling Concurrency & Data Integrity
 
 To maintain a "Single Source of Truth" during peak loads, we implemented:
 
@@ -63,7 +63,7 @@ To maintain a "Single Source of Truth" during peak loads, we implemented:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -77,15 +77,7 @@ To maintain a "Single Source of Truth" during peak loads, we implemented:
    git clone https://github.com/Minhhieu3012/online-auction-platform.git
    ```
 
-2. Set up AI service:
-
-   ```bash
-   cd ai-service
-   pip install -r requirements.txt
-   uvicorn main:app --port 8000
-   ```
-
-3. Environment:
+2. Environment:
 
 - Rename `.env.example` to `.env` and and configure your credentials.
 
@@ -95,10 +87,3 @@ To maintain a "Single Source of Truth" during peak loads, we implemented:
    npm run db:migrate
    npm run dev
    ```
-
----
-
-## 🧪 Testing
-
-- Stress Test: Handled 100+ concurrent requests/sec via JMeter with 0% failure rate.
-- Data Integrity: Verified highest bid consistency across 100+ simulated parallel users.
